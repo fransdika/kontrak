@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\api_all;
 use App\Http\Controllers\API\AuthController;
+use App\Models\api_m;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,9 +21,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('index', [api_all::class, 'index']);
-Route::put('customer_config/{id}', [api_all::class, 'update_m_customer_config']);
-
+Route::post('index', [api_all::class, 'index']);
+Route::post('request_contract', [api_all::class, 'post_request_contract']);
+Route::post('compare_supplier_data', [api_all::class, 'compare_supplier_data']);
+Route::post('customer_respons_contract', [api_all::class, 'customer_respons_contract']);
+Route::post('do_payment', [api_all::class, 'do_payment']);
 
 Route::group([
 

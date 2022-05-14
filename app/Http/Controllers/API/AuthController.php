@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 // use Illuminate\Support\Facades\Request;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthController extends Controller
 {
@@ -31,10 +32,8 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-
-        $credentials = $request->only('nama', 'passweb');
+        $credentials = $request->only('no_hp', 'passwd');
         $user = User::where($credentials)->first();
-        // print_r($credentials);
         // print_r($user);
         if (! $user )  {
             return response()->json(['error' => 'Unauthorized'] , 401);
@@ -43,6 +42,17 @@ class AuthController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
         return $this->respondWithToken($token);
+
+
+
+
+        // tidak dipakai
+        // $user1 = DB::table('m_userx')->where('pass')
+        // $user = DB::select('select * from users where id = ?')->first();
+        // $user = DB::select('select * from m_userx where no_hp = ?', [$request->no_hp]);
+        // print_r($credentials);
+        // print_r($user);
+        
         // $credentials = request(['email', 'password']);
 
         // if (! $token = auth()->attempt($credentials)) {
