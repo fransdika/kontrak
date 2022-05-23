@@ -21,9 +21,18 @@ class AuthController extends Controller
     public function __construct()
     {
         $this->guard = 'api';
-        $this->middleware('auth:api', ['except' => ['login']]);
+        // $this->middleware('auth:api', ['except' => ['login']]);
 
     }
+    public function login_response()
+    {
+        return response()->json([
+            'Msg' => 'Token salah'
+        ],200);
+        // echo "salah";
+    }
+
+
 
     /**
      * Get a JWT via given credentials.

@@ -16,12 +16,27 @@ class api_all extends Controller
         $this->middleware('auth:api');
         // $api_m = new api_m();
     }
+
     public function index(Request $request)
     {
-        $comp_id = $request->comp_id;
-        $data = api_m::get_list_verified_customer($comp_id);
+        $cid_sumber = $request->cid_sumber;
+        $cid_tujuan = $request->cid_tujuan;
+        $data = api_m::get_Ready_for_pay($cid_sumber,$cid_tujuan);
         return response()->json([
             'Data' => $data
+        ], 200);
+    }
+
+    public function create_procedure()
+    {
+        $procedure = '';
+    }
+
+    public function procedure_prepare_kontrak(Request $request)
+    {
+        $data = DB::statement("CALL p_proc_prepare_order_kontrak(?,?),[$request->comp_id,$request->kd_supplier]");
+        return response()->json([
+            'Data' => $data 
         ], 200);
     }
 
