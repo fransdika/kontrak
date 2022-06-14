@@ -27,7 +27,7 @@ class LaporanModel extends Model
 	}
 	public function getLaporanPiutang($company_id,$kd_customer,$periode,$limit_start,$limit_length)
 	{
-		$sql="CALL p_report_getHutangAktifPerperiode('$company_id', '$kd_supplier','$periode','$limit_start' ,'$limit_length')";
+		$sql="CALL p_report_getHutangAktifPerperiode('$company_id', '$kd_customer','$periode','$limit_start' ,'$limit_length')";
 		return DB::select($sql);
 	}
 
