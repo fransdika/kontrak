@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\api_all;
 use App\Http\Controllers\API\api_testing;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\LaporanController;
 use App\Models\api_m;
+use App\Models\LaporanModel;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +31,13 @@ Route::post('compare_supplier_data', [api_all::class, 'compare_supplier_data']);
 Route::post('customer_respons_contract', [api_all::class, 'customer_respons_contract']);
 Route::post('do_payment', [api_all::class, 'do_payment']);
 Route::post('prepare_order', [api_all::class, 'procedure_prepare_kontrak']);
+Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
+Route::post('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
+Route::post('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
+Route::post('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
+Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
+Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
+Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
 
 Route::get('testing', [api_testing::class, 'testing']);
 
