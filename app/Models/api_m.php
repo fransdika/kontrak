@@ -32,7 +32,7 @@ class api_m extends Model
         mp_company.id,
         mp_company.company_id,
         mp_company.db_name,
-        IFNULL( m_customer_config.`status`, 0 ) AS STATUS,
+        IFNULL( m_customer_config.`status`, 0 ) AS `status`,
         IFNULL( m_customer_config.kontrak_id,- 1 ) AS kontrak_id,
         IFNULL( m_customer_config.id, 0 ) AS c_config_id,
         db_config_id_cid.this_id_cid AS this_id_cid,
@@ -45,33 +45,34 @@ class api_m extends Model
             INNER JOIN ( SELECT VALUE AS this_cid FROM misterkong_$comp_id.g_db_config g_db_config WHERE NAME = 'company_id' ) db_config_cid");
     }
     
+    
     public function get_list_supplier_contract($comp_id)
     {
         return DB::select("SELECT
-        * 
-    FROM
-        ( SELECT VALUE AS this_company_id FROM misterkong_$comp_id.g_db_config g_db_config WHERE NAME = 'company_id' ) me_data
-        INNER JOIN (
-        SELECT
-            h_kontrak_request.comp_id_sumber,
-            h_kontrak_request.comp_id_tujuan,
-            h_kontrak_request.kd_customer,
-            h_kontrak_request.kd_supplier,
-            h_kontrak_request.periode_bulan 
-        FROM
-            h_kontrak_request 
-        WHERE
-            `status` = 0 
-        ) request ON request.comp_id_tujuan = me_data.this_company_id
-        INNER JOIN (
-        SELECT
-            company.company_id, company.nama_usaha, company.alamat, company.no_telepon, company.email_usaha,
-            ( SELECT nama FROM misterkong_mp.m_kategori_usaha WHERE kd_kategori_usaha = company.kategori_usaha ) AS usaha,
-            ( SELECT a.province FROM misterkong_mp.m_province a WHERE a.id = company.kd_provinsi ) AS provinsi 
-        FROM
-            misterkong_mp.m_userx m_userx
-        INNER JOIN m_user_company company ON m_userx.id = company.user_id 
-        ) data_user ON data_user.company_id = request.comp_id_sumber");
+                                * 
+                            FROM
+                                ( SELECT VALUE AS this_company_id FROM misterkong_$comp_id.g_db_config g_db_config WHERE NAME = 'company_id' ) me_data
+                                INNER JOIN (
+                                SELECT
+                                    h_kontrak_request.comp_id_sumber,
+                                    h_kontrak_request.comp_id_tujuan,
+                                    h_kontrak_request.kd_customer,
+                                    h_kontrak_request.kd_supplier,
+                                    h_kontrak_request.periode_bulan 
+                                FROM
+                                    h_kontrak_request 
+                                WHERE
+                                    `status` = 0 
+                                ) request ON request.comp_id_tujuan = me_data.this_company_id
+                                INNER JOIN (
+                                SELECT
+                                    company.company_id, company.nama_usaha, company.alamat, company.no_telepon, company.email_usaha,
+                                    ( SELECT nama FROM misterkong_mp.m_kategori_usaha WHERE kd_kategori_usaha = company.kategori_usaha ) AS usaha,
+                                    ( SELECT a.province FROM misterkong_mp.m_province a WHERE a.id = company.kd_provinsi ) AS provinsi 
+                                FROM
+                                    misterkong_mp.m_userx m_userx
+                                INNER JOIN m_user_company company ON m_userx.id = company.user_id 
+                                ) data_user ON data_user.company_id = request.comp_id_sumber");
     }
 
     public function get_list_supplier_response_contract($comp_id)
@@ -140,33 +141,32 @@ class api_m extends Model
                     status_response DESC");
     }
 
-    public function get_Ready_for_pay($cid_sumber, $cid_tujuan) 
+    public function get_Ready_for_pay($id, $cid_sumber, $cid_tujuan) 
     {
         return DB::select("SELECT
-                        * 
-                    FROM
-                        ( SELECT * FROM misterkong_mp.t_kontrak WHERE id = '1' ) kontrak_selected
-                        INNER JOIN misterkong_comp2020110310015601.m_customer_config ON kontrak_selected.user_company_y_id = m_customer_config.customer_user_company_id
-                        INNER JOIN (
-                        SELECT
-                            id,
-                            comp_id_sumber,
-                            comp_id_tujuan,
-                            kd_customer,
-                            kd_supplier,
-                            STATUS,
-                            DATE( tanggal_request ) AS tanggal_request,
-                            DATE( tanggal_response ) AS tanggal_response,
-                            DATE( tanggal_kontrak ) AS tanggal_kontrak,
-                            periode_bulan,
-                            DATE( tanggal_jatuh_tempo ) AS tanggal_jatuh_tempo 
-                        FROM
-                            misterkong_mp.h_kontrak_request 
-                        WHERE
-                            STATUS <> 1 
-                            AND comp_id_sumber = '$cid_sumber' 
-                        AND comp_id_tujuan = '$cid_tujuan' 
-                        ) histori ON histori.kd_customer = m_customer_config.kd_customer");
+                                * 
+                            FROM
+                                ( SELECT id AS id_kontrak, no_kontrak, `status`, user_company_x_id, user_company_y_id FROM misterkong_mp.t_kontrak WHERE id = '$id' ) kontrak_selected
+                                INNER JOIN ( SELECT kd_customer, customer_user_company_id, `status` AS status_customer_config, kontrak_id FROM misterkong_$cid_sumber.m_customer_config ) m_customer_config ON kontrak_selected.user_company_y_id = m_customer_config.customer_user_company_id
+                                INNER JOIN (
+                                    SELECT-- 		id,
+                                    comp_id_sumber,
+                                    comp_id_tujuan,
+                                    kd_customer,
+                                    kd_supplier,
+                                    `status` AS status_history,
+                                    DATE( tanggal_request ) AS tanggal_request,
+                                    DATE( tanggal_response ) AS tanggal_response,
+                                    DATE( tanggal_kontrak ) AS tanggal_kontrak,
+                                    periode_bulan,
+                                    DATE( tanggal_jatuh_tempo ) AS tanggal_jatuh_tempo 
+                                FROM
+                                    misterkong_mp.h_kontrak_request 
+                                WHERE
+                                    STATUS <> 1 
+                                    AND comp_id_sumber = '$cid_sumber' 
+                                AND comp_id_tujuan = '$cid_tujuan' 
+                                ) histori ON histori.kd_customer = m_customer_config.kd_customer");
     }   
 
 }

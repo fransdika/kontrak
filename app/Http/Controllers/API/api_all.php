@@ -19,11 +19,10 @@ class api_all extends Controller
 
     public function index(Request $request)
     {
-        $cid_sumber = $request->cid_sumber;
-        $cid_tujuan = $request->cid_tujuan;
-        $data = api_m::get_Ready_for_pay($cid_sumber,$cid_tujuan);
+        $comp_id = $request->comp_id;
+        $data = api_m::get_list_customer_contract($comp_id);
         return response()->json([
-            'Data' => $data
+            'data' => $data
         ], 200);
     }
 
@@ -229,6 +228,19 @@ class api_all extends Controller
             return response()->json([
                 'Pesan' => "Lengkapi Data"
             ], 404);
+        }
+    }
+    public function upload_image(Request $request)
+    {
+        // $result = $request->file('file')->store('apiDocs');
+        // return ["result"=>$result];
+        $image = $request->file('image');
+        if ($request->hasFile('image')) {
+            $new_name = rand().'.'.$image->getClientOriginalExtension();
+            $image->move(public_path('/uploads'),$new_name);
+            return response()->json($new_name);
+        } else {
+            return response()->json('image null');
         }
     }
 }
