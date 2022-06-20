@@ -6,6 +6,7 @@ use App\Http\Controllers\API\api_all;
 use App\Http\Controllers\API\api_testing;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\LaporanController;
+use App\Http\Controllers\API\LaporanTableController;
 use App\Models\api_m;
 use App\Models\LaporanModel;
 
@@ -40,6 +41,12 @@ Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
 Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
 Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
 
+// data table
+Route::post('laporan/penjualan', [LaporanTableController::class, 'laporanp_priode']);
+Route::post('laporan/pembelian', [LaporanTableController::class, 'laporanpem_priode']);
+Route::post('laporan/hutang', [LaporanTableController::class, 'hutang']);
+Route::post('laporan/piutang', [LaporanTableController::class, 'piutang']);
+Route::post('laporan/stok', [LaporanTableController::class, 'inventory']);
 Route::get('testing', [api_testing::class, 'testing']);
 
 
