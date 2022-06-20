@@ -49,6 +49,9 @@ Route::post('laporan/piutang', [LaporanTableController::class, 'piutang']);
 Route::post('laporan/stok', [LaporanTableController::class, 'inventory']);
 Route::get('testing', [api_testing::class, 'testing']);
 
+// kong pos
+Route::post('/pos', [KongposController::class, 'status']);
+Route::post('/pos/siap', [KongposController::class, 'tandaisiap']);
 
 
 Route::group([
