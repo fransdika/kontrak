@@ -7,6 +7,7 @@ use App\Http\Controllers\API\api_testing;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\LaporanTableController;
+use App\Http\Controllers\API\KongPosController;
 use App\Models\api_m;
 use App\Models\LaporanModel;
 
@@ -42,16 +43,16 @@ Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
 Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
 
 // data table
-Route::post('laporan/penjualan', [LaporanTableController::class, 'laporanp_priode']);
-Route::post('laporan/pembelian', [LaporanTableController::class, 'laporanpem_priode']);
-Route::post('laporan/hutang', [LaporanTableController::class, 'hutang']);
-Route::post('laporan/piutang', [LaporanTableController::class, 'piutang']);
-Route::post('laporan/stok', [LaporanTableController::class, 'inventory']);
+Route::post('laporan/penjualan_dt', [LaporanTableController::class, 'laporanp_priode']);
+Route::post('laporan/pembelian_dt', [LaporanTableController::class, 'laporanpem_priode']);
+Route::post('laporan/hutang_dt', [LaporanTableController::class, 'hutang']);
+Route::post('laporan/piutang_dt', [LaporanTableController::class, 'piutang']);
+Route::post('laporan/stok_dt', [LaporanTableController::class, 'inventory']);
 Route::get('testing', [api_testing::class, 'testing']);
 
 // kong pos
-Route::post('/pos', [KongposController::class, 'status']);
-Route::post('/pos/siap', [KongposController::class, 'tandaisiap']);
+Route::post('/pos/cek_order', [KongPosController::class, 'status_pesanan']);
+Route::post('/pos/siap', [KongPosController::class, 'tandaisiap']);
 
 
 Route::group([
