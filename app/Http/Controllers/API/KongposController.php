@@ -70,10 +70,10 @@ class KongPosController extends Controller
 
 		if ($result->status != 6) {
 			$update = DB::statement("UPDATE misterkong_" . $company_id . ".t_penjualan_order SET status = '$status' WHERE no_order = '$order'");
-			if ($status == 5) {
+			if ($status == 5 || $status==6) {
 				$response = [
 					'status' => 200,
-					'key' => 5,
+					'key' => $status,
 					'message' => 'berhasil di update',
 				];
 			} elseif ($status == 4) {
