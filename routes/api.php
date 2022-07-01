@@ -51,7 +51,7 @@ Route::post('laporan/stok_dt', [LaporanTableController::class, 'inventory']);
 Route::get('testing', [api_testing::class, 'testing']);
 
 // kong pos
-Route::post('/pos/cek_order', [KongPosController::class, 'status_pesanan']);
+Route::post('/pos/cek_status_order', [KongPosController::class, 'status_pesanan']);
 Route::post('/pos/siap', [KongPosController::class, 'tandaisiap']);
 Route::post('/pos/cek_status', [KongPosController::class, 'getLastStatus']);
 
