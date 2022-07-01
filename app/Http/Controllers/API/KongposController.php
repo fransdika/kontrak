@@ -24,7 +24,7 @@ class KongPosController extends Controller
 			$response = [
 				'status' => 200,
 				'key' => $result->status,
-				'key_terima'=>'',
+				'key_terima'=>0,
 				'message' => $this->getStatusOrder(intval($result->status)),
 			];
 			if ($result->status == 0) {
@@ -43,7 +43,10 @@ class KongPosController extends Controller
 				$response['key_terima'] = 4;
 			} elseif ($result->status == 6) {
 				$response['key_terima'] = 0;
+			} elseif ($result->status == 2) {
+				$response['key_terima'] = 2;
 			}
+
 		} else {
 			$response = [
 				'status' => 500,
@@ -65,30 +68,50 @@ class KongPosController extends Controller
 		$response = [
 			'status' => 500,
 			'key' => 0,
+			'key_terima' => 0,
 			'message' => 'error server',
 		];
 
-		if ($result->status != 6) {
+		if (($result->status != 6 && $result->status != 1) || $status ==1) {
 			$update = DB::statement("UPDATE misterkong_" . $company_id . ".t_penjualan_order SET status = '$status' WHERE no_order = '$order'");
-			if ($status == 5 || $status==6) {
+			if ($status == 5 || $status==6 || $status==1) {
 				$response = [
 					'status' => 200,
 					'key' => $status,
+					'key_terima' => 1,
 					'message' => 'berhasil di update',
 				];
 			} elseif ($status == 4) {
 				$response = [
 					'status' => 200,
 					'key' => 4,
+					'key_terima' => 3,
 					'message' => 'berhasil di batalkan',
 				];
 			}
 		} else {
 			$response = [
 				'status' => 200,
-				'key' => 0,
-				'message' => 'pin sudah dimasukan',
+				'key' => $result->status,
+				'key_terima' => 2,
+				'message' => 'pin sudah dimasukan atau pesanan sudah selesai',
 			];
+			if($status==4){
+				$response = [
+					'status' => 200,
+					'key' => 0,
+					'key_terima' => 4,
+					'message' => 'pesanan sudah dibatalkan',
+				];	
+			}elseif($status==3){
+				$response = [
+					'status' => 200,
+					'key' => 0,
+					'key_terima' => 2,
+					'message' => 'pesanan sudah siap',
+				];	
+			}
+			
 		}
 		return response()->json($response, 200);
 
@@ -107,6 +130,23 @@ class KongPosController extends Controller
 			-1=> 'data tidak tersedia'
 		);
 		return $dataStatus[$status];
+	}
+
+	public function getLastStatus(Request $request)
+	{
+		$company_id = $request->company_id;
+		$order = explode(',', $request->no_order);
+		$result = DB::table('misterkong_'.$company_id.'.t_penjualan_order')->whereIn('no_order', $order)->get();
+		foreach ($result as $key => $value) {
+			$data['no_order'][]=$value->no_order;
+			$data['status'][]=$value->status;
+		}
+		$response = [
+			'status' => 200,
+			'no_order' => $data['no_order'],
+			'status' => $data['status'],
+		];
+		return response()->json($response, 200);
 	}
 
 }

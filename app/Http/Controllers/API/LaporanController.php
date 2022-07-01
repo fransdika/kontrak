@@ -75,12 +75,14 @@ class LaporanController extends Controller
 		$kd_barang=$request->kd_barang;
 		$kd_divisi=$request->kd_divisi;
 		$periode=$request->periode;
+		$jenis=$request->jenis;
+		$search=$request->search;
 		$order_col=$request->order_col;
 		$order_type=$request->order_type;
 		$limit=$request->limit;
 		$length=$request->length;
 		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanStok($company_id,$kd_barang,$kd_divisi,$periode,$order_col,$order_type,$limit,$length,$count_stats);
+		$data = LaporanModel::GetLaporanStok($company_id,$kd_barang,$kd_divisi,$periode,$jenis,$search,$order_col,$order_type,$limit,$length,$count_stats);
 		return response()->json($data, 200);
 	}
 

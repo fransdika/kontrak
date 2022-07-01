@@ -53,6 +53,7 @@ Route::get('testing', [api_testing::class, 'testing']);
 // kong pos
 Route::post('/pos/cek_order', [KongPosController::class, 'status_pesanan']);
 Route::post('/pos/siap', [KongPosController::class, 'tandaisiap']);
+Route::post('/pos/cek_status', [KongPosController::class, 'getLastStatus']);
 
 
 Route::group([
