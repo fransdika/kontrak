@@ -56,6 +56,9 @@ Route::post('/pos/siap', [KongPosController::class, 'tandaisiap']);
 Route::post('/pos/cek_status', [KongPosController::class, 'getLastStatus']);
 
 
+Route::post('login_get_cid', [AuthController::class, 'loginGetCid']);
+Route::post('login_company', [AuthController::class, 'loginCompany']);
+
 Route::group([
 
     'middleware' => 'api',
@@ -65,7 +68,8 @@ Route::group([
 
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout']);
+
     Route::post('refresh', 'AuthController@refresh');
     Route::post('me', 'AuthController@me');
-
+    
 });

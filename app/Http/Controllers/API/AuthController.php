@@ -32,7 +32,28 @@ class AuthController extends Controller
         // echo "salah";
     }
 
+    public function loginGetCid(Request $request)
+    {
+        $no_hp = $request->no_hp;
+        $data = DB::select(
+        "SELECT
+        company_id, nama_usaha
+        FROM
+            m_user_company
+            INNER JOIN ( SELECT id FROM m_userx WHERE no_hp = '$no_hp' ) a ON m_user_company.kd_user = a.id");
+        return response()->json([
+            $data
+        ], 200);
+    }
 
+    public function loginCompany(Request $request)
+    {
+        $cid = $request->company_id;
+        $data = DB::select("SELECT company_id, nama_usaha, no_telepon, alamat FROM m_user_company WHERE company_id='$cid'");
+        return response()->json([
+             $data[0]
+        ], 200);
+    }
 
     /**
      * Get a JWT via given credentials.
@@ -50,7 +71,7 @@ class AuthController extends Controller
         if (!$token = auth($this->guard)->login($user)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-        return $this->respondWithToken($token);
+        return $this->respondWithToken($token, $user);
 
 
 
@@ -110,12 +131,13 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    protected function respondWithToken($token)
+    protected function respondWithToken($token, $user)
     {
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
+            'expires_in' => auth()->factory()->getTTL() * 60,
+            'data_user' => $user
         ]);
     }
 }
