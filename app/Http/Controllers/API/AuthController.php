@@ -41,18 +41,14 @@ class AuthController extends Controller
         FROM
             m_user_company
             INNER JOIN ( SELECT id FROM m_userx WHERE no_hp = '$no_hp' ) a ON m_user_company.kd_user = a.id");
-        return response()->json([
-            $data
-        ], 200);
+        return response()->json($data, 200);
     }
 
     public function loginCompany(Request $request)
     {
         $cid = $request->company_id;
         $data = DB::select("SELECT company_id, nama_usaha, no_telepon, alamat FROM m_user_company WHERE company_id='$cid'");
-        return response()->json([
-             $data[0]
-        ], 200);
+        return response()->json($data[0], 200);
     }
 
     /**
@@ -137,7 +133,8 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60,
-            'data_user' => $user
+            'nama_user' => $user->nama,
+            'email_user' => $user->email
         ]);
     }
 }
