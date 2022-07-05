@@ -58,16 +58,22 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->only('no_hp', 'passwd');
-        $user = User::where($credentials)->first();
-        // print_r($user);
-        if (! $user )  {
-            return response()->json(['error' => 'Unauthorized'] , 401);
-        };
-        if (!$token = auth($this->guard)->login($user)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        $selectmd5 = DB::select("SELECT passwd FROM m_userx WHERE no_hp='$request->no_hp' AND passwd=MD5('$request->passwd')");
+        if ($selectmd5 == null) {
+            return response()->json(['message' => 'No hp atau Password salah'], 401);
+        } else {
+            $passwd = $selectmd5[0]->passwd;
+            $credentials = $request->only('no_hp',$passwd);
+            $user = User::where($credentials)->first();
+            if (! $user )  {
+                return response()->json(['message' => 'No hp atau Password salah'] , 401);
+            };
+            if (!$token = auth($this->guard)->login($user)) {
+                return response()->json(['message' => 'No hp atau Password salah'], 401);
+            }
+            return $this->respondWithToken($token, $user);
         }
-        return $this->respondWithToken($token, $user);
+        
 
 
 
