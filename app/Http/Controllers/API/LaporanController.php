@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Validator;
 
 class LaporanController extends Controller
 {
+	public function __construct()
+	{
+		$this->middleware('auth:api');
+	}
 	public function getLaporanPenjualan(Request $request)
 	{
 		$company_id=$request->company_id;
