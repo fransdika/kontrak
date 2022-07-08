@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('login', ['as' => 'login', 'uses' => 'App\Http\Controllers\API\AuthController@login_response']);
 Route::post('index', [api_all::class, 'index']);
+Route::post('customer_contract', [api_all::class, 'customer_contract']);
 Route::post('request_contract', [api_all::class, 'post_request_contract']);
 Route::post('compare_supplier_data', [api_all::class, 'compare_supplier_data']);
 Route::post('customer_respons_contract', [api_all::class, 'customer_respons_contract']);

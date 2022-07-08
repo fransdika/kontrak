@@ -26,6 +26,13 @@ class api_all extends Controller
         ], 200);
     }
 
+    public function customer_contract(Request $request)
+    {
+        $comp_id = $request->comp_id;
+        $data = api_m::get_list_customer_contract($comp_id);
+        return response()->json($data, 200);
+    }
+
     public function create_procedure()
     {
         $procedure = '';
