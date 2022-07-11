@@ -28,8 +28,7 @@ class api_all extends Controller
 
     public function customer_contract(Request $request)
     {
-        $comp_id = $request->comp_id;
-        $data = api_m::get_list_customer_contract($comp_id);
+        $data = DB::select("CALL list_customer_contract ('$request->comp_id','$request->order_col','$request->order_type','$request->limit','$request->length','$request->search','$request->count_stats')");
         return response()->json($data, 200);
     }
 
