@@ -32,7 +32,7 @@ class api_all extends Controller
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
-            return DB::select($sql[0]);
+            return DB::select($sql)[0];
         }
     }
 
