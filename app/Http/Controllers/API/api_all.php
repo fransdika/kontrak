@@ -28,8 +28,12 @@ class api_all extends Controller
 
     public function customer_contract(Request $request)
     {
-        $data = DB::select("CALL list_customer_contract ('$request->comp_id','$request->order_col','$request->order_type','$request->limit','$request->length','$request->search','$request->count_stats')");
-        return response()->json($data, 200);
+        $sql = "CALL list_customer_contract ('$request->comp_id','$request->order_col','$request->order_type','$request->limit','$request->length','$request->search','$request->count_stats')";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql[0]);
+        }
     }
 
     public function create_procedure()
