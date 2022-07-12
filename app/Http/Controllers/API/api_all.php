@@ -45,6 +45,16 @@ class api_all extends Controller
             return DB::select($sql)[0];
         }
     }
+
+    public function supplier_response_contract(Request $request)
+    {
+        $sql = "CALL list_supplier_response_contract ('$request->comp_id','$request->order_col','$request->order_type','$request->limit','$request->length','$request->search','$request->count_stats')";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
+    }
     public function procedure_prepare_kontrak(Request $request)
     {
         $data = DB::statement("CALL p_proc_prepare_order_kontrak(?,?),[$request->comp_id,$request->kd_supplier]");

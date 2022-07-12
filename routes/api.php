@@ -32,6 +32,7 @@ Route::post('index', [api_all::class, 'index']);
 // get data
 Route::post('customer_contract', [api_all::class, 'customer_contract']);
 Route::post('compare_supplier', [api_all::class, 'compare_supplier']);
+Route::post('supplier_response_contract', [api_all::class, 'supplier_response_contract']);
 
 
 // post data
