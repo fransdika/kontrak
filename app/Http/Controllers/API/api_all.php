@@ -36,11 +36,15 @@ class api_all extends Controller
         }
     }
 
-    public function create_procedure()
+    public function compare_supplier(Request $request)
     {
-        $procedure = '';
+        $sql = "CALL list_supplier_contract ('$request->comp_id','$request->order_col','$request->order_type','$request->limit','$request->length','$request->search','$request->count_stats')";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
     }
-
     public function procedure_prepare_kontrak(Request $request)
     {
         $data = DB::statement("CALL p_proc_prepare_order_kontrak(?,?),[$request->comp_id,$request->kd_supplier]");
@@ -93,7 +97,7 @@ class api_all extends Controller
         }
     }
 
-    public function compare_supplier_data(Request $request)
+    public function post_compare_supplier_data(Request $request)
     {
         $validasi = Validator::make($request->all(), [
             "kd_supplier" => "Required",
@@ -129,7 +133,7 @@ class api_all extends Controller
         }
     }
 
-    public function customer_respons_contract(Request $request)
+    public function post_customer_respons_contract(Request $request)
     {
        
         $validasi = Validator::make($request->all(), [
@@ -198,7 +202,7 @@ class api_all extends Controller
             ], 404);
         }
     }
-    public function do_payment(Request $request)
+    public function post_do_payment(Request $request)
     {
         $validasi = Validator::make($request->all(), [
             "id_kontrak" => "required",

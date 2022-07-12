@@ -28,11 +28,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('login', ['as' => 'login', 'uses' => 'App\Http\Controllers\API\AuthController@login_response']);
 Route::post('index', [api_all::class, 'index']);
+
+// get data
 Route::post('customer_contract', [api_all::class, 'customer_contract']);
-Route::post('request_contract', [api_all::class, 'post_request_contract']);
-Route::post('compare_supplier_data', [api_all::class, 'compare_supplier_data']);
-Route::post('customer_respons_contract', [api_all::class, 'customer_respons_contract']);
-Route::post('do_payment', [api_all::class, 'do_payment']);
+Route::post('compare_supplier', [api_all::class, 'compare_supplier']);
+
+
+// post data
+Route::post('post_request_contract', [api_all::class, 'post_request_contract']);
+Route::post('post_compare_supplier_data', [api_all::class, 'post_compare_supplier_data']);
+Route::post('post_customer_respons_contract', [api_all::class, 'post_customer_respons_contract']);
+Route::post('post_do_payment', [api_all::class, 'post_do_payment']);
 Route::post('prepare_order', [api_all::class, 'procedure_prepare_kontrak']);
 Route::post('upload_image', [api_all::class, 'upload_image']);
 Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
