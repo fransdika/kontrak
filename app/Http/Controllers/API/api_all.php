@@ -16,6 +16,11 @@ class api_all extends Controller
         $this->middleware('auth:api');
         // $api_m = new api_m();
     }
+    public function m_supplier(Request $request)
+    {
+        $data = DB::select("SELECT * FROM misterkong_$request->comp_id.m_supplier");
+        return response()->json($data);
+    }
 
     public function index(Request $request)
     {
