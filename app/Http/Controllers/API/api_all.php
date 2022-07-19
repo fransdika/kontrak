@@ -18,7 +18,7 @@ class api_all extends Controller
     }
     public function m_supplier(Request $request)
     {
-        $data = DB::select("SELECT * FROM misterkong_$request->comp_id.m_supplier");
+        $data = DB::select("SELECT kd_supplier,nama FROM misterkong_$request->comp_id.m_supplier");
         return response()->json($data);
     }
 
