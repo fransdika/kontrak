@@ -30,6 +30,11 @@ class api_all extends Controller
             'data' => $data
         ], 200);
     }
+    public function selected_contracted(Request $request)
+    {
+        $data = api_m::get_selected_contract($request->id_kontrak, $request->cid_sumber, $request->cid_tujuan);
+        return response()->json($data);
+    }
 
     public function customer_contract(Request $request)
     {
@@ -60,6 +65,7 @@ class api_all extends Controller
             return DB::select($sql)[0];
         }
     }
+
     public function procedure_prepare_kontrak(Request $request)
     {
         $data = DB::statement("CALL p_proc_prepare_order_kontrak(?,?),[$request->comp_id,$request->kd_supplier]");

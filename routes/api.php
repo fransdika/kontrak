@@ -34,6 +34,7 @@ Route::post('customer_contract', [api_all::class, 'customer_contract']);
 Route::post('compare_supplier', [api_all::class, 'compare_supplier']);
 Route::post('supplier_response_contract', [api_all::class, 'supplier_response_contract']);
 Route::post('m_supplier', [api_all::class, 'm_supplier']);
+Route::post('selected_contracted', [api_all::class, 'selected_contracted']);
 
 
 // post data
