@@ -267,15 +267,15 @@ class api_all extends Controller
     }
     public function upload_image(Request $request)
     {
-        // $result = $request->file('file')->store('apiDocs');
-        // return ["result"=>$result];
-        $image = $request->file('image');
-        if ($request->hasFile('image')) {
-            $new_name = rand().'.'.$image->getClientOriginalExtension();
-            $image->move(public_path('/uploads'),$new_name);
-            return response()->json($new_name);
-        } else {
-            return response()->json('image null');
-        }
+
+        // $image = $request->file('image');
+        print_r($request);
+        // if ($request->hasFile('image')) {
+        //     $new_name = rand().'.'.$image->getClientOriginalExtension();
+        //     $image->move(public_path('/uploads'),$new_name);
+        //     return response()->json($new_name);
+        // } else {
+        //     return response()->json('image null');
+        // }
     }
 }
