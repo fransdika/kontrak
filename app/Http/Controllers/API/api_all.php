@@ -84,7 +84,7 @@ class api_all extends Controller
             "id_cid_tujuan"=>"required",
         ]);
         if ($validasi->passes()) {
-            DB::beginTransaction();
+            // DB::beginTransaction();
             $data = [
                 "comp_id_sumber"=>$request->cid_sumber,
                 "comp_id_tujuan"=>$request->cid_tujuan,
@@ -100,15 +100,15 @@ class api_all extends Controller
                     customer_user_company_id = ?", [$request->kd_customer, $request->id_cid_tujuan]);
                 DB::commit();
                 return response()->json([
-                    'Pesan' => "Berhasil Insert dan Update"
+                    'Pesan' => "Berhasil melakukan permintaan kontrak"
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
                 return response()->json([
-                    'Pesan' => "Gagal Insert dan Update"
+                    'Pesan' => "Gagal melakukan permintaan kontrak"
                 ], 404);
                 return response()->json([
-                    'Pesan' => "Gagal Insert dan Update"
+                    'Pesan' => "Gagal melakukan permintaan kontrak"
                 ], 500);
             }
         } else {
@@ -135,15 +135,15 @@ class api_all extends Controller
                 comp_id_sumber='$request->cid_sumber' and comp_id_tujuan='$request->cid_tujuan' and `status`='0'");
                 DB::commit();
                 return response()->json([
-                    "Pesan" => "Berhasil Insert dan Update Data"
+                    "Pesan" => "Berhasil menambahkan Supplier"
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
                 return response()->json([
-                    'Pesan' => "Gagal Insert dan Update"
+                    'Pesan' => "Gagal menambahkan supplier"
                 ], 404);
                 return response()->json([
-                    'Pesan' => "Gagal Insert dan Update"
+                    'Pesan' => "Gagal menambahkan supplier"
                 ], 500);
             }
 
@@ -205,7 +205,7 @@ class api_all extends Controller
                 DB::table('t_kontrak')->insert($data_kontrak);
                 DB::commit();
                 return response()->json([
-                    "Pesan" => "Berhasil Insert dan Update Data"
+                    "Pesan" => "Permintaan kontrak diterima"
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -223,59 +223,120 @@ class api_all extends Controller
             ], 404);
         }
     }
+
     public function post_do_payment(Request $request)
     {
         $validasi = Validator::make($request->all(), [
-            "id_kontrak" => "required",
-            "periode" => "required",
-            "cid_sumber" => "required",
-            "cid_tujuan" => "required",
-            "nominal_bayar" => "required",
-            "path" => "required"
-            
+            "images" => "required|max:1024|mimes:jpg,jpeg,bmp,png,"
         ]);
         if ($validasi->passes()) {
-            $contract = DB::select("SELECT tanggal FROM t_kontrak WHERE id='$request->id_kontrak'");
-            $due_date = date('Y-m-d H:i:s', strtotime("+$request->periode month", strtotime(date($contract[0]->tanggal))));
-            // print_r($due_date);
-            DB::beginTransaction();
-            try {
-                DB::update("update t_kontrak set tanggal_jatuh_tempo=DATE_ADD(tanggal, INTERVAL $request->periode MONTH) where id='$request->id_kontrak'");
-                DB::update("update h_kontrak_request set tanggal_bayar=CURRENT_TIMESTAMP where comp_id_sumber='$request->cid_sumber' and
-                    comp_id_tujuan='$request->cid_tujuan' and `status`=-2");
-                DB::insert("insert into t_kontrak_pembayaran (kontrak_id, nominal) values ('$request->id_kontrak', '$request->nominal_bayar')");
-                DB::insert("insert into t_kontrak_doc (kontrak_id, path_image) values ('$request->id_kontrak', '$request->path')");
-                DB::commit();
+            $image = $request->file('images');
+            if ($request->hasFile('images')) {
+                $new_name = rand().'.'.$image->getClientOriginalExtension();
+                $image->move(public_path('/uploads'),$new_name);
+                $contract = DB::select("SELECT tanggal FROM t_kontrak WHERE id='$request->id_kontrak'");
+                $due_date = date('Y-m-d H:i:s', strtotime("+$request->periode month", strtotime(date($contract[0]->tanggal))));
+                DB::beginTransaction();
+                try {
+                    DB::update("update t_kontrak set tanggal_jatuh_tempo=DATE_ADD(tanggal, INTERVAL $request->periode MONTH) where id='$request->id_kontrak'");
+                    DB::update("update h_kontrak_request set tanggal_bayar=CURRENT_TIMESTAMP where comp_id_sumber='$request->cid_sumber' and
+                        comp_id_tujuan='$request->cid_tujuan' and `status`=-2");
+                    DB::insert("insert into t_kontrak_pembayaran (kontrak_id, nominal) values ('$request->id_kontrak', '$request->nominal_bayar')");
+                    DB::insert("insert into t_kontrak_doc (kontrak_id, path_image) values ('$request->id_kontrak', '$new_name')");
+                    DB::update("update misterkong_$request->cid_sumber.m_customer_config set status=-2 where id=$request->id_customer_config");
+                    DB::commit();
+                    return response()->json([
+                        "Pesan" => "Berhasil melakukan pembayaran"
+                    ], 200);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return response()->json([
+                        'Pesan' => "Lengkapi data"
+                    ], 404);
+                    return response()->json([
+                        'Pesan' => "Lengkapi data"
+                    ], 500);
+                }
+            } else {
                 return response()->json([
-                    "Pesan" => "Berhasil Insert dan Update Data"
-                ], 200);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                return response()->json([
-                    'Pesan' => "Gagal Insert dan Update"
+                    "Pesan" => "Silahkan pilih gambar"
                 ], 404);
-                return response()->json([
-                    'Pesan' => "Gagal Insert dan Update"
-                ], 500);
             }
-
         } else {
             return response()->json([
                 'Pesan' => "Lengkapi Data"
             ], 404);
         }
     }
+
     public function upload_image(Request $request)
     {
-
-        $image = $request->file('images');
-        // print_r($request);
-        if ($request->hasFile('images')) {
-            $new_name = rand().'.'.$image->getClientOriginalExtension();
-            $image->move(public_path('/uploads'),$new_name);
-            return response()->json($new_name);
+        $validasi = Validator::make($request->all(), [
+            "images" => "max:10|mimes:jpg,jpeg,bmp,png,"
+        ]);
+        if ($validasi->passes()) {
+            $image = $request->file('images');
+            if ($request->hasFile('images')) {
+                $new_name = rand().'.'.$image->getClientOriginalExtension();
+                // $image->move(public_path('/uploads'),$new_name);
+                return response()->json($new_name);
+            } else {
+                return response()->json([
+                    "Pesan" => "Silahkan pilih gambar"
+                ], 404);
+            }
         } else {
-            return response()->json('image null');
+            return response()->json([
+                "Pesan" => "Ukuran gambar maksimal 10KB"
+            ], 404);
+        }
+       
+    }
+    public function get_list_supplier_item(Request $request)
+    {
+        $sql = "CALL p_get_supplier_item ('".$request->comp_id."','".$request->order_col."','".$request->order_type."',".$request->limit.",".$request->length.",'".$request->search."',".$request->count_stats.")";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
+    }
+
+    public function postBarangSatuan(Request $request)
+    {
+        // if ($request->mbs_status === '1') {
+        //     $status = '2';
+        //     $sql1 = "update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'";
+        // } else {
+        //     $status = '1';
+        //     $sql1 = "update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'";
+        // }
+        // print_r($sql1);
+        if ($request->mbs_status ==='2') {
+            $status = 1;
+            DB::update("update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'");
+                return response()->json([
+                    'Pesan' => 'Berhasil insert data'
+                ], 200);
+        } elseif ($request->mbs_status === '1') {
+            $status = 2;
+            DB::beginTransaction();
+            try {
+                DB::update("update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'");
+                DB::update("update misterkong_$request->comp_id.m_barang set `status` = '2' where kd_barang = '$request->kd_barang'");
+                DB::commit();
+                return response()->json([
+                    'Pesan' => 'Berhasil insert data'
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    'Pesan' => "Gagal"
+                ], 404);
+                return response()->json([
+                    'Pesan' => "Gagal"
+                ], 500);
+            }
         }
     }
 }

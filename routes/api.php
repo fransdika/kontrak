@@ -35,6 +35,7 @@ Route::post('compare_supplier', [api_all::class, 'compare_supplier']);
 Route::post('supplier_response_contract', [api_all::class, 'supplier_response_contract']);
 Route::post('m_supplier', [api_all::class, 'm_supplier']);
 Route::post('selected_contracted', [api_all::class, 'selected_contracted']);
+Route::post('get_list_supplier_item', [api_all::class, 'get_list_supplier_item']);
 
 
 // post data
@@ -44,6 +45,7 @@ Route::post('post_customer_respons_contract', [api_all::class, 'post_customer_re
 Route::post('post_do_payment', [api_all::class, 'post_do_payment']);
 Route::post('prepare_order', [api_all::class, 'procedure_prepare_kontrak']);
 Route::post('upload_image', [api_all::class, 'upload_image']);
+Route::post('postBarangSatuan', [api_all::class, 'postBarangSatuan']);
 Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
 Route::post('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
 Route::post('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
