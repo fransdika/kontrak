@@ -312,13 +312,13 @@ class api_all extends Controller
         //     $sql1 = "update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'";
         // }
         // print_r($sql1);
-        if ($request->mbs_status ==='2') {
+        if ($request->mbs_status ==='1') {
             $status = 1;
             DB::update("update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'");
                 return response()->json([
                     'Pesan' => 'Berhasil insert data'
                 ], 200);
-        } elseif ($request->mbs_status === '1') {
+        } elseif ($request->mbs_status === '2') {
             $status = 2;
             DB::beginTransaction();
             try {
@@ -339,4 +339,18 @@ class api_all extends Controller
             }
         }
     }
+
+    public function get_supplier_contracted(Request $request)
+    {
+        $data = DB::select("SELECT m_supplier.*,m_supplier_config.supplier_user_company_id AS supplier_user_company_id
+		FROM
+		misterkong_$request->comp_id .m_supplier_config m_supplier_config
+		INNER JOIN t_kontrak kontrak ON kontrak.id = m_supplier_config.kontrak_id
+		INNER JOIN misterkong_$request->comp_id .m_supplier m_supplier ON m_supplier_config.kd_supplier = m_supplier.kd_supplier
+		WHERE
+		kontrak.status = 1");
+        return response()->json($data);
+    }
+
+
 }
