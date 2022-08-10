@@ -1,15 +1,13 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\api_all;
 use App\Http\Controllers\API\api_testing;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\KongPosController;
 use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\LaporanTableController;
-use App\Http\Controllers\API\KongPosController;
-use App\Models\api_m;
-use App\Models\LaporanModel;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +18,7 @@ use App\Models\LaporanModel;
 | routes are loaded by the RouteServiceProvider within a group which
 | is assigned the "api" middleware group. Enjoy building your API!
 |
-*/
+ */
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -36,7 +34,6 @@ Route::post('supplier_response_contract', [api_all::class, 'supplier_response_co
 Route::post('m_supplier', [api_all::class, 'm_supplier']);
 Route::post('selected_contracted', [api_all::class, 'selected_contracted']);
 Route::post('get_list_supplier_item', [api_all::class, 'get_list_supplier_item']);
-
 
 // post data
 Route::post('post_request_contract', [api_all::class, 'post_request_contract']);
@@ -67,14 +64,13 @@ Route::post('/pos/cek_status_order', [KongPosController::class, 'status_pesanan'
 Route::post('/pos/siap', [KongPosController::class, 'tandaisiap']);
 Route::post('/pos/cek_status', [KongPosController::class, 'getLastStatus']);
 
-
 Route::post('login_get_cid', [AuthController::class, 'loginGetCid']);
 Route::post('login_company', [AuthController::class, 'loginCompany']);
 
 Route::group([
 
     'middleware' => 'api',
-    'prefix' => 'auth'
+    'prefix' => 'auth',
 
 ], function ($router) {
 
@@ -83,5 +79,6 @@ Route::group([
 
     Route::post('refresh', 'AuthController@refresh');
     Route::post('me', 'AuthController@me');
-    
+
 });
+Route::post('regisman', [ManagerController::class, 'daftar']);
