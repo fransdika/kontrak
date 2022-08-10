@@ -352,5 +352,11 @@ class api_all extends Controller
         return response()->json($data);
     }
 
+    public function get_list_item_contracted(Request $request)
+    {
+        $data = DB::select("CALL p_get_sup_item('$request->sup_key',$request->id_cid_supplier,'$request->cid_customer','$request->order_col','$request->order_type',$request->limit,$request->length,'$request->search',$request->count_stats)");
+        return response()->json($data,200);
+    }
+
 
 }
