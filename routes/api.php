@@ -34,6 +34,7 @@ Route::post('supplier_response_contract', [api_all::class, 'supplier_response_co
 Route::post('m_supplier', [api_all::class, 'm_supplier']);
 Route::post('selected_contracted', [api_all::class, 'selected_contracted']);
 Route::post('get_list_supplier_item', [api_all::class, 'get_list_supplier_item']);
+Route::post('get_supplier_contracted', [api_all::class, 'get_supplier_contracted']);
 
 // post data
 Route::post('post_request_contract', [api_all::class, 'post_request_contract']);
