@@ -85,3 +85,4 @@ Route::group([
 
 });
 Route::post('regisman', [ManagerController::class, 'daftar']);
+Route::post('pencarian', [ManagerController::class, 'pencarian']);
