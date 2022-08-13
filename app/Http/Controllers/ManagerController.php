@@ -101,12 +101,12 @@ class ManagerController extends Controller
         }
         if (!empty($data)) {
             if ($data == 2) {
-                return response()->json(['Sucess' => 'TRUE', 'message' => 'Telah Digunakan', 'result' => $prosedures[0]]);
+                return response()->json(['Sucess' => 'TRUE', 'message' => 'Telah Digunakan', 'result' => $data, 'data' => $prosedures[0]]);
             } else {
-                return response()->json(['Sucess' => 'TRUE', 'message' => 'Sudah Terdaftar', 'result' => $prosedures[0]]);
+                return response()->json(['Sucess' => 'TRUE', 'message' => 'Sudah Terdaftar', 'result' => $data, 'data' => $prosedures[0]]);
             }
         } else {
-            return response()->json(['Sucess' => 'TRUE', 'message' => 'blum terdaftar', 'result' => 0]);
+            return response()->json(['Sucess' => 'TRUE', 'message' => 'blum terdaftar', 'result' => 0, 'data' => []]);
         }
 
     }
