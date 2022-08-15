@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Misterkong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,15 +14,15 @@ class ManagerController extends Controller
         $data_user = $this->array_converter($request->data);
         $data_pegawai = $this->array_converter($request->data_pegawai);
         $nohp = $request->no_hp;
-        if (substr($nohp, 0, 1) == "0") {
-            $hp = '62' . substr(trim($nohp), 1);
-        }
         $company_id = $request->company_id;
         $jenis = $request->jenis;
         $email = $request->email;
         $inserts = [];
         $data_manager = [];
         $data_company = [];
+        if (substr($nohp, 0, 1) == "0") {
+            $hp = '62' . substr(trim($nohp), 1);
+        }
         $inserts = ['kd_group' => 1, 'nama' => $data_user['nama'], 'passwd' => $data_user['passweb'], 'keterangan' => '-', 'no_hp' => $hp, 'status_phone' => 1, 'email' => $email, 'status_email' => 0, 'status' => 1];
         $select = DB::table("m_userx")->join('m_user_company', 'm_user_company.kd_user', '=', 'm_userx.id')->select('m_user_company.kd_user', 'm_userx.nama', 'm_user_company.alamat', 'm_userx.no_hp', 'm_user_company.kd_bank', 'm_user_company.no_rek', 'm_user_company.nama_pemilik_rekening', 'm_user_company.id')->where('m_userx.no_hp', '=', $hp);
         if ($select->count() > 0) {
@@ -83,18 +84,26 @@ class ManagerController extends Controller
 
     public function login(Request $request)
     {
+        $respon = [];
         $data = [];
         $input = $request->mn;
         $password = $request->dp;
-        $where = ['input' => $input, 'password' => $password];
+        $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
         $res = strpos($input, '@');
         $where['loginby'] = ($res == false) ? "phone" : "email";
+        $model = new Misterkong();
+        $respon = $model->login($where);
+        return response()->json($respon);
+
     }
 
     public function pencarian(Request $request)
     {
         $company_id = $request->company_id;
-        $hp = $request->no_hp;
+        $phone = $request->no_hp;
+        if (substr($phone, 0, 1) == "0") {
+            $hp = '62' . substr(trim($phone), 1);
+        }
         $array = [];
         $array = [$hp, $company_id];
         // DB::enableQueryLog();
