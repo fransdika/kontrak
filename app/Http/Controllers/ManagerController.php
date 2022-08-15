@@ -22,6 +22,8 @@ class ManagerController extends Controller
         $data_company = [];
         if (substr($nohp, 0, 1) == "0") {
             $hp = '62' . substr(trim($nohp), 1);
+        } else {
+            $hp = $phone;
         }
         $inserts = ['kd_group' => 1, 'nama' => $data_user['nama'], 'passwd' => $data_user['passweb'], 'keterangan' => '-', 'no_hp' => $hp, 'status_phone' => 1, 'email' => $email, 'status_email' => 0, 'status' => 1];
         $select = DB::table("m_userx")->join('m_user_company', 'm_user_company.kd_user', '=', 'm_userx.id')->select('m_user_company.kd_user', 'm_userx.nama', 'm_user_company.alamat', 'm_userx.no_hp', 'm_user_company.kd_bank', 'm_user_company.no_rek', 'm_user_company.nama_pemilik_rekening', 'm_user_company.id')->where('m_userx.no_hp', '=', $hp);
@@ -88,7 +90,7 @@ class ManagerController extends Controller
         $data = [];
         $input = $request->mn;
         $password = $request->dp;
-        $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
+        $where = ['input' => $input, 'passwd' => "'$password'", 'status' => 1];
         $res = strpos($input, '@');
         $where['loginby'] = ($res == false) ? "phone" : "email";
         $model = new Misterkong();
@@ -103,6 +105,8 @@ class ManagerController extends Controller
         $phone = $request->no_hp;
         if (substr($phone, 0, 1) == "0") {
             $hp = '62' . substr(trim($phone), 1);
+        } else {
+            $hp = $phone;
         }
         $array = [];
         $array = [$hp, $company_id];
