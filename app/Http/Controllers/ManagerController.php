@@ -98,12 +98,14 @@ class ManagerController extends Controller
         $data = [];
         $input = $request->mn;
         $password = $request->dp;
-        $where = ['input' => $input, 'passwd' => "'$password'", 'status' => 1];
+        $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
         $res = strpos($input, '@');
         $where['loginby'] = ($res == false) ? "phone" : "email";
         $model = new Misterkong();
+        // dd(\DB::getQueryLog());
         $respon = $model->login($where);
-        return response()->json($respon);
+        // dd(\DB::getQueryLog());
+        return response()->json($where);
 
     }
 
