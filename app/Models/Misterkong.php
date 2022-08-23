@@ -34,18 +34,18 @@ class Misterkong extends Model
                 // $cek = DB::table('v_getCompanyUser')->select(array(DB::raw('count(*) as aggregate')))->where($data_login_pass)->count();
                 $cek = DB::select($this->getDataTable('v_getCompanyUser', $data_login_pass));
                 // dd(\DB::getQueryLog());
-                if ($cek->jumlah_usaha_user > 0) {
-                    if ($cek->jumlah_usaha_user != 1) {
-                        $sub = DB::table('m_userx')->select('id')->where('email', '=', $data['input'])->Where('passwd', '=', $data['passwd']);
-                        $query = DB::table('m_userx')->select('id')->where('no_hp', '=', $data['input'])->Where('passwd', '=', $data['passwd']);
-                        $ex_compid = DB::table('m_user_company')->select('company_id', 'nama_usaha', 'alamat')->where($sub)->orWhere($query);
-                        $jml_data = $ex_compid->count();
+                if (count($cek) > 0) {
+                    if ($cek[0]->jumlah_usaha_user != 1) {
+                        $ex_compid = "SELECT company_id, nama_usaha,alamat from m_user_company where kd_user=(select id from m_userx where (email='" . $data['input'] . "' and passwd='" . $data['passwd'] . "') or (no_hp='" . $data['input'] . "' and passwd='" . $data['passwd'] . "'))";
+                        $sql = DB::select($ex_compid);
+                        // print_r($row);
+                        $jml_data = count($sql);
                         if ($jml_data > 0) {
                             $company = ["error" => 0, "usaha" => $jml_data, "company" => []];
-                            foreach ($ex_compid->get() as $value) {
-                                $det = ["company_id" => $value['company_id'],
-                                    "nama_usaha" => $value['nama_usaha'],
-                                    "alamat" => $value['alamat']];
+                            foreach ($sql as $value) {
+                                $det = ["company_id" => $value->company_id,
+                                    "nama_usaha" => $value->nama_usaha,
+                                    "alamat" => $value->alamat];
                                 array_push($company['company'], $det);
                             }
                             array_push($data1, $company);
