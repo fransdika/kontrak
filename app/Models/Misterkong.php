@@ -34,8 +34,8 @@ class Misterkong extends Model
                 // $cek = DB::table('v_getCompanyUser')->select(array(DB::raw('count(*) as aggregate')))->where($data_login_pass)->count();
                 $cek = DB::select($this->getDataTable('v_getCompanyUser', $data_login_pass));
                 // dd(\DB::getQueryLog());
-                if (count($cek) > 0) {
-                    if (count($cek) != 1) {
+                if ($cek->jumlah_usaha_user > 0) {
+                    if ($cek->jumlah_usaha_user != 1) {
                         $sub = DB::table('m_userx')->select('id')->where('email', '=', $data['input'])->Where('passwd', '=', $data['passwd']);
                         $query = DB::table('m_userx')->select('id')->where('no_hp', '=', $data['input'])->Where('passwd', '=', $data['passwd']);
                         $ex_compid = DB::table('m_user_company')->select('company_id', 'nama_usaha', 'alamat')->where($sub)->orWhere($query);
@@ -54,7 +54,7 @@ class Misterkong extends Model
                         }
                         return $data1;
                     } else {
-                        $det = [
+                        $det[0] = [
                             "company_id" => $cek[0]->company_id,
                             "nama_usaha" => $cek[0]->nama_usaha,
                             "alamat" => $cek[0]->alamat_usaha,
