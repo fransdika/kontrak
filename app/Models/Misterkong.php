@@ -65,7 +65,9 @@ class Misterkong extends Model
 
                     }
                 } else {
-                    $company = ["error" => 1, "pesan" => "No.hp atau password salah"];
+                    // $company = ["error" => 1, "pesan" => "No.hp atau password salah"];
+                    $company = ["error" => 3, "usaha" => 0, "company" => []];
+
                     array_push($data1, $company);
                     return $data1;
                 }
