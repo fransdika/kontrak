@@ -37,7 +37,7 @@ class AuthController extends Controller
         $no_hp = $request->no_hp;
         $data = DB::select(
         "SELECT
-        company_id, nama_usaha
+        company_id, nama_usaha, user_id
         FROM
             m_user_company
             INNER JOIN ( SELECT id FROM m_userx WHERE no_hp = '$no_hp' ) a ON m_user_company.kd_user = a.id");
@@ -92,6 +92,51 @@ class AuthController extends Controller
         // }
 
         // return $this->respondWithToken($token);
+    }
+
+    public function login_pos(Request $request)
+    {
+            $no_hp = $request->mn;
+            $passwd = $request->dp;
+
+            $mn='';
+            $where='';
+
+            if (substr($request->mn,0,1)=='0') {
+                $new = "62".substr($request->mn,1);
+                $where='no_hp';
+                $mn=$new;
+                // $user = User::where('no_hp', '=', $new)
+                //         ->where('passwd','=',  $passwd)
+                // ->first(); 
+            }
+            if (str_contains($request->mn,'@')) {
+                // $user = User::where('email', '=', $request->mn)
+                //         ->where('passwd','=',  $passwd)
+                // ->first(); 
+                $where='email';
+                $mn=$request->mn;
+            }     
+            // $user = User::where('email', '=', $request->mn)
+            //             ->where('passwd','=',  $passwd)
+            //     ->first(); 
+
+            // $user = DB::select("SELECT * FROM m_userx WHERE email='$request->mn' AND passwd='$passwd'");
+            $user = User::where($where, '=', $mn)
+                        ->where('passwd','=',  $passwd)
+                ->first(); 
+            // print_r($user);
+            if (! $user )  {
+                return response()->json(['message' => 'No.hp dan Email atau Password salah'] , 401);
+            };
+            if (!$token = auth($this->guard)->login($user)) {
+                return response()->json(['message' => 'No.hp dan Email atau Password salah'], 401);
+            }
+            return $this->respondWithToken($token, $user);
+            
+
+            
+        // }
     }
 
     /**

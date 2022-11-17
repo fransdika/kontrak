@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Misterkong;
+use App\Http\Controllers\API\AuthController;
 
 class ManagerController extends Controller
 {
@@ -105,6 +106,12 @@ class ManagerController extends Controller
     // dd(\DB::getQueryLog());
     $respon = $model->login($where);
     // dd(\DB::getQueryLog());
+    
+    
+    //hana punya
+    $authC = new AuthController;
+    $auth_response = $authC->login_pos($request)->getData();
+    $respon[0]['token']=$auth_response->access_token;
     return response()->json($respon);
 
    }

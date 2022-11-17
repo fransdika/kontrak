@@ -122,4 +122,44 @@ class LaporanController extends Controller
 		return response()->json($data, 200);		
 	}
 
+	public function getPenjualanOrder(Request $request)
+	{
+		$sql="CALL p_report_penjualan_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if ($request->count_stats>0) {
+			return DB::select($sql)[0];
+		}else{
+			return DB::select($sql);
+		}
+	}
+
+	public function getPenjualanRetur(Request $request)
+	{
+		$sql="CALL p_report_penjualan_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if ($request->count_stats>0) {
+			return DB::select($sql)[0];
+		}else{
+			return DB::select($sql);
+		}
+	}
+
+	public function getPembelianOrder(Request $request)
+	{
+		$sql="CALL p_report_pembelian_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if ($request->count_stats>0) {
+			return DB::select($sql)[0];
+		}else{
+			return DB::select($sql);
+		}
+	}
+
+	public function getPembelianRetur(Request $request)
+	{
+		$sql="CALL p_report_pembelian_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if ($request->count_stats>0) {
+			return DB::select($sql)[0];
+		}else{
+			return DB::select($sql);
+		}
+	}
+
 }

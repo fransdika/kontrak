@@ -37,6 +37,8 @@ Route::post('selected_contracted', [api_all::class, 'selected_contracted']);
 Route::post('get_list_supplier_item', [api_all::class, 'get_list_supplier_item']);
 Route::post('get_supplier_contracted', [api_all::class, 'get_supplier_contracted']);
 Route::post('get_list_item_contracted', [api_all::class, 'get_list_item_contracted']);
+Route::post('get_barang', [api_all::class, 'get_barang']);
+Route::post('get_satuan', [api_all::class, 'get_satuan']);
 
 // post data
 Route::post('post_request_contract', [api_all::class, 'post_request_contract']);
@@ -53,6 +55,13 @@ Route::post('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
 Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
 Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
 Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
+Route::post('submit_validate', [api_all::class, 'submit_validate']);
+
+Route::post('laporan/penjualan_order', [LaporanController::class, 'getPenjualanOrder']);
+Route::post('laporan/penjualan_retur', [LaporanController::class, 'getPenjualanRetur']);
+Route::post('laporan/pembelian_order', [LaporanController::class, 'getPembelianOrder']);
+Route::post('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
+
 
 // data table
 Route::post('laporan/penjualan_dt', [LaporanTableController::class, 'laporanp_priode']);
@@ -69,6 +78,8 @@ Route::post('/pos/cek_status', [KongPosController::class, 'getLastStatus']);
 
 Route::post('login_get_cid', [AuthController::class, 'loginGetCid']);
 Route::post('login_company', [AuthController::class, 'loginCompany']);
+
+Route::post('login_pos',[AuthController::class, 'login_pos']);
 
 Route::group([
 

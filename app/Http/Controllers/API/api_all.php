@@ -272,7 +272,7 @@ class api_all extends Controller
     public function upload_image(Request $request)
     {
         $validasi = Validator::make($request->all(), [
-            "images" => "max:10|mimes:jpg,jpeg,bmp,png,"
+            "images" => "max:1000|mimes:jpg,jpeg,bmp,png,"
         ]);
         if ($validasi->passes()) {
             $image = $request->file('images');
@@ -287,7 +287,7 @@ class api_all extends Controller
             }
         } else {
             return response()->json([
-                "Pesan" => "Ukuran gambar maksimal 10KB"
+                "Pesan" => "Ukuran gambar maksimal 1000KB"
             ], 404);
         }
        
@@ -344,7 +344,7 @@ class api_all extends Controller
     {
         $data = DB::select("SELECT m_supplier.*,m_supplier_config.supplier_user_company_id AS supplier_user_company_id
 		FROM
-		misterkong_$request->comp_id .m_supplier_config m_supplier_config
+		misterkong_$request->comp_id.m_supplier_config m_supplier_config
 		INNER JOIN t_kontrak kontrak ON kontrak.id = m_supplier_config.kontrak_id
 		INNER JOIN misterkong_$request->comp_id .m_supplier m_supplier ON m_supplier_config.kd_supplier = m_supplier.kd_supplier
 		WHERE
@@ -354,9 +354,95 @@ class api_all extends Controller
 
     public function get_list_item_contracted(Request $request)
     {
-        $data = DB::select("CALL p_get_sup_item('$request->sup_key',$request->id_cid_supplier,'$request->cid_customer','$request->order_col','$request->order_type',$request->limit,$request->length,'$request->search',$request->count_stats)");
-        return response()->json($data,200);
+        $sql = "CALL p_list_item_contracted('$request->sup_key',$request->id_cid_supplier,'$request->cid_customer','$request->order_col','$request->order_type',$request->limit,$request->length,'$request->search',$request->count_stats)";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
     }
 
+    public function get_barang(Request $request)
+    {
+        $req = $request->nama;
+        $nama_explode = explode(" ",$req);
+        $b = "SELECT ROW_number() OVER(ORDER BY nama) AS `no`, m_barang.*,0 AS urut FROM misterkong_$request->company_id.m_barang m_barang WHERE nama LIKE '%".$req."%'
+        UNION 
+        SELECT ROW_number() OVER(ORDER BY nama) AS `no`, m_barang.*,0 AS urut FROM misterkong_$request->company_id.m_barang m_barang WHERE 
+        kd_barang NOT IN (SELECT kd_barang FROM m_barang WHERE nama LIKE '%".$req."%')
+        AND ( nama LIKE '%".$nama_explode[0]."%'";
+        for ($x = 1; $x < count($nama_explode); $x++) {
+            $a =" OR nama LIKE '%".$nama_explode[$x]."%'";
+            $b .= $a;
+        }
+        $b.=")";
+        return DB::select($b);
+        // print_r($b);
+    }
 
+    public function get_satuan(Request $request)
+    {
+        $sql = "SELECT
+                    kd_barang, 
+                    m_satuan.kd_satuan, 
+                    jumlah,
+                    nama
+                FROM
+                    misterkong_$request->comp_id.m_barang_satuan
+                    INNER JOIN misterkong_$request->comp_id.m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan 
+                WHERE
+                    kd_barang = '$request->kd_barang'";
+        return DB::select($sql);
+    }
+
+    public function submit_validate(Request $request)
+    {
+        // print_r("INSERT INTO misterkong_$request->comp_id.m_barang_supplier(kd_supplier,kd_barang,kd_barang_supplier,`status`,user_add,user_modif) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_barang_supplier',1,'$request->user_id','$request->user_id') 
+        //             ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', `status`=1-");
+        // print_r("INSERT IGNORE INTO misterkong_$request->comp_id.m_barang_satuan(kd_barang,kd_satuan,jumlah,harga_jual,`status`,margin) VALUES('$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->jumlah',0,0,0) - ");
+        // print_r("INSERT INTO misterkong_$request->comp_id.m_barang_satuan_supplier(kd_supplier,kd_barang,kd_satuan,kd_barang_supplier,kd_satuan_supplier) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->kd_barang_supplier','$request->kd_satuan_supplier')
+        //             ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', kd_satuan_supplier='$request->kd_satuan_supplier'");        
+        DB::beginTransaction();
+            try {
+                DB::update("INSERT INTO misterkong_$request->comp_id.m_barang_supplier(kd_supplier,kd_barang,kd_barang_supplier,`status`,user_add,user_modif) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_barang_supplier',1,'$request->user_id','$request->user_id') 
+                    ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', `status`=1");
+                DB::insert("INSERT IGNORE INTO misterkong_$request->comp_id.m_barang_satuan(kd_barang,kd_satuan,jumlah,harga_jual,`status`,margin) VALUES('$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->jumlah',0,0,0)");
+                DB::update("INSERT INTO misterkong_$request->comp_id.m_barang_satuan_supplier(kd_supplier,kd_barang,kd_satuan,kd_barang_supplier,kd_satuan_supplier,`status`) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->kd_barang_supplier','$request->kd_satuan_supplier',1)
+                    ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', kd_satuan_supplier='$request->kd_satuan_supplier',`status`=1");        
+                DB::commit();
+                return response()->json([
+                    'Pesan' => 'Berhasil Upsert Data'
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    'Pesan' => "Gagal"
+                ], 404);
+                return response()->json([
+                    'Pesan' => "Gagal"
+                ], 500);
+            }
+    }
+    public function login_pos(Request $request)
+    {
+        // $selectmd5 = DB::select("SELECT passwd FROM m_userx WHERE no_hp='".$param['no_hp']."' AND passwd='".$param['passwd']."'");
+        // if ($selectmd5 == null) {
+        //     return response()->json(['message' => 'No hp atau Password salah'], 401);
+        // } else {
+            $no_hp = $request->mn;
+            $passwd = $request->dp;
+
+            print_r($no_hp);
+            
+            // $credentials = request($no_hp,$passwd);
+            // $user = User::where($credentials)->first();
+            // if (! $user )  {
+            //     return response()->json(['message' => 'No hp atau Password salah'] , 401);
+            // };
+            // if (!$token = auth($this->guard)->login($user)) {
+            //     return response()->json(['message' => 'No hp atau Password salah'], 401);
+            // }
+            // return $this->respondWithToken($token, $user);
+        // }
+    }
 }
