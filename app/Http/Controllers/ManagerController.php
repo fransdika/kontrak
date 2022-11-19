@@ -111,7 +111,9 @@ class ManagerController extends Controller
     //hana punya
     $authC = new AuthController;
     $auth_response = $authC->login_pos($request)->getData();
-    $respon[0]['token']=$auth_response->access_token;
+    if (!empty($auth_response->access_token)) {
+        $respon[0]['token']=$auth_response->access_token;
+    }
     return response()->json($respon);
 
    }
