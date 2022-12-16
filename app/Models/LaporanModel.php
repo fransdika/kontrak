@@ -19,7 +19,7 @@ class LaporanModel extends Model
 			return DB::select($sql);
 		}
 	}
-	public function getLaporanPembelian($company_id,$awal,$akhir,$jenis,$search,$order_col,$order_type,$limit_start,$limit_length,$count_stats=0)
+	public function getLaporanPembelian($company_id,$awal,$akhir,$jenis,$search,$order_col,$order_type,$limit_start,$limit_length,$count_stats)
 	{
 		$sql="CALL p_report_pembelian('$company_id','$awal','$akhir',$jenis,'$search','$order_col','$order_type',$limit_start,$limit_length,$count_stats)";
 		if ($count_stats>0) {
