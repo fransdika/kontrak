@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\api_m;
+use App\Models\Piutang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -445,4 +446,84 @@ class api_all extends Controller
             // return $this->respondWithToken($token, $user);
         // }
     }
-}
+
+    public function info_piutang(Request $request)
+    {
+        $sql = "CALL p_infoPiutang ('".$request->comp_id."','".$request->periode."','.$request->limit.','.$request->length.','.$request->count_stats.')";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
+    }
+
+    public function create_piutang(Request $request)
+    {
+        // $piutang = Piutang::create($request->all());
+        $insert = DB::insert("INSERT INTO misterkong_$request->comp_id.t_piutang_cicilan 
+                                (no_cicilan, no_transaksi, kd_jenis, kd_pegawai, kd_kas, nominal, other, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
+                              VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", [$request->no_cicilan,$request->no_transaksi,$request->kd_jenis,$request->kd_pegawai,$request->kd_kas,$request->nominal,$request->other,NOW(),$request->no_bukti,$request->keterangan, $request->kd_user, NOW()]);
+        return response()->json([
+            'pesan' => 'Berhasil insert data'
+        ],200);
+    }
+    public function update_piutang(Request $request)
+    {
+        $update = DB::update("UPDATE misterkong_$request->comp_id.t_piutang_cicilan SET 
+                              no_transaksi = ?, kd_jenis = ?, kd_pegawai = ?, kd_kas = ?, nominal = ?, other = ?, tanggal = ?, no_bukti = ?, keterangan = ?, kd_user = ?
+                              WHERE no_cicilan = ?
+                              ",
+                              [$request->no_transaksi, $request->kd_jenis,$request->kd_pegawai,$request->kd_kas,$request->nominal,$request->other,$request->tanggal,$request->no_bukti,$request->keterangan,$request->kd_user, $request->no_cicilan]);
+        return response()->json([
+            'pesan' => 'Berhasil update data'
+        ],200);
+    }
+
+    public function delete_piutang(Request $request)
+    {
+        $delete = DB::delete("DELETE FROM misterkong_$request->comp_id.t_piutang_cicilan WHERE no_cicilan = ?",[$request->no_cicilan]);
+        return response()->json([
+            'pesan' => 'Berhasil hapus data'
+        ],200);
+    }
+
+    public function info_hutang(Request $request)
+    {
+        $sql = "CALL p_infoHutang ('".$request->comp_id."','".$request->periode."','.$request->limit.','.$request->length.','.$request->count_stats.')";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
+    }
+
+    public function create_hutang(Request $request)
+    {
+        // $piutang = Piutang::create($request->all());
+        $insert = DB::insert("INSERT INTO misterkong_$request->comp_id.t_hutang_cicilan 
+                                (no_cicilan, no_transaksi, kd_jenis, kd_kas, nominal, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
+                              VALUES (?,?,?,?,?,?,?,?,?,?)", [$request->no_cicilan,$request->no_transaksi,$request->kd_jenis,$request->kd_kas,$request->nominal,NOW(),$request->no_bukti,$request->keterangan,$request->kd_user,NOW()]);
+        return response()->json([
+            'pesan' => 'Berhasil insert data'
+        ],200);
+    }
+    public function update_hutang(Request $request)
+    {
+        $update = DB::update("UPDATE misterkong_$request->comp_id.t_hutang_cicilan SET 
+                              no_transaksi = ?, kd_jenis = ?, kd_kas = ?, nominal = ?, tanggal = ?, no_bukti = ?, keterangan = ?, kd_user = ?
+                              WHERE no_cicilan = ?",
+                              [$request->no_transaksi, $request->kd_jenis,$request->kd_kas,$request->nominal,$request->tanggal,$request->no_bukti,$request->keterangan,$request->kd_user, $request->no_cicilan]);
+
+        return response()->json([
+            'pesan' => 'Berhasil update data'
+        ],200);
+    }
+
+    public function delete_hutang(Request $request)
+    {
+        $delete = DB::delete("DELETE FROM misterkong_$request->comp_id.t_hutang_cicilan WHERE no_cicilan = ?",[$request->no_cicilan]);
+        return response()->json([
+            'pesan' => 'Berhasil hapus data'
+        ],200);
+    }
+} 

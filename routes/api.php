@@ -98,3 +98,13 @@ Route::group([
 Route::post('regisman', [ManagerController::class, 'daftar']);
 Route::post('pencarian', [ManagerController::class, 'pencarian']);
 Route::post('login_mp', [ManagerController::class, 'login']);
+
+Route::post('info_piutang',[api_all::class, 'info_piutang']);
+Route::post('insert_piutang', [api_all::class, 'create_piutang']);
+Route::post('update_piutang', [api_all::class, 'update_piutang']);
+Route::post('delete_piutang', [api_all::class, 'delete_piutang']);
+
+Route::post('info_hutang',[api_all::class, 'info_hutang']);
+Route::post('insert_hutang', [api_all::class, 'create_hutang']);
+Route::post('update_hutang', [api_all::class, 'update_hutang']);
+Route::post('delete_hutang', [api_all::class, 'delete_hutang']);
