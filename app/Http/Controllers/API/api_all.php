@@ -449,13 +449,14 @@ class api_all extends Controller
 
     public function info_piutang(Request $request)
     {
-        $sql = "CALL p_infoPiutang ('".$request->comp_id."','".$request->periode."','.$request->limit.','.$request->length.','.$request->count_stats.')";
+        $sql = "CALL p_infoPiutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->limit,$request->length,$request->count_stats)";
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
             return DB::select($sql)[0];
         }
     }
+
 
         public function info_cicilan_piutang(Request $request)
     {
@@ -499,7 +500,7 @@ class api_all extends Controller
 
     public function info_hutang(Request $request)
     {
-        $sql = "CALL p_infoHutang ('".$request->comp_id."','".$request->periode."','.$request->limit.','.$request->length.','.$request->count_stats.')";
+        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->limit,$request->length,$request->count_stats)";
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
