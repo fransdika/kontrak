@@ -457,6 +457,16 @@ class api_all extends Controller
         }
     }
 
+        public function info_cicilan_piutang(Request $request)
+    {
+        $sql = "CALL p_infoCicilanPiutang('".$request->comp_id."','".$request->no_transaksi."',$request->limit,$request->length,$request->count_stats)";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
+    }
+
     public function create_piutang(Request $request)
     {
         // $piutang = Piutang::create($request->all());
@@ -495,6 +505,17 @@ class api_all extends Controller
         } else {
             return DB::select($sql)[0];
         }
+    }
+        public function info_cicilan_hutang(Request $request)
+    {
+        // $sql = "CALL p_infoCicilanHutang('comp2020110310015601','HM2203220016',0,10,0)";
+        $sql = "CALL p_infoCicilanHutang('".$request->comp_id."','".$request->no_transaksi."',$request->limit,$request->length,$request->count_stats)";
+        if ($request->count_stats == 0) {
+            return DB::select($sql);
+        } else {
+            return DB::select($sql)[0];
+        }
+        // echo $request->comp_id;
     }
 
     public function create_hutang(Request $request)
