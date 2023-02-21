@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\api_m;
 use App\Models\Piutang;
+use Error;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -449,7 +450,7 @@ class api_all extends Controller
 
     public function info_piutang(Request $request)
     {
-        $sql = "CALL p_infoPiutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,$request->limit,$request->length,$request->count_stats)";
+        $sql = "CALL p_infoPiutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,'".$request->order_col."','".$request->order_type."',$request->limit,$request->length,$request->count_stats)";
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
@@ -573,7 +574,7 @@ class api_all extends Controller
 
     public function info_hutang(Request $request)
     {
-        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,$request->limit,$request->length,$request->count_stats)";
+        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,'".$request->order_col."','".$request->order_type."',$request->limit,$request->length,$request->count_stats)";
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
@@ -608,7 +609,6 @@ class api_all extends Controller
             if (count($cicilan_new) == count($transaksi_new) && count($cicilan_new) == count($nominal_new)) {
                 $sql = [];
                 for ($i=0; $i < count($cicilan_new); $i++) {
-                // echo  $i;
                 $data_cicilan[] = [
                     "no_cicilan" =>$cicilan_new[$i],
                     "no_transaksi" => $transaksi_new[$i],
@@ -650,7 +650,7 @@ class api_all extends Controller
                     DB::rollBack();
                     return response()->json([
                         'status' => 0,
-                        'error' => 404,
+                        'error' => $e->getMessage(),
                         'message' => 'Gagal Insert Data'
                     ], 404);
                     return response()->json([
@@ -701,10 +701,47 @@ class api_all extends Controller
     {
         $sql = DB::select("SELECT v.* FROM `v_status_buka_toko` v INNER JOIN m_user_company ON v.id = m_user_company.id WHERE company_id=?",[$request->comp_id]);
         return response()->json([
-                'status' => 200,
+                'status' => 1,
                 'error' => 0,
                 'message' => 'pesanan sudah siap',
                 'data' => $sql[0]
         ]);
+    }
+
+    public function mutasi_stok(Request $request)
+    {
+        // $sql = "CALL p_mon_report_GetLaporanMutasiStokFull('".$request->comp_id."')";
+
+        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,$request->limit,$request->length,$request->count_stats)";
+        
+
+        // print_r($sql);
+        
+        try {
+            return DB::select($sql);
+            // return response()->json([
+            //     'status' => 1,
+            //     'error' => 200,
+            //     'message' => $sql
+            // ],200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 404);
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 500);
+        }
+    }
+
+    public function laba_rugi(Request $request)
+    {
+        $sql = "CALL p_mon_report_GetLaporanMutasiStokFull ('".$request->awal."','".$request->akhir."')";
+        return DB::select($sql);
     }
 } 

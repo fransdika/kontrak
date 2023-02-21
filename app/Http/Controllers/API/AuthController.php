@@ -27,6 +27,8 @@ class AuthController extends Controller
     public function login_response()
     {
         return response()->json([
+            'status' => 0,
+            'error' => 1,
             'Msg' => 'Token salah'
         ],200);
         // echo "salah";
