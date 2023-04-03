@@ -450,7 +450,7 @@ class api_all extends Controller
 
     public function info_piutang(Request $request)
     {
-        $sql = "CALL p_infoPiutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,'".$request->order_col."','".$request->order_type."',$request->limit,$request->length,$request->count_stats)";
+        $sql = "CALL p_infoPiutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,'".$request->order_col."', '".$request->order_type."', $request->con_date,$request->limit,$request->length,$request->count_stats)";
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
@@ -574,11 +574,27 @@ class api_all extends Controller
 
     public function info_hutang(Request $request)
     {
-        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,'".$request->order_col."','".$request->order_type."',$request->limit,$request->length,$request->count_stats)";
-        if ($request->count_stats == 0) {
-            return DB::select($sql);
-        } else {
-            return DB::select($sql)[0];
+        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,'".$request->order_col."','".$request->order_type."',$request->con_date,$request->limit,$request->length,$request->count_stats)";
+        
+        // prints_r($sql);
+        try {
+            if ($request->count_stats == 0) {
+                return DB::select($sql);
+            } else {
+                return DB::select($sql)[0];
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 404);
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 500);
         }
     }
         public function info_cicilan_hutang(Request $request)
@@ -741,7 +757,27 @@ class api_all extends Controller
 
     public function laba_rugi(Request $request)
     {
-        $sql = "CALL p_mon_report_GetLaporanMutasiStokFull ('".$request->awal."','".$request->akhir."')";
-        return DB::select($sql);
+        $sql = "CALL misterkong_$request->comp_id.p_mon_report_labaRugi ('".$request->awal."','".$request->akhir."')";
+        // return DB::select($sql);
+        try {
+            return DB::select($sql);
+            // return response()->json([
+            //     'status' => 1,
+            //     'error' => 200,
+            //     'message' => $sql
+            // ],200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 404);
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 500);
+        }
     }
 } 
