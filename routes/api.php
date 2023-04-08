@@ -112,6 +112,7 @@ Route::post('update_hutang', [api_all::class, 'update_hutang']);
 Route::post('delete_hutang', [api_all::class, 'delete_hutang']);
 
 Route::post('status_toko', [api_all::class, 'status_buka_tutup_toko']);
-Route::post('mutasi_stok', [api_all::class, 'mutasi_stok']);
 
 Route::post('laba_rugi', [api_all::class, 'laba_rugi']);
+Route::post('mutasi_stok', [api_all::class, 'mutasi_stok']);
+Route::post('kartu_stok', [api_all::class, 'kartu_stok']);

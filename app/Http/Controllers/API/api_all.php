@@ -724,48 +724,11 @@ class api_all extends Controller
         ]);
     }
 
-    public function mutasi_stok(Request $request)
-    {
-        // $sql = "CALL p_mon_report_GetLaporanMutasiStokFull('".$request->comp_id."')";
-
-        $sql = "CALL p_infoHutang ('".$request->comp_id."',$request->jenis,'".$request->periode."','".$request->search."',$request->con,$request->limit,$request->length,$request->count_stats)";
-        
-
-        // print_r($sql);
-        
-        try {
-            return DB::select($sql);
-            // return response()->json([
-            //     'status' => 1,
-            //     'error' => 200,
-            //     'message' => $sql
-            // ],200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 0,
-                'error' => $e->getMessage(),
-                'message' => 'Gagal'
-            ], 404);
-            return response()->json([
-                'status' => 0,
-                'error' => $e->getMessage(),
-                'message' => 'Gagal'
-            ], 500);
-        }
-    }
-
     public function laba_rugi(Request $request)
     {
         $sql = "CALL misterkong_$request->comp_id.p_mon_report_labaRugi ('".$request->awal."','".$request->akhir."')";
-        // return DB::select($sql);
         try {
             return DB::select($sql);
-            // return response()->json([
-            //     'status' => 1,
-            //     'error' => 200,
-            //     'message' => $sql
-            // ],200);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -780,4 +743,45 @@ class api_all extends Controller
             ], 500);
         }
     }
+
+    public function mutasi_Stok(Request $request)
+    {
+        $sql = "CALL misterkong_$request->comp_id.p_mon_report_mutasi_stok('".$request->awal."','".$request->akhir."')";
+        try {
+            return DB::select($sql);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 404);
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 500);
+        }
+    }
+
+    public function kartu_stok(Request $request)
+    {
+        $sql = "CALL misterkong_$request->comp_id.p_mon_report_kartu_stok('".$request->awal."','".$request->akhir."','".$request->kd_barang."')";
+        try {
+            return DB::select($sql);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 404);
+            return response()->json([
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'message' => 'Gagal'
+            ], 500);
+        }
+    }
+
 } 
