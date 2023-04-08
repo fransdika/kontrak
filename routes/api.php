@@ -118,5 +118,4 @@ Route::post('mutasi_stok', [api_all::class, 'mutasi_stok']);
 Route::post('kartu_stok', [api_all::class, 'kartu_stok']);
 
 
-
-testing ulang
+// testing testing
