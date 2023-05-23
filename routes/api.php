@@ -61,6 +61,8 @@ Route::post('laporan/penjualan_order', [LaporanController::class, 'getPenjualanO
 Route::post('laporan/penjualan_retur', [LaporanController::class, 'getPenjualanRetur']);
 Route::post('laporan/pembelian_order', [LaporanController::class, 'getPembelianOrder']);
 Route::post('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
+Route::post('laporan/penjualan-newBorn', [LaporanController::class, 'getPenjualanNewBorn']);
+Route::post('laporan/pembelian-newBorn', [LaporanController::class, 'getPembelianNewBorn']);
 
 
 // data table

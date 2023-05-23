@@ -162,4 +162,25 @@ class LaporanController extends Controller
 		}
 	}
 
+	public function getPenjualanNewBorn(Request $request)
+	{
+		$sql=DB::select("CALL p_report_penjualanNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis,$request->limit,$request->length)");
+		return response()->json([
+			"status"=>1,
+			"error"=>200,
+			"message"=>"Berhasil mendapatkan data",
+			"data" => $sql
+		]);
+	}
+
+	public function getPembelianNewBorn(Request $request)
+	{
+		$sql=DB::select("CALL p_report_pembelianNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis,$request->limit,$request->length)");
+		return response()->json([
+			"status"=>1,
+			"error"=>200,
+			"message"=>"Berhasil mendapatkan data",
+			"data" => $sql
+		]);
+	}
 }
