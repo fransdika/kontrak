@@ -173,4 +173,19 @@ class LaporanController extends Controller
 		$sql=DB::select("CALL p_report_pembelianNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type',$request->limit,$request->length)");
 		return response()->json($sql);
 	}
+
+	public function produk(Request $request)
+	{
+		$sql=DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir',$request->limit,$request->length)");
+		$data = [];
+		foreach ($sql as $key => $value) {
+			$data[] = [
+				"kode_barang" => $value->kd_barang,
+				"nama-_barang" => $value->nama_barang,
+				"sisastok" => $value->saldo_akhir_qty,
+				"stok_min" => $value->stok_min
+			];
+		}
+		return response()->json($data);
+	}
 }
