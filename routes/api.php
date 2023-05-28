@@ -63,6 +63,7 @@ Route::post('laporan/pembelian_order', [LaporanController::class, 'getPembelianO
 Route::post('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
 Route::post('laporan/penjualan-newBorn', [LaporanController::class, 'getPenjualanNewBorn']);
 Route::post('laporan/pembelian-newBorn', [LaporanController::class, 'getPembelianNewBorn']);
+Route::post('laporan/produk', [LaporanController::class, 'produk']);
 
 
 // data table
@@ -118,6 +119,8 @@ Route::post('status_toko', [api_all::class, 'status_buka_tutup_toko']);
 Route::post('laba_rugi', [api_all::class, 'laba_rugi']);
 Route::post('mutasi_stok', [api_all::class, 'mutasi_stok']);
 Route::post('kartu_stok', [api_all::class, 'kartu_stok']);
+
+
 
 
 // testing testing
