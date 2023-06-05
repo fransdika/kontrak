@@ -181,11 +181,14 @@ class LaporanController extends Controller
 		foreach ($sql as $key => $value) {
 			$data[] = [
 				"kode_barang" => $value->kd_barang,
-				"nama-_barang" => $value->nama_barang,
+				"nama_barang" => $value->nama_barang,
 				"sisastok" => $value->saldo_akhir_qty,
 				"stok_min" => $value->stok_min
 			];
 		}
+		// $data = DB::select("CALL misterkong_$request->company_id.p_result_table()");
+		// $data = DB::select("SELECT * FROM misterkong_$request->company_id.m_barang");
+		
 		return response()->json($data);
 	}
 }
