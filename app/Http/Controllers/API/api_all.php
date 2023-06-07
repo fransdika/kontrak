@@ -766,7 +766,7 @@ class api_all extends Controller
 
     public function kartu_stok(Request $request)
     {
-        $sql = "CALL misterkong_$request->comp_id.p_mon_report_kartu_stok('".$request->awal."','".$request->akhir."','".$request->kd_barang."')";
+        $sql = "CALL misterkong_$request->company_id.p_mon_report_kartu_stok('".$request->awal."','".$request->akhir."','".$request->kd_barang."')";
         try {
             return DB::select($sql);
         } catch (\Exception $e) {

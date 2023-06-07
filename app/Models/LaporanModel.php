@@ -77,5 +77,25 @@ class LaporanModel extends Model
 			return DB::select($sql);
 		}
 	}
+
+	public function getKartuStok($company_id,$awal,$akhir,$limit,$length,$count_stats,$kd_barang)
+	{
+		// if (!empty($order_col) && !empty($order_type)) {
+		// 	$q_order = "AND (m_barang.nama LIKE '%$search%' OR m_barang.kd_barang LIKE '%$search%')";
+		// } else {
+		// 	$q_order = '';
+		// }
+
+		if ($count_stats == 1) {
+			$select_final = "COUNT(*) AS jumlah_data";
+		} else {
+			$select_final = "m_barang.nama AS nama_barang,
+							 m_barang.kd_barang,
+							 tanggal,
+							 saldo_qty";
+		}
+		$sql = DB::select("SELECT $select_final FROM misterkong_$company_id.v_t_result_table v_t_result_table INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' ORDER BY rn ASC LIMIT $limit, $length");
+		return $sql;
+	}
 	
 }
