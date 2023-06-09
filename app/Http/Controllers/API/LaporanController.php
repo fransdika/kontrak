@@ -182,12 +182,7 @@ class LaporanController extends Controller
 			$sql = LaporanModel::getKartuStok($request->company_id,$request->awal,$request->akhir, $request->limit, $request->length, $request->count_stats,$request->kd_barang);
 		}
 		try {
-			return response()->json([
-				'status' => 1,
-				'error' => 200,
-				'message' => count($sql) . ' Data ditemukan',
-				'data' => $sql
-			]);
+			return response()->json($sql);
 		} catch (\Exception $e) {
 			DB::rollBack();
 			return response()->json([
