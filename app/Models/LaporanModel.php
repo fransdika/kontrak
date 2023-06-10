@@ -92,7 +92,13 @@ class LaporanModel extends Model
 			$select_final = "m_barang.nama AS nama_barang,
 							 m_barang.kd_barang,
 							 tanggal,
-							 saldo_qty AS sisa_stok";
+							 jenis_transaksi,
+							 qty_masuk AS debet_qty,
+							 qty_masuk*rupiah_masuk AS debet_rp,
+							 qty_keluar AS kredit_qty,
+							 rupiah_keluar AS kredit_rp,
+							 saldo_qty AS sisa_stok,
+							 satuan_terkecil";
 		}
 		$sql = DB::select("SELECT $select_final FROM misterkong_$company_id.v_t_result_table v_t_result_table INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' ORDER BY rn ASC LIMIT $limit, $length");
 		return $sql;
