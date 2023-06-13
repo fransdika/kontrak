@@ -198,4 +198,10 @@ class LaporanController extends Controller
 		}
 
 	}
+
+	public function mutasi_kas(Request $request)
+	{
+		$sql = DB::select("CALL p_laporan_kas('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, '$request->kd_kas')");
+		return response()->json($sql);
+	}
 }
