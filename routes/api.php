@@ -65,6 +65,8 @@ Route::post('laporan/penjualan-newBorn', [LaporanController::class, 'getPenjuala
 Route::post('laporan/pembelian-newBorn', [LaporanController::class, 'getPembelianNewBorn']);
 Route::post('laporan/produk', [LaporanController::class, 'produk']);
 Route::post('laporan/mutasi-kas', [LaporanController::class, 'mutasi_kas']);
+Route::post('laporan/biaya-newBorn', [LaporanController::class, 'getLaporanBiayaNewBorn']);
+Route::post('laporan/pendapatan-newBorn', [LaporanController::class, 'getLaporanPendapatanNewBorn']);
 
 
 // data table

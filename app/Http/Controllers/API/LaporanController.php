@@ -204,4 +204,24 @@ class LaporanController extends Controller
 		$sql = DB::select("CALL p_laporan_kas('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, '$request->kd_kas')");
 		return response()->json($sql);
 	}
+
+	public function getLaporanBiayaNewBorn(Request $request)
+	{
+		$sql = "CALL p_biayaOperasionalNewBorn('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
+		if ($request->count_stats>0) {
+			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id","$request->awal","$request->akhir","$request->search","$request->order_col","$request->order_type",$request->limit,$request->length,$request->count_stats])[0];
+		}else{
+			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id","$request->awal","$request->akhir","$request->search","$request->order_col","$request->order_type",$request->limit,$request->length,$request->count_stats]);
+		}
+	}
+
+	public function getLaporanPendapatanNewBorn(Request $request)
+	{
+		$sql = "CALL p_pendapatanNewBorn('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
+		if ($request->count_stats>0) {
+			return DB::select($sql)[0];
+		}else{
+			return DB::select($sql);
+		}
+	}
 }
