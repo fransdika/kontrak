@@ -124,6 +124,11 @@ Route::post('mutasi_stok', [api_all::class, 'mutasi_stok']);
 Route::post('kartu_stok', [api_all::class, 'kartu_stok']);
 
 
+// backend POS
+Route::post('upload-barang', [api_all::class, 'upload_file']);
+
+
+
 
 
 // testing testing
