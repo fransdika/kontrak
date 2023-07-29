@@ -786,29 +786,72 @@ class api_all extends Controller
 
     public function upload_file(Request $request)
     {
+
+        if ($request->jenis == 1) {
+            // Save the file
+            $file = $request->file('file');
+            $path = $file->store('barang_gambar', 'public');
+
+            // Save the file details in the database
+            $fileRecord = DB::table('m_barang_gambar')->insertGetId([
+                'kd_barang' => $request->kd_barang,
+                'nomor'=>1,
+                'keterangan'=>'-',
+                'gambar' => $file->getClientOriginalName(),
+                'ismain'=>'1',
+                'spesifikasi'=>'-',
+                'deskripsi'=>'-'
+            ]);
+
+            // Retrieve the saved file record
+            $uploadedFile = DB::table("misterkong_$request->company_id.m_barang_gambar")->find($fileRecord);
+
+            // // Return a response
+            return response()->json([
+                'message' => 'File uploaded successfully.',
+                'file' => $uploadedFile,
+            ]);
+		} elseif ($request->jenis == 2){
+            $file = $request->file('file');
+            $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
+
+            // $image->move("../../../public_html/back_end_mp/$company_id/GET/$imei",$path)
+
+            // Return a response
+            return response()->json([
+                'message' => 'File uploaded successfully.',
+                'file' => $path,
+            ]);
+		} else {
+            return response()->json([
+                'message' => 'failed',
+                'file' => '',
+            ]);
+		}
+
         // Save the file
-        $file = $request->file('file');
-        $path = $file->store('uploads', 'public');
+        // $file = $request->file('file');
+        // $path = $file->store('uploads', 'public');
 
-        // Save the file details in the database
-        $fileRecord = DB::table('m_barang_gambar')->insertGetId([
-            'kd_barang' => $request->kd_barang,
-            'nomor'=>1,
-            'keterangan'=>'-',
-            'gambar' => $file->getClientOriginalName(),
-            'ismain'=>'1',
-            'spesifikasi'=>'-',
-            'deskripsi'=>'-'
-        ]);
+        // // Save the file details in the database
+        // $fileRecord = DB::table('m_barang_gambar')->insertGetId([
+        //     'kd_barang' => $request->kd_barang,
+        //     'nomor'=>1,
+        //     'keterangan'=>'-',
+        //     'gambar' => $file->getClientOriginalName(),
+        //     'ismain'=>'1',
+        //     'spesifikasi'=>'-',
+        //     'deskripsi'=>'-'
+        // ]);
 
-        // Retrieve the saved file record
-        $uploadedFile = DB::table("misterkong_$request->company_id.m_barang_gambar")->find($fileRecord);
+        // // Retrieve the saved file record
+        // $uploadedFile = DB::table("misterkong_$request->company_id.m_barang_gambar")->find($fileRecord);
 
-        // Return a response
-        return response()->json([
-            'message' => 'File uploaded successfully.',
-            'file' => $uploadedFile,
-        ]);
+        // // Return a response
+        // return response()->json([
+        //     'message' => 'File uploaded successfully.',
+        //     'file' => $uploadedFile,
+        // ]);
     }
 
 } 
