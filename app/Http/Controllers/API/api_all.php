@@ -787,7 +787,7 @@ class api_all extends Controller
     public function upload_file(Request $request)
     {
 
-        if ($request->jenis == 1) {
+        // if ($request->jenis == 1) {
             // Save the file
             $file = $request->file('file');
             $path = $file->store('barang_gambar', 'public');
@@ -811,23 +811,14 @@ class api_all extends Controller
                 'message' => 'File uploaded successfully.',
                 'file' => $uploadedFile,
             ]);
-		} elseif ($request->jenis == 2){
-            $file = $request->file('file');
-            $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
+		// } elseif ($request->jenis == 2){
 
-            // $image->move("../../../public_html/back_end_mp/$company_id/GET/$imei",$path)
-
-            // Return a response
-            return response()->json([
-                'message' => 'File uploaded successfully.',
-                'file' => $path,
-            ]);
-		} else {
-            return response()->json([
-                'message' => 'failed',
-                'file' => '',
-            ]);
-		}
+		// } else {
+        //     return response()->json([
+        //         'message' => 'failed',
+        //         'file' => '',
+        //     ]);
+		// }
 
         // Save the file
         // $file = $request->file('file');
@@ -852,6 +843,20 @@ class api_all extends Controller
         //     'message' => 'File uploaded successfully.',
         //     'file' => $uploadedFile,
         // ]);
+    }
+
+    public function up_file_json(Request $request)
+    {
+        $file = $request->file('file');
+        $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
+
+        // $image->move("../../../public_html/back_end_mp/$company_id/GET/$imei",$path)
+
+        // Return a response
+        return response()->json([
+            'message' => 'File uploaded successfully.',
+            'file' => $path
+        ]);
     }
 
     public function get_json_file_name(Request $request)
