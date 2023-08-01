@@ -877,7 +877,7 @@ class api_all extends Controller
 
     public function delete_file_json(Request $request)
     {
-        $cmd_command = shell_exec("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei/$request->nama_file);
+        $cmd_command = shell_exec("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei."/".$request->nama_file);
         return response()->json([
             'status' => 1,
             'error' => 200,
