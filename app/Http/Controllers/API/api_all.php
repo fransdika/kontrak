@@ -860,9 +860,11 @@ class api_all extends Controller
         // $dt = "ls /home/misterkong/public_html/back_end_mp/'$request->comp_id'_config/GET/'$request->imei'";
         // shell_exec("chmod +x /home/ssid/public_html/misterkong/back_end_mp/db_def/mycommand".$this->get_company_id().".sh  > /dev/null &");
         $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei);
-        
-        echo preg_split("#[\r\n]+#", $dt);
+        $var = preg_split("#[\r\n]+#", $dt);
 
+        return response()->json(
+            $var
+        );
 		// $dir = basename("/GET")."/".$this->get_imei();
 		// $hideName = array('.', '..');
 		// if ($this->is_dir_empty($dir)) {
