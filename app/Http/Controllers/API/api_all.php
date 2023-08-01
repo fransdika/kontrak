@@ -854,4 +854,35 @@ class api_all extends Controller
         // ]);
     }
 
+    public function get_json_file_name(Request $request)
+	{
+
+        // $dt = "ls /home/misterkong/public_html/back_end_mp/'$request->comp_id'_config/GET/'$request->imei'";
+        // shell_exec("chmod +x /home/ssid/public_html/misterkong/back_end_mp/db_def/mycommand".$this->get_company_id().".sh  > /dev/null &");
+        $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/'$request->comp_id'_config/GET/'$request->imei'");
+        echo $dt;
+
+		// $dir = basename("/GET")."/".$this->get_imei();
+		// $hideName = array('.', '..');
+		// if ($this->is_dir_empty($dir)) {
+		// 	echo "the folder is empty";
+		// 	// echo "asdfasd";
+		// } else {
+		// 	$files = array_diff(scandir($dir), array('..', '.'));
+		// 	// print_r($files);
+		// 	foreach ($files as $file) {
+		// 		if (!in_array($file, $hideName)) {
+
+		// 			$files_name[] = $file;
+		// 		}
+		// 	}
+		// }
+		// // $this->file_name=$files_name;
+		// $this->file_name=$this->getFileSorted($files_name);
+		// // echo "<pre>";
+		// // print_r($this->file_name);
+		// // echo "</pre>";
+		// // return $files_name;
+	}
+
 } 
