@@ -848,14 +848,18 @@ class api_all extends Controller
     public function up_file_json(Request $request)
     {
         $file = $request->file('file');
-        $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
+        $filename = $file->getClientOriginalName();
+        $path = $file->move('../../../public_html/back_end_mp/'.$request->comp_id."_config/GET/".$request->imei,$filename);
+        
+        // $path = $file->move(public_path('file_json'),$filename);
+        // $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
 
         // $image->move("../../../public_html/back_end_mp/$company_id/GET/$imei",$path)
 
         // Return a response
         return response()->json([
             'message' => 'File uploaded successfully.',
-            'file' => $path
+            'file' => 'misterkong.com/back_end_mp/'.$request->comp_id."_config/GET/".$request->imei."/".$filename
         ]);
     }
 
