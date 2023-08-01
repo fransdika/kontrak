@@ -128,6 +128,7 @@ Route::post('kartu_stok', [api_all::class, 'kartu_stok']);
 Route::post('upload-barang', [api_all::class, 'upload_file']);
 Route::post('upload-json', [api_all::class, 'up_file_json']);
 Route::post('list-json', [api_all::class, 'get_json_file_name']);
+Route::post('hapus-file-json', [api_all::class, 'delete_file_json']);
 
 
 

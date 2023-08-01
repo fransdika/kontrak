@@ -853,7 +853,6 @@ class api_all extends Controller
         
         // $path = $file->move(public_path('file_json'),$filename);
         // $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
-
         // $image->move("../../../public_html/back_end_mp/$company_id/GET/$imei",$path)
 
         // Return a response
@@ -865,40 +864,25 @@ class api_all extends Controller
 
     public function get_json_file_name(Request $request)
 	{
-
-        // $dt = "ls /home/misterkong/public_html/back_end_mp/'$request->comp_id'_config/GET/'$request->imei'";
-        // shell_exec("chmod +x /home/ssid/public_html/misterkong/back_end_mp/db_def/mycommand".$this->get_company_id().".sh  > /dev/null &");
         $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei);
         if (!empty($dt)) {
             $var = preg_split("#[\r\n]+#", trim($dt));
         } else {
             $var = [];
         }
-
         return response()->json(
             $var
         );
-		// $dir = basename("/GET")."/".$this->get_imei();
-		// $hideName = array('.', '..');
-		// if ($this->is_dir_empty($dir)) {
-		// 	echo "the folder is empty";
-		// 	// echo "asdfasd";
-		// } else {
-		// 	$files = array_diff(scandir($dir), array('..', '.'));
-		// 	// print_r($files);
-		// 	foreach ($files as $file) {
-		// 		if (!in_array($file, $hideName)) {
-
-		// 			$files_name[] = $file;
-		// 		}
-		// 	}
-		// }
-		// // $this->file_name=$files_name;
-		// $this->file_name=$this->getFileSorted($files_name);
-		// // echo "<pre>";
-		// // print_r($this->file_name);
-		// // echo "</pre>";
-		// // return $files_name;
 	}
+
+    public function delete_file_json(Request $request)
+    {
+        $cmd_command = shell_exec("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei/$request->nama_file);
+        return response()->json([
+            'status' => 1,
+            'error' => 200,
+            'message' => 'Berhasil hapus file'
+        ]);
+    }
 
 } 
