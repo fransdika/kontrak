@@ -130,6 +130,9 @@ Route::post('upload-json', [api_all::class, 'up_file_json']);
 Route::post('list-json', [api_all::class, 'get_json_file_name']);
 Route::post('hapus-file-json', [api_all::class, 'delete_file_json']);
 
+//route perubahan dari ci_api_vps
+Route::get('del_rec', [api_all::class, 'deleteData']);
+
 
 
 

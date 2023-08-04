@@ -134,7 +134,7 @@ class api_all extends Controller
                 DB::insert("insert into misterkong_$request->cid_tujuan.m_supplier_config (kd_supplier, supplier_user_company_id, `status`)
                  values ('$request->kd_supplier','$request->id_cid_sumber','0')");
                 DB::update("update h_kontrak_request set kd_supplier = '$request->kd_supplier', `status` = '-1' where 
-                comp_id_sumber='$request->cid_sumber' and comp_id_tujuan='$request->cid_tujuan' and `status`='0'");
+                    comp_id_sumber='$request->cid_sumber' and comp_id_tujuan='$request->cid_tujuan' and `status`='0'");
                 DB::commit();
                 return response()->json([
                     "Pesan" => "Berhasil menambahkan Supplier"
@@ -158,7 +158,7 @@ class api_all extends Controller
 
     public function post_customer_respons_contract(Request $request)
     {
-       
+
         $validasi = Validator::make($request->all(), [
             "kd_supplier" => "required",
             "kd_customer" => "required",
@@ -292,7 +292,7 @@ class api_all extends Controller
                 "Pesan" => "Ukuran gambar maksimal 1000KB"
             ], 404);
         }
-       
+
     }
     public function get_list_supplier_item(Request $request)
     {
@@ -317,9 +317,9 @@ class api_all extends Controller
         if ($request->mbs_status ==='1') {
             $status = 1;
             DB::update("update misterkong_$request->comp_id.m_barang_satuan set `status` = $status where kd_barang = '$request->kd_barang' and kd_satuan = '$request->kd_satuan'");
-                return response()->json([
-                    'Pesan' => 'Berhasil insert data'
-                ], 200);
+            return response()->json([
+                'Pesan' => 'Berhasil insert data'
+            ], 200);
         } elseif ($request->mbs_status === '2') {
             $status = 2;
             DB::beginTransaction();
@@ -345,12 +345,12 @@ class api_all extends Controller
     public function get_supplier_contracted(Request $request)
     {
         $data = DB::select("SELECT m_supplier.*,m_supplier_config.supplier_user_company_id AS supplier_user_company_id
-		FROM
-		misterkong_$request->comp_id.m_supplier_config m_supplier_config
-		INNER JOIN t_kontrak kontrak ON kontrak.id = m_supplier_config.kontrak_id
-		INNER JOIN misterkong_$request->comp_id .m_supplier m_supplier ON m_supplier_config.kd_supplier = m_supplier.kd_supplier
-		WHERE
-		kontrak.status = 1");
+          FROM
+          misterkong_$request->comp_id.m_supplier_config m_supplier_config
+          INNER JOIN t_kontrak kontrak ON kontrak.id = m_supplier_config.kontrak_id
+          INNER JOIN misterkong_$request->comp_id .m_supplier m_supplier ON m_supplier_config.kd_supplier = m_supplier.kd_supplier
+          WHERE
+          kontrak.status = 1");
         return response()->json($data);
     }
 
@@ -385,15 +385,15 @@ class api_all extends Controller
     public function get_satuan(Request $request)
     {
         $sql = "SELECT
-                    kd_barang, 
-                    m_satuan.kd_satuan, 
-                    jumlah,
-                    nama
-                FROM
-                    misterkong_$request->comp_id.m_barang_satuan
-                    INNER JOIN misterkong_$request->comp_id.m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan 
-                WHERE
-                    kd_barang = '$request->kd_barang'";
+        kd_barang, 
+        m_satuan.kd_satuan, 
+        jumlah,
+        nama
+        FROM
+        misterkong_$request->comp_id.m_barang_satuan
+        INNER JOIN misterkong_$request->comp_id.m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan 
+        WHERE
+        kd_barang = '$request->kd_barang'";
         return DB::select($sql);
     }
 
@@ -405,25 +405,25 @@ class api_all extends Controller
         // print_r("INSERT INTO misterkong_$request->comp_id.m_barang_satuan_supplier(kd_supplier,kd_barang,kd_satuan,kd_barang_supplier,kd_satuan_supplier) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->kd_barang_supplier','$request->kd_satuan_supplier')
         //             ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', kd_satuan_supplier='$request->kd_satuan_supplier'");        
         DB::beginTransaction();
-            try {
-                DB::update("INSERT INTO misterkong_$request->comp_id.m_barang_supplier(kd_supplier,kd_barang,kd_barang_supplier,`status`,user_add,user_modif) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_barang_supplier',1,'$request->user_id','$request->user_id') 
-                    ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', `status`=1");
-                DB::insert("INSERT IGNORE INTO misterkong_$request->comp_id.m_barang_satuan(kd_barang,kd_satuan,jumlah,harga_jual,`status`,margin) VALUES('$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->jumlah',0,0,0)");
-                DB::update("INSERT INTO misterkong_$request->comp_id.m_barang_satuan_supplier(kd_supplier,kd_barang,kd_satuan,kd_barang_supplier,kd_satuan_supplier,`status`) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->kd_barang_supplier','$request->kd_satuan_supplier',1)
-                    ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', kd_satuan_supplier='$request->kd_satuan_supplier',`status`=1");        
-                DB::commit();
-                return response()->json([
-                    'Pesan' => 'Berhasil Upsert Data'
-                ], 200);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                return response()->json([
-                    'Pesan' => "Gagal"
-                ], 404);
-                return response()->json([
-                    'Pesan' => "Gagal"
-                ], 500);
-            }
+        try {
+            DB::update("INSERT INTO misterkong_$request->comp_id.m_barang_supplier(kd_supplier,kd_barang,kd_barang_supplier,`status`,user_add,user_modif) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_barang_supplier',1,'$request->user_id','$request->user_id') 
+                ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', `status`=1");
+            DB::insert("INSERT IGNORE INTO misterkong_$request->comp_id.m_barang_satuan(kd_barang,kd_satuan,jumlah,harga_jual,`status`,margin) VALUES('$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->jumlah',0,0,0)");
+            DB::update("INSERT INTO misterkong_$request->comp_id.m_barang_satuan_supplier(kd_supplier,kd_barang,kd_satuan,kd_barang_supplier,kd_satuan_supplier,`status`) VALUES('$request->kd_supplier','$request->kd_barang_validasi','$request->kd_satuan_validasi','$request->kd_barang_supplier','$request->kd_satuan_supplier',1)
+                ON DUPLICATE KEY UPDATE kd_barang_supplier='$request->kd_barang_supplier', kd_satuan_supplier='$request->kd_satuan_supplier',`status`=1");        
+            DB::commit();
+            return response()->json([
+                'Pesan' => 'Berhasil Upsert Data'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'Pesan' => "Gagal"
+            ], 404);
+            return response()->json([
+                'Pesan' => "Gagal"
+            ], 500);
+        }
     }
     public function login_pos(Request $request)
     {
@@ -431,11 +431,11 @@ class api_all extends Controller
         // if ($selectmd5 == null) {
         //     return response()->json(['message' => 'No hp atau Password salah'], 401);
         // } else {
-            $no_hp = $request->mn;
-            $passwd = $request->dp;
+        $no_hp = $request->mn;
+        $passwd = $request->dp;
 
-            print_r($no_hp);
-            
+        print_r($no_hp);
+
             // $credentials = request($no_hp,$passwd);
             // $user = User::where($credentials)->first();
             // if (! $user )  {
@@ -459,7 +459,7 @@ class api_all extends Controller
     }
 
 
-        public function info_cicilan_piutang(Request $request)
+    public function info_cicilan_piutang(Request $request)
     {
         $sql = "CALL p_infoCicilanPiutang('".$request->comp_id."','".$request->no_transaksi."',$request->limit,$request->length,$request->count_stats)";
         if ($request->count_stats == 0) {
@@ -478,13 +478,13 @@ class api_all extends Controller
         $cicilan_new = [];
         $transaksi_new = [];
         $nominal_new = [];          
-            $cicilan_new = explode(",",$no_cicilan);
-            $transaksi_new = explode(",",$no_transaksi);
-            $nominal_new = explode(",",$nominal);
-            
-            if (count($cicilan_new) == count($transaksi_new) && count($cicilan_new) == count($nominal_new)) {
-                $sql = [];
-                for ($i=0; $i < count($cicilan_new); $i++) {
+        $cicilan_new = explode(",",$no_cicilan);
+        $transaksi_new = explode(",",$no_transaksi);
+        $nominal_new = explode(",",$nominal);
+
+        if (count($cicilan_new) == count($transaksi_new) && count($cicilan_new) == count($nominal_new)) {
+            $sql = [];
+            for ($i=0; $i < count($cicilan_new); $i++) {
                 // echo  $i;
                 $data_cicilan[] = [
                     "no_cicilan" =>$cicilan_new[$i],
@@ -499,62 +499,62 @@ class api_all extends Controller
                     "kd_user"=> $request->kd_user
                 ]; 
                 $sql[] = "INSERT INTO misterkong_$request->comp_id.t_piutang_cicilan 
-                                        (no_cicilan, no_transaksi, kd_jenis, kd_pegawai, kd_kas, nominal, other, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
-                                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-                }
-                DB::beginTransaction();
-                try {
-                    foreach ($sql as $key => $value) {
-                        DB::insert($value,
+                (no_cicilan, no_transaksi, kd_jenis, kd_pegawai, kd_kas, nominal, other, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+            }
+            DB::beginTransaction();
+            try {
+                foreach ($sql as $key => $value) {
+                    DB::insert($value,
                         [
-                        $data_cicilan[$key]['no_cicilan'],
-                        $data_cicilan[$key]['no_transaksi'],
-                        $data_cicilan[$key]['kd_jenis'],
-                        $data_cicilan[$key]['kd_pegawai'],
-                        $data_cicilan[$key]['kd_kas'],
-                        $data_cicilan[$key]['nominal'],
-                        $data_cicilan[$key]['other'],
-                        date('Y-m-d'),
-                        $data_cicilan[$key]['no_bukti'],
-                        $data_cicilan[$key]['keterangan'],
-                        $data_cicilan[$key]['kd_user'],
-                        date('Y-m-d')
+                            $data_cicilan[$key]['no_cicilan'],
+                            $data_cicilan[$key]['no_transaksi'],
+                            $data_cicilan[$key]['kd_jenis'],
+                            $data_cicilan[$key]['kd_pegawai'],
+                            $data_cicilan[$key]['kd_kas'],
+                            $data_cicilan[$key]['nominal'],
+                            $data_cicilan[$key]['other'],
+                            date('Y-m-d'),
+                            $data_cicilan[$key]['no_bukti'],
+                            $data_cicilan[$key]['keterangan'],
+                            $data_cicilan[$key]['kd_user'],
+                            date('Y-m-d')
                         ]);
-                    }
-                    DB::commit();
-                    return response()->json([
-                        'status' => 0,
-                        'error' => 200,
-                        'message' => 'Berhasil Insert Data'
-                    ], 200);
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => 0,
-                        'error' => 404,
-                        'message' => 'Gagal Insert Data'
-                    ], 404);
-                    return response()->json([
-                        'status' => 0,
-                        'error' => 500,
-                        'message' => 'Gagal Insert Data'
-                    ], 500);
                 }
-            } else {
+                DB::commit();
                 return response()->json([
                     'status' => 0,
                     'error' => 200,
+                    'message' => 'Berhasil Insert Data'
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 0,
+                    'error' => 404,
                     'message' => 'Gagal Insert Data'
-                ],200);
+                ], 404);
+                return response()->json([
+                    'status' => 0,
+                    'error' => 500,
+                    'message' => 'Gagal Insert Data'
+                ], 500);
             }
+        } else {
+            return response()->json([
+                'status' => 0,
+                'error' => 200,
+                'message' => 'Gagal Insert Data'
+            ],200);
+        }
     }
     public function update_piutang(Request $request)
     {
         $update = DB::update("UPDATE misterkong_$request->comp_id.t_piutang_cicilan SET 
-                              no_transaksi = ?, kd_jenis = ?, kd_pegawai = ?, kd_kas = ?, nominal = ?, other = ?, tanggal = ?, no_bukti = ?, keterangan = ?, kd_user = ?
-                              WHERE no_cicilan = ?
-                              ",
-                              [$request->no_transaksi, $request->kd_jenis,$request->kd_pegawai,$request->kd_kas,$request->nominal,$request->other,$request->tanggal,$request->no_bukti,$request->keterangan,$request->kd_user, $request->no_cicilan]);
+          no_transaksi = ?, kd_jenis = ?, kd_pegawai = ?, kd_kas = ?, nominal = ?, other = ?, tanggal = ?, no_bukti = ?, keterangan = ?, kd_user = ?
+          WHERE no_cicilan = ?
+          ",
+          [$request->no_transaksi, $request->kd_jenis,$request->kd_pegawai,$request->kd_kas,$request->nominal,$request->other,$request->tanggal,$request->no_bukti,$request->keterangan,$request->kd_user, $request->no_cicilan]);
         return response()->json([
             'status' => 0,
             'error' => 200,
@@ -597,7 +597,7 @@ class api_all extends Controller
             ], 500);
         }
     }
-        public function info_cicilan_hutang(Request $request)
+    public function info_cicilan_hutang(Request $request)
     {
         // $sql = "CALL p_infoCicilanHutang('comp2020110310015601','HM2203220016',0,10,0)";
         $sql = "CALL p_infoCicilanHutang('".$request->comp_id."','".$request->no_transaksi."',$request->limit,$request->length,$request->count_stats)";
@@ -618,13 +618,13 @@ class api_all extends Controller
         $cicilan_new = [];
         $transaksi_new = [];
         $nominal_new = [];          
-            $cicilan_new = explode(",",$no_cicilan);
-            $transaksi_new = explode(",",$no_transaksi);
-            $nominal_new = explode(",",$nominal);
-            
-            if (count($cicilan_new) == count($transaksi_new) && count($cicilan_new) == count($nominal_new)) {
-                $sql = [];
-                for ($i=0; $i < count($cicilan_new); $i++) {
+        $cicilan_new = explode(",",$no_cicilan);
+        $transaksi_new = explode(",",$no_transaksi);
+        $nominal_new = explode(",",$nominal);
+
+        if (count($cicilan_new) == count($transaksi_new) && count($cicilan_new) == count($nominal_new)) {
+            $sql = [];
+            for ($i=0; $i < count($cicilan_new); $i++) {
                 $data_cicilan[] = [
                     "no_cicilan" =>$cicilan_new[$i],
                     "no_transaksi" => $transaksi_new[$i],
@@ -636,52 +636,52 @@ class api_all extends Controller
                     "kd_user"=> $request->kd_user
                 ]; 
                 $sql[] = "INSERT INTO misterkong_$request->comp_id.t_hutang_cicilan 
-                            (no_cicilan, no_transaksi, kd_jenis, kd_kas, nominal, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
-                          VALUES (?,?,?,?,?,?,?,?,?,?)";
-                }
-                DB::beginTransaction();
-                try {
-                    foreach ($sql as $key => $value) {
-                        DB::insert($value,
+                (no_cicilan, no_transaksi, kd_jenis, kd_kas, nominal, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
+                VALUES (?,?,?,?,?,?,?,?,?,?)";
+            }
+            DB::beginTransaction();
+            try {
+                foreach ($sql as $key => $value) {
+                    DB::insert($value,
                         [
-                        $data_cicilan[$key]['no_cicilan'],
-                        $data_cicilan[$key]['no_transaksi'],
-                        $data_cicilan[$key]['kd_jenis'],
-                        $data_cicilan[$key]['kd_kas'],
-                        $data_cicilan[$key]['nominal'],
-                        date('Y-m-d'),
-                        $data_cicilan[$key]['no_bukti'],
-                        $data_cicilan[$key]['keterangan'],
-                        $data_cicilan[$key]['kd_user'],
-                        date('Y-m-d')
+                            $data_cicilan[$key]['no_cicilan'],
+                            $data_cicilan[$key]['no_transaksi'],
+                            $data_cicilan[$key]['kd_jenis'],
+                            $data_cicilan[$key]['kd_kas'],
+                            $data_cicilan[$key]['nominal'],
+                            date('Y-m-d'),
+                            $data_cicilan[$key]['no_bukti'],
+                            $data_cicilan[$key]['keterangan'],
+                            $data_cicilan[$key]['kd_user'],
+                            date('Y-m-d')
                         ]);
-                    }
-                    DB::commit();
-                    return response()->json([
-                        'status' => 1,
-                        'error' => 200,
-                        'message' => 'Berhasil Insert Data'
-                    ], 200);
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => 0,
-                        'error' => $e->getMessage(),
-                        'message' => 'Gagal Insert Data'
-                    ], 404);
-                    return response()->json([
-                        'status' => 0,
-                        'error' => 500,
-                        'message' => 'Gagal Insert Data'
-                    ], 500);
                 }
-            } else {
+                DB::commit();
+                return response()->json([
+                    'status' => 1,
+                    'error' => 200,
+                    'message' => 'Berhasil Insert Data'
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
                 return response()->json([
                     'status' => 0,
-                    'error' => 200,
+                    'error' => $e->getMessage(),
                     'message' => 'Gagal Insert Data'
-                ],200);
+                ], 404);
+                return response()->json([
+                    'status' => 0,
+                    'error' => 500,
+                    'message' => 'Gagal Insert Data'
+                ], 500);
             }
+        } else {
+            return response()->json([
+                'status' => 0,
+                'error' => 200,
+                'message' => 'Gagal Insert Data'
+            ],200);
+        }
         // $insert = DB::insert("INSERT INTO misterkong_$request->comp_id.t_hutang_cicilan 
         //                         (no_cicilan, no_transaksi, kd_jenis, kd_kas, nominal, tanggal, no_bukti, keterangan, kd_user, tanggal_server)
         //                       VALUES (?,?,?,?,?,?,?,?,?,?)", [$request->no_cicilan,$request->no_transaksi,$request->kd_jenis,$request->kd_kas,$request->nominal,NOW(),$request->no_bukti,$request->keterangan,$request->kd_user,NOW()]);
@@ -692,9 +692,9 @@ class api_all extends Controller
     public function update_hutang(Request $request)
     {
         $update = DB::update("UPDATE misterkong_$request->comp_id.t_hutang_cicilan SET 
-                              no_transaksi = ?, kd_jenis = ?, kd_kas = ?, nominal = ?, tanggal = ?, no_bukti = ?, keterangan = ?, kd_user = ?
-                              WHERE no_cicilan = ?",
-                              [$request->no_transaksi, $request->kd_jenis,$request->kd_kas,$request->nominal,$request->tanggal,$request->no_bukti,$request->keterangan,$request->kd_user, $request->no_cicilan]);
+          no_transaksi = ?, kd_jenis = ?, kd_kas = ?, nominal = ?, tanggal = ?, no_bukti = ?, keterangan = ?, kd_user = ?
+          WHERE no_cicilan = ?",
+          [$request->no_transaksi, $request->kd_jenis,$request->kd_kas,$request->nominal,$request->tanggal,$request->no_bukti,$request->keterangan,$request->kd_user, $request->no_cicilan]);
 
         return response()->json([
             'status' => 1,
@@ -717,10 +717,10 @@ class api_all extends Controller
     {
         $sql = DB::select("SELECT v.* FROM `v_status_buka_toko` v INNER JOIN m_user_company ON v.id = m_user_company.id WHERE company_id=?",[$request->comp_id]);
         return response()->json([
-                'status' => 1,
-                'error' => 0,
-                'message' => 'pesanan sudah siap',
-                'data' => $sql[0]
+            'status' => 1,
+            'error' => 0,
+            'message' => 'pesanan sudah siap',
+            'data' => $sql[0]
         ]);
     }
 
@@ -789,28 +789,28 @@ class api_all extends Controller
 
         // if ($request->jenis == 1) {
             // Save the file
-            $file = $request->file('file');
-            $path = $file->store('barang_gambar', 'public');
+        $file = $request->file('file');
+        $path = $file->store('barang_gambar', 'public');
 
             // Save the file details in the database
-            $fileRecord = DB::table('m_barang_gambar')->insertGetId([
-                'kd_barang' => $request->kd_barang,
-                'nomor'=>1,
-                'keterangan'=>'-',
-                'gambar' => $file->getClientOriginalName(),
-                'ismain'=>'1',
-                'spesifikasi'=>'-',
-                'deskripsi'=>'-'
-            ]);
+        $fileRecord = DB::table('m_barang_gambar')->insertGetId([
+            'kd_barang' => $request->kd_barang,
+            'nomor'=>1,
+            'keterangan'=>'-',
+            'gambar' => $file->getClientOriginalName(),
+            'ismain'=>'1',
+            'spesifikasi'=>'-',
+            'deskripsi'=>'-'
+        ]);
 
             // Retrieve the saved file record
-            $uploadedFile = DB::table("misterkong_$request->company_id.m_barang_gambar")->find($fileRecord);
+        $uploadedFile = DB::table("misterkong_$request->company_id.m_barang_gambar")->find($fileRecord);
 
             // // Return a response
-            return response()->json([
-                'message' => 'File uploaded successfully.',
-                'file' => $uploadedFile,
-            ]);
+        return response()->json([
+            'message' => 'File uploaded successfully.',
+            'file' => $uploadedFile,
+        ]);
 		// } elseif ($request->jenis == 2){
 
 		// } else {
@@ -863,7 +863,7 @@ class api_all extends Controller
     }
 
     public function get_json_file_name(Request $request)
-	{
+    {
         $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei);
         if (!empty($dt)) {
             $var = preg_split("#[\r\n]+#", trim($dt));
@@ -873,7 +873,7 @@ class api_all extends Controller
         return response()->json(
             $var
         );
-	}
+    }
 
     public function delete_file_json(Request $request)
     {
@@ -883,6 +883,45 @@ class api_all extends Controller
             'error' => 200,
             'message' => 'Berhasil hapus file'
         ]);
+    }
+
+    public function deleteData(Request $request)
+    {
+        $tbl_name = $request->t_name;
+        $key = explode('__', $request->key);
+        $val = explode('__', $request->val);
+        $detail = ($request->dt == 'true') ? 'true' : 'false';
+        for ($i = 0; $i < count($key); $i++) {
+            $key_val[$key[$i]] = $val[$i];
+        }
+
+        DB::beginTransaction();
+        try {
+
+
+            if ($detail == "true") {
+                // $this->db->where($key);
+                // $this->db->delete($tbl_name . "_detail");
+                DB::delete("DELETE FROM ".$tbl_name."_detail WHERE ".$key[0]." = ?",[$key[1]]);
+            }
+            // $this->db->where($key);
+            // $this->db->delete($tbl_name);
+
+            DB::delete("DELETE FROM ".$tbl_name." WHERE ".$key[0]." = ?",[$key[1]]);
+            DB::commit();
+            return response()->json([
+                'status' => 1,
+                'error' => false,
+                'message' => 'Berhasil Delete file'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => true,
+                'message' => 'Gagal Menghapus Data'
+            ]);
+        }
     }
 
 } 
