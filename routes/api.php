@@ -7,6 +7,7 @@ use App\Http\Controllers\API\KongPosController;
 use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\LaporanTableController;
 use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\API\SinkronisasiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -134,7 +135,8 @@ Route::post('hapus-file-json', [api_all::class, 'delete_file_json']);
 Route::get('del_rec', [api_all::class, 'deleteData']);
 
 
-
+//route perubahan dari back_end_mp
+Route::get('get-json-pos/{company_id}/{imei}', [SinkronisasiController::class, 'convert_to_json_mode2']);
 
 
 // testing testing
