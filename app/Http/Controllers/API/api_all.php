@@ -864,7 +864,12 @@ class api_all extends Controller
 
     public function get_json_file_name(Request $request)
     {
-        $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei);
+        if ($request->jenis == 1) {
+            $folder = 'GET';
+        } else {
+            $folder = 'POST';
+        }
+        $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei);
         if (!empty($dt)) {
             $var = preg_split("#[\r\n]+#", trim($dt));
         } else {
@@ -877,7 +882,12 @@ class api_all extends Controller
 
     public function delete_file_json(Request $request)
     {
-        $cmd_command = shell_exec("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/GET/".$request->imei."/".$request->nama_file);
+        if ($request->jenis == 1) {
+            $folder = 'GET';
+        } else {
+            $folder = 'POST';
+        }
+        $cmd_command = shell_exec("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file);
         return response()->json([
             'status' => 1,
             'error' => 200,
