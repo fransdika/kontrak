@@ -140,3 +140,8 @@ Route::get('get-json-pos/{company_id}/{imei}', [SinkronisasiController::class, '
 
 
 // testing testing
+
+// routes kongPOS dari Robi
+Route::post('version', [api_all::class, 'version']);
+Route::post('cek_reg', [api_all::class, 'cek_reg']);
+Route::post('pesanan', [api_all::class, 'transaksi']);
