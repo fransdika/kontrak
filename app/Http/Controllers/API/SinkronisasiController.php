@@ -74,5 +74,106 @@ class SinkronisasiController extends Controller
             }
         }
     }
+    public function is_dir_empty($dir)
+    {
+        if (!is_readable($dir)) {
+            return null;
+        }
+        return (count(scandir($dir)) == 2);
+    }
+    public function syncDelete(Request $request)
+    {
+        $company_id=$request->company_id;
+
+        $dir="../../pr_multi_db/back_end_mp/".$company_id."_config/DEL"; //local
+        // $dir=__DIR__;
+        $hideName = array('.', '..');
+        // echo $dir;
+        // die();
+
+
+        //get_json_file_name
+        $files_name=[];
+        $json=[];
+        if ($this->is_dir_empty($dir)) {
+            echo "the folder is empty";
+        } else {
+            $files = array_diff(scandir($dir,SCANDIR_SORT_DESCENDING), array('..', '.'));
+            foreach ($files as $file) {
+                if (!in_array($file, $hideName)) {
+
+                    $files_name[] = $file;
+                }
+            }
+        }
+        // print_r($files_name);
+        // die();
+
+        //json_proccessing
+        foreach ($files_name as $key => $value) {
+            $tbl_name_tmp = explode('__', $value);
+            $str = file_get_contents($dir.'/' . $value);
+            if (!empty($str)) {
+                $json[$tbl_name_tmp[0]][] = json_decode($str, true);
+            }
+        }
+
+        //execute_query_delete
+        $keys=array_keys($json);
+        $i=0;
+        $sql_arr=array();
+        foreach ($keys as $key_table => $value_table) {
+            foreach ($json as $key_column => $value_column) {
+                // print_r($value_column);
+                $dt_stats=$value_column['detail'];
+                $sql="DELETE FROM $value_table WHERE ";
+                $col_keys=array_keys($value_column['key']);
+                $primary_key=array();
+                foreach ($col_keys as $key_val => $value_val) {
+
+                    $primary_key[]=$value_val."='".$value_column['key'][$value_val]."'";
+                }
+                $sql.=implode(' AND ', $primary_key);
+                if ($dt_stats) {
+                    $sql_arr[]="DELETE FROM ".$value_table."_detail WHERE ".implode(' AND ', $primary_key);
+                }
+                $sql_arr[]=$sql;
+            }
+            $i++;
+        }
+        // echo "<pre>";
+        // print_r($sql_arr);
+        // echo "</pre>";
+
+        DB::beginTransaction();
+        try {
+            if (!empty($sql_arr)) {
+                $stats=[];
+                foreach ($sql_arr as $key => $value) {
+                    if (!(DB::DELETE($value))) {
+                        $stats[]=0;
+                        $err="gagal: ".$value;
+                        throw new Exception($err);
+                    }
+                }
+                if (in_array(0, haystack) {
+                    DB::commit();
+                    $this->empty_folder($dir);
+                    return response()->json([1],200);
+
+                }
+            }
+
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([0], 500);
+        }
+    }
+
+    
+
+
 
 }
