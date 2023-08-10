@@ -73,7 +73,9 @@ class SinkronisasiController extends Controller
 
             }
         }
+        return response()->json([1],200);
     }
+// ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
     public function is_dir_empty($dir)
     {
         if (!is_readable($dir)) {
@@ -156,7 +158,7 @@ class SinkronisasiController extends Controller
                         throw new Exception($err);
                     }
                 }
-                if (in_array(0, haystack) {
+                if (in_array(0, $stats)) {
                     DB::commit();
                     $this->empty_folder($dir);
                     return response()->json([1],200);
@@ -171,9 +173,39 @@ class SinkronisasiController extends Controller
             return response()->json([0], 500);
         }
     }
-
+// ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
     
 
+// ------------------------------------------------------------------ GET FIRST MASTER ------------------------------------------------
 
+    public function getFirstMaster(Request $request, $act)
+    {
+        $table_name='';
+        if ($act=="getUser") {
+            $table_name='m_userx';
+        }elseif ($act=="getItem") {
+            $table_name='m_barang';
+        }elseif ($act=="getPegawai") {
+            $table_name='m_pegawai';
+        }
+        // echo $table_name;
+        
+        $data=['you are not belong here'];
+        if (!empty($table_name)) {
+            $sql_select="SELECT * FROM $table_name";
+            $exe_sql_select=DB::select($sql_select);
+            if (!empty($exe_sql_select)) {
+                $data=$exe_sql_select;
+            }else{
+                $data=array(
+                    'error'=>true,
+                    'status'=>-1,
+                    'message'=>'No Record Found'
+                );
+                
+            }
+        }
+        return response()->json($data, 200);
+    }
 
 }
