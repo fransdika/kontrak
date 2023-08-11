@@ -136,9 +136,14 @@ Route::get('del_rec', [api_all::class, 'deleteData']);
 
 
 //route perubahan dari back_end_mp
-Route::get('get-json-pos/{company_id}/{imei}', [SinkronisasiController::class, 'convert_to_json_mode2']);
+Route::post('get-json-pos/{company_id}/{imei}', [SinkronisasiController::class, 'convert_to_json_mode2']);
+Route::post('send-json-pos/{company_id}/{imei}', [SinkronisasiController::class, 'jsonPosExecutor']);
 Route::post('syncDelete', [SinkronisasiController::class, 'syncDelete']);
-Route::get('getFirstMaster/{act}', [SinkronisasiController::class, 'getFirstMaster']);
+Route::get('getFirstMaster/{company_id}/{act}', [SinkronisasiController::class, 'getFirstMaster']);
+
+//route perubahan dari Api_2
+Route::get('getCompanyProfile/{company_id}', [SinkronisasiController::class, 'getCompanyProfile']);
+Route::any('totalanStruk/{company_id}', [SinkronisasiController::class, 'totalanStruk']);
 
 
 // testing testing

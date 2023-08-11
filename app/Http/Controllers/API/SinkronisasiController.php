@@ -29,8 +29,8 @@ class SinkronisasiController extends Controller
                 if (count($exe_get_data)) {
                     // echo $value;
                     // $file_json = fopen("../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json", "w+");
-                    $path="../../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json"; //local
-                    // $path="../../../public_html/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json"; //vps
+                    // $path="../../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json"; //local
+                    $path="../../../public_html/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json"; //vps
                     $file_json = fopen($path, "w+");
                     fclose($file_json);
                     $file_path = $path;
@@ -75,6 +75,15 @@ class SinkronisasiController extends Controller
         }
         return response()->json([1],200);
     }
+
+// ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
+    public function jsonPosExecutor(Request $request, $company_id,$imei)
+    {
+        echo "test";
+    }
+// ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
+
+
 // ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
     public function is_dir_empty($dir)
     {
@@ -83,20 +92,14 @@ class SinkronisasiController extends Controller
         }
         return (count(scandir($dir)) == 2);
     }
-    public function syncDelete(Request $request)
-    {
-        $company_id=$request->company_id;
 
-        $dir="../../pr_multi_db/back_end_mp/".$company_id."_config/DEL"; //local
+    // get_json_file_name
+    public function get_json_file_name($company_id,$dir)
+    {
+        $dir="../../pr_multi_db/back_end_mp/".$company_id."_config/".$dir; //local
         // $dir=__DIR__;
         $hideName = array('.', '..');
-        // echo $dir;
-        // die();
-
-
-        //get_json_file_name
-        $files_name=[];
-        $json=[];
+        $this->files_name=[];
         if ($this->is_dir_empty($dir)) {
             echo "the folder is empty";
         } else {
@@ -104,15 +107,22 @@ class SinkronisasiController extends Controller
             foreach ($files as $file) {
                 if (!in_array($file, $hideName)) {
 
-                    $files_name[] = $file;
+                    $this->files_name[] = $file;
                 }
             }
         }
+    }
+
+    public function syncDelete(Request $request)
+    {
+        $company_id=$request->company_id;
+        $this->get_json_file_name($company_id,'DEL');
         // print_r($files_name);
         // die();
 
         //json_proccessing
-        foreach ($files_name as $key => $value) {
+        $json=[];
+        foreach ($this->files_name as $key => $value) {
             $tbl_name_tmp = explode('__', $value);
             $str = file_get_contents($dir.'/' . $value);
             if (!empty($str)) {
@@ -178,7 +188,7 @@ class SinkronisasiController extends Controller
 
 // ------------------------------------------------------------------ GET FIRST MASTER ------------------------------------------------
 
-    public function getFirstMaster(Request $request, $act)
+    public function getFirstMaster(Request $request, $company_id,$act)
     {
         $table_name='';
         if ($act=="getUser") {
@@ -192,7 +202,7 @@ class SinkronisasiController extends Controller
         
         $data=['you are not belong here'];
         if (!empty($table_name)) {
-            $sql_select="SELECT * FROM $table_name";
+            $sql_select="SELECT * FROM misterkong_".$company_id.".".$table_name;
             $exe_sql_select=DB::select($sql_select);
             if (!empty($exe_sql_select)) {
                 $data=$exe_sql_select;
@@ -207,5 +217,48 @@ class SinkronisasiController extends Controller
         }
         return response()->json($data, 200);
     }
+// ------------------------------------------------------------------ GET FIRST MASTER ------------------------------------------------
+
+// ------------------------------------------------ GET PROFILE PERUSAHAAN (g_db_config) ------------------------------------------
+
+    public function getCompanyProfile($company_id)
+    {
+        $data=DB::select("SELECT * FROM misterkong_".$company_id.".g_db_config");
+        if(!empty($data)){
+            $response=$data;
+        }else{
+            $response['status'] = 0;
+            $response['error'] = true;
+            // $response['message'] = 'Cannot Access Database, Unknown company id';
+            $response['message'] = 'Result Not Found';
+        }
+        return response()->json($response,200);
+        // print json_encode(array('status'=>1));
+    }
+
+// ------------------------------------------------ GET PROFILE PERUSAHAAN (g_db_config) ------------------------------------------
+
+// ------------------------------------------------------------------ TOTALAN STRUK ------------------------------------------------
+    public function totalanStruk(Request $request, $company_id)
+    {
+        if (!empty($request->kd_kas) && !empty($request->awal) && !empty($request->akhir)) {
+            $kd_kas=$request->kd_kas;
+            $awal=$request->awal;
+            $akhir=$request->akhir;
+            $data=DB::select("CALL misterkong_".$company_id.".proc_histori_kas('$kd_kas','$awal','$akhir')");
+            return response()->json($data,200);
+        }else{
+            $response['status'] = 404;
+            $response['error'] = true;
+            $response['message'] = 'not_found';
+            return response()->json($response,404);
+        }
+    }
+
+// ------------------------------------------------------------------ TOTALAN STRUK ------------------------------------------------
+
+
+
+
 
 }
