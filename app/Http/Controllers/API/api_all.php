@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
-class api_all extends Controller
+class Api_all extends Controller
 {
     public function __construct()
     {
@@ -875,9 +875,7 @@ class api_all extends Controller
         } else {
             $var = [];
         }
-        return response()->json(
-            $var
-        );
+        return response()->json([$var]);
     }
 
     public function delete_file_json(Request $request)

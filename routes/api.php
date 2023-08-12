@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\API\api_all;
+use App\Http\Controllers\API\Api_all;
 use App\Http\Controllers\API\api_testing;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\KongPosController;
@@ -8,6 +8,7 @@ use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\LaporanTableController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
+use App\Http\Controllers\solidReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,28 +28,28 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('login', ['as' => 'login', 'uses' => 'App\Http\Controllers\API\AuthController@login_response']);
-Route::post('index', [api_all::class, 'index']);
+Route::post('index', [Api_all::class, 'index']);
 
 // get data
-Route::post('customer_contract', [api_all::class, 'customer_contract']);
-Route::post('compare_supplier', [api_all::class, 'compare_supplier']);
-Route::post('supplier_response_contract', [api_all::class, 'supplier_response_contract']);
-Route::post('m_supplier', [api_all::class, 'm_supplier']);
-Route::post('selected_contracted', [api_all::class, 'selected_contracted']);
-Route::post('get_list_supplier_item', [api_all::class, 'get_list_supplier_item']);
-Route::post('get_supplier_contracted', [api_all::class, 'get_supplier_contracted']);
-Route::post('get_list_item_contracted', [api_all::class, 'get_list_item_contracted']);
-Route::post('get_barang', [api_all::class, 'get_barang']);
-Route::post('get_satuan', [api_all::class, 'get_satuan']);
+Route::post('customer_contract', [Api_all::class, 'customer_contract']);
+Route::post('compare_supplier', [Api_all::class, 'compare_supplier']);
+Route::post('supplier_response_contract', [Api_all::class, 'supplier_response_contract']);
+Route::post('m_supplier', [Api_all::class, 'm_supplier']);
+Route::post('selected_contracted', [Api_all::class, 'selected_contracted']);
+Route::post('get_list_supplier_item', [Api_all::class, 'get_list_supplier_item']);
+Route::post('get_supplier_contracted', [Api_all::class, 'get_supplier_contracted']);
+Route::post('get_list_item_contracted', [Api_all::class, 'get_list_item_contracted']);
+Route::post('get_barang', [Api_all::class, 'get_barang']);
+Route::post('get_satuan', [Api_all::class, 'get_satuan']);
 
 // post data
-Route::post('post_request_contract', [api_all::class, 'post_request_contract']);
-Route::post('post_compare_supplier_data', [api_all::class, 'post_compare_supplier_data']);
-Route::post('post_customer_respons_contract', [api_all::class, 'post_customer_respons_contract']);
-Route::post('post_do_payment', [api_all::class, 'post_do_payment']);
-Route::post('prepare_order', [api_all::class, 'procedure_prepare_kontrak']);
-Route::post('upload_image', [api_all::class, 'upload_image']);
-Route::post('postBarangSatuan', [api_all::class, 'postBarangSatuan']);
+Route::post('post_request_contract', [Api_all::class, 'post_request_contract']);
+Route::post('post_compare_supplier_data', [Api_all::class, 'post_compare_supplier_data']);
+Route::post('post_customer_respons_contract', [Api_all::class, 'post_customer_respons_contract']);
+Route::post('post_do_payment', [Api_all::class, 'post_do_payment']);
+Route::post('prepare_order', [Api_all::class, 'procedure_prepare_kontrak']);
+Route::post('upload_image', [Api_all::class, 'upload_image']);
+Route::post('postBarangSatuan', [Api_all::class, 'postBarangSatuan']);
 Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
 Route::post('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
 Route::post('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
@@ -56,7 +57,7 @@ Route::post('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
 Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
 Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
 Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
-Route::post('submit_validate', [api_all::class, 'submit_validate']);
+Route::post('submit_validate', [Api_all::class, 'submit_validate']);
 
 Route::post('laporan/penjualan_order', [LaporanController::class, 'getPenjualanOrder']);
 Route::post('laporan/penjualan_retur', [LaporanController::class, 'getPenjualanRetur']);
@@ -106,33 +107,33 @@ Route::post('regisman', [ManagerController::class, 'daftar']);
 Route::post('pencarian', [ManagerController::class, 'pencarian']);
 Route::post('login_mp', [ManagerController::class, 'login']);
 
-Route::post('info_piutang',[api_all::class, 'info_piutang']);
-Route::post('info_cicilan_piutang', [api_all::class, 'info_cicilan_piutang']);
-Route::post('insert_piutang', [api_all::class, 'create_piutang']);
-Route::post('update_piutang', [api_all::class, 'update_piutang']);
-Route::post('delete_piutang', [api_all::class, 'delete_piutang']);
+Route::post('info_piutang',[Api_all::class, 'info_piutang']);
+Route::post('info_cicilan_piutang', [Api_all::class, 'info_cicilan_piutang']);
+Route::post('insert_piutang', [Api_all::class, 'create_piutang']);
+Route::post('update_piutang', [Api_all::class, 'update_piutang']);
+Route::post('delete_piutang', [Api_all::class, 'delete_piutang']);
 
-Route::post('info_hutang',[api_all::class, 'info_hutang']);
-Route::post('info_cicilan_hutang', [api_all::class, 'info_cicilan_hutang']);
-Route::post('insert_hutang', [api_all::class, 'create_hutang']);
-Route::post('update_hutang', [api_all::class, 'update_hutang']);
-Route::post('delete_hutang', [api_all::class, 'delete_hutang']);
+Route::post('info_hutang',[Api_all::class, 'info_hutang']);
+Route::post('info_cicilan_hutang', [Api_all::class, 'info_cicilan_hutang']);
+Route::post('insert_hutang', [Api_all::class, 'create_hutang']);
+Route::post('update_hutang', [Api_all::class, 'update_hutang']);
+Route::post('delete_hutang', [Api_all::class, 'delete_hutang']);
 
-Route::post('status_toko', [api_all::class, 'status_buka_tutup_toko']);
+Route::post('status_toko', [Api_all::class, 'status_buka_tutup_toko']);
 
-Route::post('laba_rugi', [api_all::class, 'laba_rugi']);
-Route::post('mutasi_stok', [api_all::class, 'mutasi_stok']);
-Route::post('kartu_stok', [api_all::class, 'kartu_stok']);
+Route::post('laba_rugi', [Api_all::class, 'laba_rugi']);
+Route::post('mutasi_stok', [Api_all::class, 'mutasi_stok']);
+Route::post('kartu_stok', [Api_all::class, 'kartu_stok']);
 
 
 // backend POS
-Route::post('upload-barang', [api_all::class, 'upload_file']);
-Route::post('upload-json', [api_all::class, 'up_file_json']);
-Route::post('list-json', [api_all::class, 'get_json_file_name']);
-Route::post('hapus-file-json', [api_all::class, 'delete_file_json']);
+Route::post('upload-barang', [Api_all::class, 'upload_file']);
+Route::post('upload-json', [Api_all::class, 'up_file_json']);
+Route::post('list-json', [Api_all::class, 'get_json_file_name']);
+Route::post('hapus-file-json', [Api_all::class, 'delete_file_json']);
 
 //route perubahan dari ci_api_vps
-Route::get('del_rec', [api_all::class, 'deleteData']);
+Route::get('del_rec', [Api_all::class, 'deleteData']);
 
 
 //route perubahan dari back_end_mp
@@ -149,6 +150,10 @@ Route::any('totalanStruk/{company_id}', [SinkronisasiController::class, 'totalan
 // testing testing
 
 // routes kongPOS dari Robi
-Route::post('version', [api_all::class, 'version']);
-Route::post('cek_reg', [api_all::class, 'cek_reg']);
-Route::post('pesanan', [api_all::class, 'transaksi']);
+Route::post('version', [Api_all::class, 'version']);
+Route::post('cek_reg', [Api_all::class, 'cek_reg']);
+Route::post('pesanan', [Api_all::class, 'transaksi']);
+
+
+// Solid Report
+Route::post('info-toko', [SolidReportController::class, 'get_info_toko']);
