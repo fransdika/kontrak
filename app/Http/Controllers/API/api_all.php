@@ -1006,7 +1006,7 @@ class api_all extends Controller
                 'data' => '0'
             ]);
         }else{
-            $query = DB::select("SELECT t_penjualan.no_transaksi, t_pengiriman.no_penjualan, t_pengiriman.nama_tujuan, 
+            $query =  DB::select("SELECT t_penjualan.no_transaksi, t_pengiriman.no_penjualan, t_pengiriman.nama_tujuan, 
             t_driver.kode_pin, m_user_company.company_id, m_driver.nama_depan, m_driver.hp1, t_penjualan.id, m_driver.kd_driver
             FROM t_pengiriman 
             INNER JOIN t_penjualan ON t_pengiriman.no_resi= t_penjualan.no_transaksi
@@ -1015,7 +1015,7 @@ class api_all extends Controller
             INNER JOIN m_user_company ON t_penjualan.user_id_toko = m_user_company.id
             WHERE m_user_company.company_id = '$companyid' AND date(t_penjualan.tanggal) BETWEEN '$startdate' AND '$endate'
             AND t_penjualan.status_barang = 4 ");
-
+            // echo $query;
             if (empty($query)) {
                 return response()->json([
                     'status' => 200,
