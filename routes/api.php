@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\KongPosController;
 use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\LaporanTableController;
+use App\Http\Controllers\API\MkController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
 use Illuminate\Http\Request;
@@ -152,3 +153,7 @@ Route::any('totalanStruk/{company_id}', [SinkronisasiController::class, 'totalan
 Route::post('version', [api_all::class, 'version']);
 Route::post('cek_reg', [api_all::class, 'cek_reg']);
 Route::post('pesanan', [api_all::class, 'transaksi']);
+
+
+Route::get("bankdata",[MkController::class,"get_bank"]);
+
