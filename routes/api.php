@@ -151,16 +151,16 @@ Route::any('totalanStruk/{company_id}', [SinkronisasiController::class, 'totalan
 // testing testing
 
 // routes kongPOS dari Robi
-
+Route::post('version', [Api_all::class, 'version']);
+Route::post('cek_reg', [Api_all::class, 'cek_reg']);
+Route::post('pesanan', [Api_all::class, 'transaksi']);
 
 
 Route::get("bankdata",[MkController::class,"get_bank"]);
 
 
 
-Route::post('version', [Api_all::class, 'version']);
-Route::post('cek_reg', [Api_all::class, 'cek_reg']);
-Route::post('pesanan', [Api_all::class, 'transaksi']);
+
 
 
 // Solid Report
