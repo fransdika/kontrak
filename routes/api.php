@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\KongPosController;
 use App\Http\Controllers\API\LaporanController;
 use App\Http\Controllers\API\LaporanTableController;
+use App\Http\Controllers\API\MkController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
 use App\Http\Controllers\solidReportController;
@@ -150,6 +151,13 @@ Route::any('totalanStruk/{company_id}', [SinkronisasiController::class, 'totalan
 // testing testing
 
 // routes kongPOS dari Robi
+
+
+
+Route::get("bankdata",[MkController::class,"get_bank"]);
+
+
+
 Route::post('version', [Api_all::class, 'version']);
 Route::post('cek_reg', [Api_all::class, 'cek_reg']);
 Route::post('pesanan', [Api_all::class, 'transaksi']);
@@ -157,3 +165,4 @@ Route::post('pesanan', [Api_all::class, 'transaksi']);
 
 // Solid Report
 Route::post('info-toko', [SolidReportController::class, 'get_info_toko']);
+
