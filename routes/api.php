@@ -9,7 +9,7 @@ use App\Http\Controllers\API\LaporanTableController;
 use App\Http\Controllers\API\MkController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
-use App\Http\Controllers\solidReportController;
+use App\Http\Controllers\API\SolidReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -165,4 +165,8 @@ Route::get("bankdata",[MkController::class,"get_bank"]);
 
 // Solid Report
 Route::post('info-toko', [SolidReportController::class, 'get_info_toko']);
+Route::post('info-outlet', [SolidReportController::class, 'get_outlet']);
+Route::post('info-jam-operasional', [SolidReportController::class, 'jamOperasional']);
+Route::post('update-status-toko', [SolidReportController::class, 'changeStoreStatus']);
+
 
