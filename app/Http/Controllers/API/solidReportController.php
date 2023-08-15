@@ -216,7 +216,9 @@ class SolidReportController extends Controller
                 'status' => 1,
                 'error' => 0,
                 'message' => 'Updated Data',
-                'data' => []
+                'data' => [
+                    'file' => "misterkong.com/back_end_mp/".$request->comp_id."_config/images/$name"
+                ]
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
