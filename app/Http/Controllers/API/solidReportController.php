@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class solidReportController extends Controller
+class SolidReportController extends Controller
 {
     // public function change_store_status(Request $request){
 	// 	if (!empty($request->status)) {
