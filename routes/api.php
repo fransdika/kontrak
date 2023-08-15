@@ -171,5 +171,6 @@ Route::put('update-status-toko', [SolidReportController::class, 'changeStoreStat
 Route::post('get-buka-tutup-toko', [SolidReportController::class, 'getBukaTutupToko']);
 Route::put('update-buka-tutup-toko', [SolidReportController::class, 'updateJadwalBukaTutupToko']);
 Route::put('update-tags', [SolidReportController::class, 'updateTags']);
+Route::put('update-gambar-company', [SolidReportController::class, 'updateGambar']);
 
 
