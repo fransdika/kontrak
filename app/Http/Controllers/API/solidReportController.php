@@ -210,15 +210,13 @@ class SolidReportController extends Controller
 
         DB::beginTransaction();
         try {
-            DB::update("UPDATE g_db_config SET `value`=$name WHERE `name`='comp_profile_img'");
+            DB::update("UPDATE g_db_config SET `value`='$name' WHERE `name`='comp_profile_img'");
             DB::commit();
             return response()->json([
                 'status' => 1,
                 'error' => 0,
                 'message' => 'Updated Data',
-                'data' => [
-                    'file' => "misterkong.com/back_end_mp/".$request->comp_id."_config/images/$name"
-                ]
+                'data' => []
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
