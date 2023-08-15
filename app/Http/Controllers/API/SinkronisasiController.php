@@ -23,14 +23,17 @@ class SinkronisasiController extends Controller
                 // echo $this->get_last_request();
                 // $this->empty_folder();
                 // echo app_path();
-                $sql_get_data="SELECT $value.* FROM misterkong_".$company_id.".$value WHERE date_modif >='".$request->get_last_request."'";
+                $sql_get_data="SELECT $value.* FROM misterkong_".$company_id.".$value WHERE date_modif >='".$last_request."'";
                 // echo $sql_get_data;
                 $exe_get_data=db::select($sql_get_data);
                 if (count($exe_get_data)) {
                     // echo $value;
-                    // $file_json = fopen("../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json", "w+");
-                    // $path="../../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json"; //local
-                    $path="../../../public_html/back_end_mp/".$company_id."_config/POST/".$imei."/".$value.".json"; //vps
+                    // $file_json = fopen("../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value."__".$last_request.".json", "w+");
+                    if (!file_exists("../../../public_html/back_end_mp/".$company_id."_config/POST/".$imei)) {
+                        mkdir("../../../public_html/back_end_mp/".$company_id."_config/POST/".$imei, 0777, true);
+                    }
+                    // $path="../../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value."__".$last_request.".json"; //local
+                    $path="../../../public_html/back_end_mp/".$company_id."_config/POST/".$imei."/".$value."__".$last_request.".json"; //vps
                     $file_json = fopen($path, "w+");
                     fclose($file_json);
                     $file_path = $path;
@@ -76,12 +79,274 @@ class SinkronisasiController extends Controller
         return response()->json([1],200);
     }
 
-// ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
+// ----------------------------------------------------------------------SYNC EXEC -------------------------------------------------
     public function jsonPosExecutor(Request $request, $company_id,$imei)
     {
-        echo "test";
+        $this->get_json_file_name($company_id,'GET',$imei);
+        $data_json=$this->json;
+        $table_name = array();
+        $dt_list = array();
+        $query[]="SET FOREIGN_KEY_CHECKS=0";    
+        foreach ($data_json as $key_table => $value) {
+            if (!empty($value)) {
+                for ($iterasi=0; $iterasi <count($data_json[$key_table]) ; $iterasi++) { 
+                    $table_name=$key_table;
+                    $col_name=array();
+                    foreach ($data_json[$key_table][0] as $key_col_name => $value_col_name) {
+                        $col_name[] = $key_col_name;
+                    }
+                    if (array_key_exists('details', $value[$iterasi])) {
+                        array_pop($col_name);
+                        $col_name_dt=array();
+                        $data_dt=array();
+                        foreach ($data_json[$key_table][$iterasi]['details'][0] as $key_col_dt => $value_col_dt) {
+                            $col_name_dt[]=$key_col_dt;
+                        }
+                        foreach ($data_json[$key_table][$iterasi]['details'] as $key_rec_dt => $value_rec_dt) {
+                            $data_dt[]=$value_rec_dt;
+                        }
+                        $table_name_dt=explode('__', $key_table)[0]."_detail";
+                    }else{
+                        $table_name_dt="";
+                    }
+                    if (empty($table_name_dt)) {
+                        if ($this->master_service($table_name, implode("','", $col_name),$iterasi,$company_id)) {
+                            $query[]=$this->master_service($table_name, implode("','", $col_name),$iterasi,$company_id);
+                            $this->notif_stats=true;
+                        }
+                    }else{
+                        if ($this->master_service($table_name, implode("','", $col_name),$iterasi,$company_id)) {
+                            $query[]=$this->master_service($table_name, implode("','", $col_name),$iterasi,$company_id);
+                        }
+                        $query[]=$this->master_detail_service($table_name_dt, implode("','", $col_name_dt),$iterasi,$data_dt[0],$company_id);
+                    }
+                }
+            }
+        }
+        // echo "<pre>";
+        // print_r($query);
+        // echo "</pre>";
+        try {
+            DB::beginTransaction();
+            DB::select("INSERT INTO sync_monitoring(company_id,status) VALUES('$company_id','0') ON DUPLICATE KEY UPDATE status=VALUES(status)");
+            if (count($query)>1) {
+                $query[]="SET FOREIGN_KEY_CHECKS=1";
+                
+                // $path_result="../../pr_multi_db/back_end_mp/".$company_id."_config/GET/result/"; //local
+                $path_result="../../../public_html/back_end_mp/".$company_id."_config/GET/result/"; //vps
+
+                if (!file_exists($path_result)) {
+                    mkdir($path_result, 0777, true);
+                }
+                $file_json = fopen($path_result.date('Y-m-d H.i.s').".sql", "w+");//local 
+                // $file_json = fopen($path_result.date('Y-m-d H:i:s').".sql", "w+"); //vps
+                fclose($file_json);
+
+                $file_path = $path_result.date('Y-m-d H.i.s').".sql"; //local
+                // $file_path = $path_result.date('Y-m-d H:i:s').".sql"; //vps
+                file_put_contents($file_path, "");
+
+                $file_contents = json_encode($query);
+                file_put_contents($file_path, $file_contents, FILE_APPEND | LOCK_EX);
+                $status=array();
+                foreach ($query as $key => $value) {
+                    // echo $value;
+                    DB::select($value);
+                }
+                DB::commit();
+                DB::select("INSERT INTO sync_monitoring(company_id,status) VALUES('$company_id','1') ON DUPLICATE KEY UPDATE status=VALUES(status)");
+                $this->copy_file($company_id,$imei);
+                $this->cek_stok('',[],$company_id);
+                if ($this->notif_stats) {
+                    $payload = array(
+                        'to' => '/topics/kongpos',
+                        'priority' => 'high',
+                        "mutable_content" => true,
+                        'data' => array(
+                            "title" => 'Update Master',
+                            "comp_id" => $company_id,
+                            "jenis_notif" => '2',
+
+                        ),
+                    );
+                    $this->send_notif_custom($payload);
+                }
+                $this->empty_folder('exec',$company_id,$imei);
+                echo 1;
+
+            }
+
+
+        } catch (\Exception $e) {
+
+            return response()->json([$e->getMessage()], 500);
+            DB::rollBack();
+                    // $con->kon_mdb->rollback();
+        }
     }
-// ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
+
+    public function master_service($tbl_name, $columns_name,$iterasi,$company_id)
+    {
+        $col_name = explode("','", $columns_name);
+        $col_name_inserted=implode(',',$col_name);
+        for ($i = 0; $i < count($col_name); $i++) {
+            foreach ($this->json[$tbl_name][$iterasi][$col_name[$i]] as $key => $value) {
+                if ($tbl_name=='m_barang_gambar') {
+                }
+                if ($col_name[$i]=="date_modif" || $col_name[$i]=="tanggal_server" || $col_name[$i]=="date_add" || $col_name[$i]=="tanggal_jatuh_tempo") {
+                    if($value=='' || $value=='null'){
+                        $value=date("Y-m-d H:i:s");;
+                    }
+                }
+                $rec[$tbl_name][$col_name[$i]][] = $value;
+            }   
+        }
+        if (count($rec[$tbl_name][$col_name[0]]) >0 && !empty(count($rec[$tbl_name]))) {
+            for ($j = 0; $j < count($rec[$tbl_name][$col_name[0]]); $j++) {
+                $record = array();
+                for ($i = 0; $i < count($col_name); $i++) {
+                    $record[]= $rec[$tbl_name][$col_name[$i]][$j];
+                }
+                $record_master[] = "('".implode("','", $record)."')";
+            }
+            $col_updt=array();
+            foreach ($col_name as $key_updt_col => $value_updt_col) {
+                $col_updt[]=$value_updt_col."=VALUES(".$value_updt_col.")";
+            }
+            return str_replace("'NULL'", "NULL", "INSERT INTO misterkong_".$company_id.".".$tbl_name."($col_name_inserted) VALUES".implode(",",$record_master)."ON DUPLICATE KEY UPDATE ".implode(',', $col_updt));
+        }else{
+            return false;
+        }
+    }
+    public function master_detail_service($tbl_name,$columns_name,$iterasi,$data_dt,$company_id)
+    {
+        $col_name = explode("','", $columns_name);
+        $test=0;
+        for ($dt_i=0; $dt_i < count($data_dt['date_modif']); $dt_i++) { 
+            foreach ($data_dt as $key_dt => $value_dt) {
+                if ($key_dt=='date_modif') {
+                    $data_dt['date_modif'][$dt_i]=date("Y-m-d H:i:s");
+                }
+            }
+        }
+        $record_dt=array();
+        for ($j = 0; $j < count($data_dt['date_modif']); $j++) {
+            $record = array();
+            foreach ($data_dt as $key => $value) {
+                $record[] = $data_dt[$key][$j];
+            }
+            $record_dt[] = "('".implode("','", $record)."')";
+        }
+        $col_name_inserted=implode(',',$col_name);
+        $col_updt=array();
+        foreach ($col_name as $key_updt_col => $value_updt_col) {
+            $col_updt[]=$value_updt_col."=VALUES(".$value_updt_col.")";
+        }
+        return str_replace("'NULL'", "NULL", "INSERT INTO misterkong_".$company_id.".".$tbl_name."(".implode(',', $col_name).") VALUES".implode(",",$record_dt)."ON DUPLICATE KEY UPDATE ".implode(',', $col_updt));
+    }
+
+    function cek_stok($con,$kd_barang,$company_id){
+        $condition=implode("','", $kd_barang);
+        $sql_get_stok="SELECT stok_akhir.kd_barang FROM (SELECT kd_barang,kd_divisi,stok FROM misterkong_".$company_id.".mon_g_stok_barang_per_divisi_vd WHERE kd_barang IN('$condition')) stok_akhir INNER JOIN (SELECT kd_barang,kd_divisi,stok_min FROM misterkong_".$company_id.".m_barang_divisi WHERE kd_barang IN('$condition')) stok_min ON stok_akhir.kd_barang=stok_min.kd_barang AND stok_akhir.kd_divisi=stok_min.kd_divisi WHERE stok_akhir.stok < stok_min.stok_min";
+
+        try {
+            $exe_get_stok=DB::select($sql_get_stok);
+            if (count($exe_get_stok) > 0) {
+                foreach ($exe_get_data as $key => $row_get_stok) {
+                    $item_stok_minus[]=$row_get_stok->kd_barang;
+                }
+                $payload = array(
+                    'to' => '/topics/kongpos',
+                    'priority' => 'high',
+                    "mutable_content" => true,
+                    'data' => array(
+                        "title" => 'Stok Kurang',
+                        "body" => "terdapat ".count($item_stok_minus)." item direkomendasikan untuk dipesan",
+                        "comp_id" => $company_id,
+                        "jenis_notif" => '10',
+                        "isi" => '-',
+                    ),
+                );
+                $this->send_notif_custom($payload);
+            }
+
+
+        } catch (Exception $e) {
+            echo $err;
+        }
+
+    }
+    public function copy_file($company_id,$imei){
+        // //local
+        // $dir = "../../pr_multi_db/back_end_mp/".$company_id."_config/POST";
+        // $dir_src = "../../pr_multi_db/back_end_mp/".$company_id."_config/GET";
+
+        //vps
+        $dir = "../../../public_html/back_end_mp/".$company_id."_config/POST";
+        $dir_src = "../../../public_html/back_end_mp/".$company_id."_config/GET";
+
+        $hideName = array('.', '..');
+        // echo getcwd();
+        // echo $dir;
+
+        // print_r(scandir($dir));
+        foreach (scandir($dir) as $folder_name) {
+            if (!in_array($folder_name, $hideName)) {
+                if ($folder_name !=$imei) {
+                    foreach ($this->file_name as $key => $value) {
+                        // echo "../".$this->get_company_id()."/".$dir_src."/".$imei."/".$value."=>"."../".$this->get_company_id()."/POST/".$folder_name."/".$value."<br>";
+                        // echo $dir_src."/".$imei."/".$value."<br>";
+                        // echo $dir."/".$folder_name."/".$value."<br>";
+                        copy($dir_src."/".$imei."/".$value,$dir."/".$folder_name."/".$value);
+                    }       
+                }
+            }
+        }
+        foreach ($this->file_name as $key => $value) {
+            copy($dir_src."/".$imei."/".$value,$dir_src."/result/".$value);
+        }       
+    }
+    function send_notif_custom($payload){
+
+        $headers = array(
+            'Authorization:key=AAAAf50odws:APA91bERBP6tLNfAWz_aeNhmXjbOOItI2aZ_bZEy1xNX47SWCr8LbrfNVQfuVJ8xYT7_mCFKRn6pBW7_qO-fG5qFNfIU-8nfWm1-M_zhezLK12dlsIeFi8ZfYeizEhPVQTdIbGj0DtUt', 'Content-Type: application/json',
+        );
+        // echo "<pre>";
+        // print_r($payload);
+        // echo "</pre>";
+        if (!empty($payload)) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            $result = curl_exec($ch);
+            curl_close($ch);
+        }
+
+    }
+    public function empty_folder($jenis,$company_id,$imei)
+    {
+        if ($jenis=="exec") {
+            $sub_dir='GET';
+        }elseif ($jenis=='del') {
+            $sub_dir='DEL';
+        }else{
+            $sub_dir='POST';
+        }
+        // $dir = "../../pr_multi_db/back_end_mp/".$company_id."_config/".$sub_dir."/".$imei; //local
+        $dir = "../../../public_html/back_end_mp/".$company_id."_config/".$sub_dir."/".$imei; //vps
+        foreach ($this->file_name as $key => $value) {
+            // echo $value;
+            // echo($dir.DIRECTORY_SEPARATOR.$value);
+            unlink($dir."/".$value);
+        }
+    }
+
+
+// ----------------------------------------------------------------------SYNC EXEC -------------------------------------------------
 
 
 // ----------------------------------------------------------------------SYNC DELETE -------------------------------------------------
@@ -94,12 +359,16 @@ class SinkronisasiController extends Controller
     }
 
     // get_json_file_name
-    public function get_json_file_name($company_id,$dir)
+    public function get_json_file_name($company_id,$dir,$imei='')
     {
-        $dir="../../pr_multi_db/back_end_mp/".$company_id."_config/".$dir; //local
+        // $dir="../../pr_multi_db/back_end_mp/".$company_id."_config/".$dir; //local
+        $dir="../../../public_html/back_end_mp/".$company_id."_config/".$dir; //vps
+        if(!empty($imei)){
+            $dir.="/$imei";
+        }
         // $dir=__DIR__;
         $hideName = array('.', '..');
-        $this->files_name=[];
+        $files_name=[];
         if ($this->is_dir_empty($dir)) {
             echo "the folder is empty";
         } else {
@@ -107,8 +376,19 @@ class SinkronisasiController extends Controller
             foreach ($files as $file) {
                 if (!in_array($file, $hideName)) {
 
-                    $this->files_name[] = $file;
+                    $files_name[] = $file;
                 }
+            }
+        }
+        $this->file_name=$files_name;
+
+        //json_proccessing
+        $this->json=[];
+        foreach ($files_name as $key => $value) {
+            $tbl_name_tmp = explode('__', $value);
+            $str = file_get_contents($dir.'/' . $value);
+            if (!empty($str)) {
+                $this->json[$tbl_name_tmp[0]][] = json_decode($str, true);
             }
         }
     }
@@ -120,22 +400,14 @@ class SinkronisasiController extends Controller
         // print_r($files_name);
         // die();
 
-        //json_proccessing
-        $json=[];
-        foreach ($this->files_name as $key => $value) {
-            $tbl_name_tmp = explode('__', $value);
-            $str = file_get_contents($dir.'/' . $value);
-            if (!empty($str)) {
-                $json[$tbl_name_tmp[0]][] = json_decode($str, true);
-            }
-        }
+        
 
         //execute_query_delete
-        $keys=array_keys($json);
+        $keys=array_keys($this->json);
         $i=0;
         $sql_arr=array();
         foreach ($keys as $key_table => $value_table) {
-            foreach ($json as $key_column => $value_column) {
+            foreach ($this->json as $key_column => $value_column) {
                 // print_r($value_column);
                 $dt_stats=$value_column['detail'];
                 $sql="DELETE FROM $value_table WHERE ";
@@ -170,7 +442,7 @@ class SinkronisasiController extends Controller
                 }
                 if (in_array(0, $stats)) {
                     DB::commit();
-                    $this->empty_folder($dir);
+                    $this->empty_folder('del',$company_id,$imei);
                     return response()->json([1],200);
 
                 }
@@ -219,7 +491,7 @@ class SinkronisasiController extends Controller
     }
 // ------------------------------------------------------------------ GET FIRST MASTER ------------------------------------------------
 
-// ------------------------------------------------ GET PROFILE PERUSAHAAN (g_db_config) ------------------------------------------
+// ------------------------------------------------ GET PROFILE PERUSAHAAN (g_db_config) ---------------------------------------------
 
     public function getCompanyProfile($company_id)
     {
