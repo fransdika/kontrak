@@ -210,7 +210,7 @@ class SolidReportController extends Controller
 
         DB::beginTransaction();
         try {
-            DB::update("UPDATE g_db_config SET `value`='$name' WHERE `name`='comp_profile_img'");
+            DB::update("UPDATE misterkong_$request->comp_id.g_db_config SET `value`='$name' WHERE `name`='comp_profile_img'");
             DB::commit();
             return response()->json([
                 'status' => 1,
