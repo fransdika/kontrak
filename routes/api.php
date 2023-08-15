@@ -167,6 +167,9 @@ Route::get("bankdata",[MkController::class,"get_bank"]);
 Route::post('info-toko', [SolidReportController::class, 'get_info_toko']);
 Route::post('info-outlet', [SolidReportController::class, 'get_outlet']);
 Route::post('info-jam-operasional', [SolidReportController::class, 'jamOperasional']);
-Route::post('update-status-toko', [SolidReportController::class, 'changeStoreStatus']);
+Route::put('update-status-toko', [SolidReportController::class, 'changeStoreStatus']);
+Route::post('get-buka-tutup-toko', [SolidReportController::class, 'getBukaTutupToko']);
+Route::put('update-buka-tutup-toko', [SolidReportController::class, 'updateJadwalBukaTutupToko']);
+Route::put('update-tags', [SolidReportController::class, 'updateTags']);
 
 
