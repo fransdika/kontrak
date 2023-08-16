@@ -41,8 +41,8 @@ class DatabaseGeneratorModel extends Model
     }
     public function getCreateTrigger($list_trigger)
     {
-        $replaceable='DEFINER=`root`@`localhost` '; //local
-        // $replaceable='DEFINER=`remote`@`localhost` '; //vps
+        // $replaceable='DEFINER=`root`@`localhost` '; //local
+        $replaceable='DEFINER=`remote`@`localhost` '; //vps
         foreach ($list_trigger as $key => $value) {
             $sql_get_created_trigger = "SHOW CREATE TRIGGER misterkong_comp2020061905541701.$value";
             $data = DB::select($sql_get_created_trigger);
