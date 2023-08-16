@@ -9,6 +9,7 @@ use App\Http\Controllers\API\LaporanTableController;
 use App\Http\Controllers\API\MkController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
+use App\Http\Controllers\API\DatabaseGeneratorController;
 use App\Http\Controllers\API\SolidReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -142,6 +143,8 @@ Route::post('get-json-pos/{company_id}/{imei}', [SinkronisasiController::class, 
 Route::post('send-json-pos/{company_id}/{imei}', [SinkronisasiController::class, 'jsonPosExecutor']);
 Route::post('syncDelete', [SinkronisasiController::class, 'syncDelete']);
 Route::get('getFirstMaster/{company_id}/{act}', [SinkronisasiController::class, 'getFirstMaster']);
+Route::any('generateDB', [DatabaseGeneratorController::class, 'executeSql']);
+
 
 //route perubahan dari Api_2
 Route::get('getCompanyProfile/{company_id}', [SinkronisasiController::class, 'getCompanyProfile']);
