@@ -885,8 +885,8 @@ class Api_all extends Controller
         } else {
             $folder = 'POST';
         }
-        // unlink("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/"."/".$request->nama_file)
-        $cmd_command = shell_exec(unlink("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file));
+        unlink("../../../public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file);
+        // $cmd_command = shell_exec(unlink("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file));
         return response()->json([
             'status' => 1,
             'error' => 200,
