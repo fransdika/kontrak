@@ -885,13 +885,22 @@ class Api_all extends Controller
         } else {
             $folder = 'POST';
         }
-        unlink("../../../public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file);
-        // $cmd_command = shell_exec(unlink("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file));
-        return response()->json([
-            'status' => 1,
-            'error' => 200,
-            'message' => 'Berhasil hapus file'
-        ]);
+        $path_result = "../../../public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file;
+        if (!file_exists($path_result)) {
+            return response()->json([
+                'status' => 1,
+                'error' => 200,
+                'message' => 'File tidak ada'
+            ]);
+         } else {
+            unlink("../../../public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file);
+            // $cmd_command = shell_exec(unlink("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file));
+            return response()->json([
+                'status' => 1,
+                'error' => 200,
+                'message' => 'Berhasil hapus file'
+            ]);
+         }
     }
 
     public function deleteData(Request $request)
