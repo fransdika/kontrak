@@ -24,7 +24,7 @@ class DatabaseGeneratorController extends Controller
 
     public function getViewFunctionProcedure()
     {
-        $data = file_get_contents(base_path('public/sync/procedure_function_view_back_up.txt'));
+        $data = file_get_contents(base_path('public/sync/procedure_function_view.txt'));
         $vfp_list = explode('xyv', $data);
         $this->vfp_list = $vfp_list;
     }
@@ -85,8 +85,17 @@ class DatabaseGeneratorController extends Controller
 		fclose($json_file);
 		// $file_path = "../../pr_multi_db/back_end_mp/db_def/solid_pos_".$request->company_id.".sql";//local
 		$file_path = "../../../public_html/back_end_mp/db_def/solid_pos_".$request->company_id.".sql"; //vps
-
 		file_put_contents($file_path, $content_sql);
+
+
+        $my_conmmand_file=fopen("../../../public_html/back_end_mp/db_def/mycommand".$request->company_id.".sh", "w+"); //vps
+		fclose($my_conmmand_file);
+
+		// $file_path = "../../back_end_mp/db_def/mycommand".$this->get_company_id().".sh"; //local
+		$file_path = "../../../public_html/back_end_mp/db_def/mycommand".$request->company_id.".sh"; //vps
+
+		file_put_contents($file_path, "cd /home/misterkong/public_html/back_end_mp/db_def\nmysql -h localhost -u admin_db -pWo%9TwbXcK@HSq9T < ./solid_pos_".$request->company_id.".sql");
+
 
 		// shell_exec("chmod +x /home/misterkong/public_html/back_end_mp/db_def/mycommand".$request->company_id.".sh  > /dev/null &");
 		// shell_exec("sh /home/misterkong/public_html/back_end_mp/db_def/mycommand".$request->company_id.".sh  > /dev/null &");

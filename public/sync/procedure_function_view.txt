@@ -28,6 +28,21 @@ GROUP BY kd_barang,kd_divisi) last_sales;
 RETURN @tanggal;
 END
 
+//xyvdelimiter //
+DROP FUNCTION IF EXISTS getTotalPenjualanPerTransaksi2;
+CREATE FUNCTION `getTotalPenjualanPerTransaksi2`(`no_transaksi_p` varchar(30)) RETURNS float
+BEGIN
+SET @total =0;
+SELECT SUM(
+GetHargaBersih(
+GetHargaBersih(harga_jual,b.diskon1,b.diskon2,b.diskon3,b.diskon4,0,0),a.diskon1,a.diskon2,a.diskon3,a.diskon4,pajak,0
+)*qty
+) AS total INTO @total
+FROM t_penjualan a INNER  JOIN t_penjualan_detail b ON a.no_transaksi=b.no_transaksi WHERE a.no_transaksi=no_transaksi_p
+GROUP BY a.no_transaksi;
+
+RETURN @total;
+END
 
 //xyvdelimiter //
 DROP FUNCTION IF EXISTS f_harga_beli_akhir;
@@ -526,6 +541,142 @@ CREATE VIEW `m_barang_divisi_detail` AS select `m_barang`.`kd_barang` AS `Kode B
 //xyvdelimiter //
 DROP VIEW IF EXISTS mon_g_stok_barang_per_divisi;
 CREATE VIEW `mon_g_stok_barang_per_divisi` AS select `v_g_barang_histori`.`kd_divisi` AS `Kode Divisi`,`m_divisi`.`nama` AS `Divisi`,`v_g_barang_histori`.`kd_barang` AS `Kode Barang`,`m_barang`.`nama` AS `Barang`,sum(`GetKuantitasSatuanTerkecil`(`v_g_barang_histori`.`kd_barang`,`v_g_barang_histori`.`kd_satuan`) * `v_g_barang_histori`.`Debet`) - sum(`GetKuantitasSatuanTerkecil`(`v_g_barang_histori`.`kd_barang`,`v_g_barang_histori`.`kd_satuan`) * `v_g_barang_histori`.`Kredit`) AS `Stok Akhir`,sum(`v_g_barang_histori`.`Debet` * `m_barang_satuan`.`jumlah` - `v_g_barang_histori`.`Kredit` * `m_barang_satuan`.`jumlah`) AS `stok_Akhir` from (((`v_g_barang_histori` join `m_barang` on(`v_g_barang_histori`.`kd_barang` = `m_barang`.`kd_barang`)) join `m_divisi` on(`v_g_barang_histori`.`kd_divisi` = `m_divisi`.`kd_divisi`)) join `m_barang_satuan` on(`v_g_barang_histori`.`kd_barang` = `m_barang_satuan`.`kd_barang` and `v_g_barang_histori`.`kd_satuan` = `m_barang_satuan`.`kd_satuan`)) group by `v_g_barang_histori`.`kd_divisi`,`v_g_barang_histori`.`kd_barang`,`m_barang`.`nama`,`m_divisi`.`nama`
+
+//xyvdelimiter //
+DROP VIEW IF EXISTS mon_g_stok_barang_per_divisi_vd;
+CREATE VIEW mon_g_stok_barang_per_divisi_vd AS
+SELECT m_barang.kd_barang,barang,m_barang.kd_divisi,divisi,stok_awal+
+IFNULL(penjualan.jual_qty*-1,0)+
+IFNULL(penjualan_retur.jual_retur_qty,0)+
+IFNULL(pembelian.beli_qty,0)+
+IFNULL(pembelian_retur.beli_retur_qty*-1,0)+
+IFNULL(opname.qty_opname,0)+
+IFNULL(mutasi_keluar.mutasi_qty*-1,0)+
+IFNULL(mutasi_masuk.mutasi_qty*-1,0)
+ AS stok
+FROM (
+SELECT brg.kd_barang,brg.nama AS barang,m_div.kd_divisi,m_div.divisi,m_div.stok_awal FROM 
+(SELECT kd_barang,nama FROM m_barang WHERE status<>0 AND (m_barang.kd_barang LIKE '%%' OR m_barang.nama LIKE '%%')) brg
+INNER JOIN (
+SELECT kd_barang,m_divisi.kd_divisi,nama AS divisi,stok_awal FROM m_barang_divisi 
+INNER JOIN m_divisi ON m_divisi.kd_divisi=m_barang_divisi.kd_divisi
+WHERE m_barang_divisi.status<>0 AND m_divisi.nama LIKE '%%'
+)
+m_div ON m_div.kd_barang=brg.kd_barang
+) m_barang 
+LEFT JOIN 
+(SELECT mbs.kd_barang,kd_divisi,SUM(jual_item_div.jual_qty*mbs.jumlah) AS jual_qty FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi,SUM(qty) AS jual_qty FROM t_penjualan_detail jual_dt 
+	INNER JOIN (
+		SELECT no_transaksi,kd_divisi FROM t_penjualan WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) jual 
+	ON jual.no_transaksi=jual_dt.no_transaksi 
+	GROUP BY kd_barang,kd_satuan,kd_divisi
+) jual_item_div
+INNER JOIN 
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=jual_item_div.kd_barang AND mbs.kd_satuan=jual_item_div.kd_satuan
+GROUP BY mbs.kd_barang,kd_divisi) penjualan
+ON m_barang.kd_barang=penjualan.kd_barang AND m_barang.kd_divisi=penjualan.kd_divisi
+LEFT JOIN
+(SELECT mbs.kd_barang,kd_divisi,SUM(jual_item_div.jual_qty*mbs.jumlah) AS jual_retur_qty FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi,SUM(qty) AS jual_qty FROM t_penjualan_retur_detail jual_dt 
+	INNER JOIN (
+		SELECT no_retur,kd_divisi FROM t_penjualan_retur WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) jual 
+	ON jual.no_retur=jual_dt.no_retur
+	GROUP BY kd_barang,kd_satuan,kd_divisi
+) jual_item_div
+INNER JOIN 
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=jual_item_div.kd_barang AND mbs.kd_satuan=jual_item_div.kd_satuan
+GROUP BY mbs.kd_barang,kd_divisi) penjualan_retur
+ON m_barang.kd_barang=penjualan_retur.kd_barang AND m_barang.kd_divisi=penjualan_retur.kd_divisi
+LEFT JOIN
+(SELECT mbs.kd_barang,kd_divisi,SUM(beli_item_div.beli_qty*mbs.jumlah) AS beli_qty FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi,SUM(qty) AS beli_qty FROM t_pembelian_detail beli_dt 
+	INNER JOIN (
+		SELECT no_transaksi,kd_divisi FROM t_pembelian WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) beli 
+	ON beli.no_transaksi=beli_dt.no_transaksi 
+	GROUP BY kd_barang,kd_satuan,kd_divisi
+) beli_item_div
+INNER JOIN 
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=beli_item_div.kd_barang AND mbs.kd_satuan=beli_item_div.kd_satuan
+GROUP BY mbs.kd_barang,kd_divisi) pembelian
+ON m_barang.kd_barang=pembelian.kd_barang AND m_barang.kd_divisi=pembelian.kd_divisi
+LEFT JOIN
+
+(SELECT mbs.kd_barang,kd_divisi,SUM(beli_item_div.beli_qty*mbs.jumlah) AS beli_retur_qty FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi,SUM(qty) AS beli_qty FROM t_pembelian_retur_detail beli_dt 
+	INNER JOIN (
+		SELECT no_retur,kd_divisi FROM t_pembelian_retur WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) beli 
+	ON beli.no_retur=beli_dt.no_retur 
+	GROUP BY kd_barang,kd_satuan,kd_divisi
+) beli_item_div
+INNER JOIN 
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=beli_item_div.kd_barang AND mbs.kd_satuan=beli_item_div.kd_satuan
+GROUP BY mbs.kd_barang,kd_divisi) pembelian_retur
+ON m_barang.kd_barang=pembelian_retur.kd_barang AND m_barang.kd_divisi=pembelian_retur.kd_divisi
+LEFT JOIN
+(SELECT mbs.kd_barang,kd_divisi,SUM(jumlah*qty) AS qty_opname FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi,SUM(qty) AS qty FROM
+	(
+		SELECT kd_barang,kd_satuan,kd_divisi,
+		CASE WHEN status<>2 AND qty>0 THEN (qty*-1)	ELSE qty END AS qty
+		FROM t_opname_stok WHERE tanggal>(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) op_stat
+GROUP BY kd_barang,kd_satuan,kd_divisi
+) op
+INNER JOIN
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=op.kd_barang AND mbs.kd_satuan=op.kd_satuan GROUP BY mbs.kd_barang) opname
+ON m_barang.kd_barang=opname.kd_barang AND m_barang.kd_divisi=opname.kd_divisi
+LEFT JOIN
+(SELECT mbs.kd_barang,kd_divisi_asal AS kd_divisi,SUM(mutasi_item_div.mutasi_qty*mbs.jumlah) AS mutasi_qty FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi_asal ,SUM(qty) AS mutasi_qty FROM t_mutasi_stok_detail mutasi_dt 
+	INNER JOIN (
+		SELECT no_transaksi,kd_divisi_asal FROM t_mutasi_stok WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) mutasi 
+	ON mutasi.no_transaksi=mutasi_dt.no_transaksi 
+	GROUP BY kd_barang,kd_satuan,kd_divisi_asal
+) mutasi_item_div
+INNER JOIN 
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=mutasi_item_div.kd_barang AND mbs.kd_satuan=mutasi_item_div.kd_satuan
+GROUP BY mbs.kd_barang,kd_divisi_asal) mutasi_keluar
+ON m_barang.kd_barang=mutasi_keluar.kd_barang AND m_barang.kd_divisi=mutasi_keluar.kd_divisi
+LEFT JOIN
+(SELECT mbs.kd_barang,kd_divisi_tujuan AS kd_divisi,SUM(mutasi_item_div.mutasi_qty*mbs.jumlah) AS mutasi_qty FROM
+(
+	SELECT kd_barang,kd_satuan,kd_divisi_tujuan ,SUM(qty) AS mutasi_qty FROM t_mutasi_stok_detail mutasi_dt 
+	INNER JOIN (
+		SELECT no_transaksi,kd_divisi_tujuan FROM t_mutasi_stok WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku)
+	) mutasi 
+	ON mutasi.no_transaksi=mutasi_dt.no_transaksi 
+	GROUP BY kd_barang,kd_satuan,kd_divisi_tujuan
+) mutasi_item_div
+INNER JOIN 
+(
+	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+) mbs ON mbs.kd_barang=mutasi_item_div.kd_barang AND mbs.kd_satuan=mutasi_item_div.kd_satuan
+GROUP BY mbs.kd_barang,kd_divisi_tujuan) mutasi_masuk
+ON m_barang.kd_barang=mutasi_masuk.kd_barang AND m_barang.kd_divisi=mutasi_masuk.kd_divisi
 //xyvdelimiter //
 DROP VIEW IF EXISTS mon_m_divisi;
 CREATE VIEW `mon_m_divisi` AS select `m_divisi`.`kd_divisi` AS `kd_divisi`,`m_divisi`.`kepala_nota` AS `kepala_nota`,`m_divisi`.`keterangan` AS `keterangan`,`m_divisi`.`nama` AS `nama` from `m_divisi` where `m_divisi`.`status` <> 0
@@ -1963,12 +2114,219 @@ END
 
 
 //xyvdelimiter //
-DROP PROCEDURE IF EXISTS proc_preprare_order;
-CREATE PROCEDURE proc_preprare_order()
+DROP PROCEDURE
+IF EXISTS proc_prepare_order;
 
+CREATE PROCEDURE proc_prepare_order (
+)
 BEGIN
 TRUNCATE TABLE x_pembelian_order_tmp;
-INSERT INTO x_pembelian_order_tmp SELECT *,NOW() FROM v_spk_pembelian_order;
+INSERT INTO x_pembelian_order_tmp
+SELECT
+	m_barang.kd_barang,m_barang.nama,
+	CASE 
+		WHEN
+		(
+			SELECT COUNT(t_pembelian.no_transaksi)
+			FROM t_pembelian INNER JOIN
+			t_pembelian_detail ON t_pembelian.no_transaksi = t_pembelian_detail.no_transaksi
+			WHERE t_pembelian_detail.kd_barang = avg_item.kd_barang
+		) = 0 THEN 'Baru'
+			ELSE 'Lama' 
+	END AS sts_barang,
+	avg_item.avg,
+	avg_item.stok,
+	IFNULL(
+		avg_item.avg * (m_supplier_jadwal.visit_time + m_supplier_jadwal.lead_time),
+		0
+	) AS need,
+	CASE
+		WHEN 
+			IFNULL(
+		((avg_item.avg * (m_supplier_jadwal.visit_time + m_supplier_jadwal.lead_time))+IFNULL(0*(avg_item.avg * (m_supplier_jadwal.visit_time + m_supplier_jadwal.lead_time))/100,0))-IFNULL(avg_item.stok,0),
+			0) < 0
+		THEN 0
+		ELSE
+		IFNULL(
+		((avg_item.avg * (m_supplier_jadwal.visit_time + m_supplier_jadwal.lead_time))+IFNULL(0*(avg_item.avg * (m_supplier_jadwal.visit_time + m_supplier_jadwal.lead_time))/100,0))-IFNULL(avg_item.stok,0),
+			0)
+	END AS qty,
+	satuan_terkecil.kd_satuan,
+	satuan_terkecil.satuan AS satuan,
+	purchasing.last_price AS harga_beli_terakhir,
+	0 AS Diskon,
+	purchasing.kd_supplier,
+	purchasing.supplier AS Supplier,
+	m_supplier_jadwal.hari as Kunjungan,
+	CASE
+		WHEN
+			m_supplier_jadwal.visit_time<7 THEN m_supplier_jadwal.hari+m_supplier_jadwal.visit_time
+		ELSE m_supplier_jadwal.hari
+	END AS 'Kunjungan2',
+	IFNULL((SELECT stok FROM mon_g_stok_barang_per_divisi_vd WHERE kd_divisi='DAA001' AND kd_barang=purchasing.kd_barang),0) AS expired,
+	NOW(),
+	purchasing.kd_satuan_beli,
+	purchasing.satuan_beli,
+	(SELECT SUBSTRING_INDEX(gambar,'\\',-1) FROM m_barang_gambar WHERE kd_barang=purchasing.kd_barang) AS gambar
+FROM
+(SELECT kd_barang,kd_supplier FROM m_barang_supplier WHERE status<>0) mbsup
+INNER JOIN
+(
+	SELECT
+		g_stok.kd_barang AS kd_barang,
+		ifnull(
+			round(penjualan.avg, 2),
+			0
+		) AS avg,
+		g_stok.stok AS stok
+	FROM
+		(
+			(
+				(
+					SELECT
+						mon_g_stok_barang_per_divisi_vd.kd_barang AS kd_barang,
+						sum(
+							mon_g_stok_barang_per_divisi_vd.stok
+						) AS stok
+					FROM
+						mon_g_stok_barang_per_divisi_vd
+					GROUP BY
+						mon_g_stok_barang_per_divisi_vd.kd_barang
+					HAVING
+						sum(
+							mon_g_stok_barang_per_divisi_vd.stok
+						) > 0
+				)
+			) g_stok
+			LEFT JOIN (
+				SELECT
+					t_penjualan_detail.kd_barang AS kd_barang,
+					sum(
+						m_barang_satuan.jumlah * t_penjualan_detail.qty
+					) / 21 AS avg
+				FROM
+					(
+						(
+							t_penjualan
+							JOIN t_penjualan_detail ON (
+								t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi
+							)
+						)
+						JOIN m_barang_satuan ON (
+							t_penjualan_detail.kd_barang = m_barang_satuan.kd_barang
+							AND m_barang_satuan.kd_satuan = t_penjualan_detail.kd_satuan
+						)
+					)
+				WHERE
+					t_penjualan.tanggal >= (
+						SELECT
+							curdate() + INTERVAL (7 * 3 * - 1) DAY
+					)
+				GROUP BY
+					t_penjualan_detail.kd_barang
+			) penjualan ON (
+				penjualan.kd_barang = g_stok.kd_barang
+			)
+		)
+	UNION
+	SELECT
+		g_stok.kd_barang AS kd_barang,
+		ifnull(
+			round(penjualan.avg, 2),
+			0
+		) AS avg,
+		g_stok.stok AS stok
+	FROM
+		(
+				(
+					(
+						SELECT
+							mon_g_stok_barang_per_divisi_vd.kd_barang AS kd_barang,
+							sum(
+								mon_g_stok_barang_per_divisi_vd.stok
+							) AS stok
+						FROM
+							mon_g_stok_barang_per_divisi_vd
+						GROUP BY
+							mon_g_stok_barang_per_divisi_vd.kd_barang
+						HAVING
+							sum(
+								mon_g_stok_barang_per_divisi_vd.stok
+							) <= 0
+					)
+				) g_stok
+				LEFT JOIN (
+					SELECT
+						t_penjualan_detail.kd_barang AS kd_barang,
+						sum(
+							m_barang_satuan.jumlah * t_penjualan_detail.qty
+						) / (7 * 3) AS avg
+					FROM
+						(
+							(
+								t_penjualan
+								JOIN t_penjualan_detail ON (
+									t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi
+								)
+							)
+							JOIN m_barang_satuan ON (
+								t_penjualan_detail.kd_barang = m_barang_satuan.kd_barang
+								AND m_barang_satuan.kd_satuan = t_penjualan_detail.kd_satuan
+							)
+						)
+					WHERE
+						t_penjualan.kd_divisi <> 'DAA001'
+					AND t_penjualan.tanggal >= (
+						SELECT
+							max(
+								t_penjualan.tanggal
+							) + INTERVAL (7 * 3 * - 1) DAY
+						FROM
+							(
+								t_penjualan
+								JOIN t_penjualan_detail ON (
+									t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi
+								)
+							)
+						WHERE
+							t_penjualan.kd_divisi <> 'DAA001'
+					)
+					GROUP BY
+						t_penjualan_detail.kd_barang
+				) penjualan ON (
+					g_stok.kd_barang = penjualan.kd_barang
+				)
+			)
+) avg_item
+ON avg_item.kd_barang=mbsup.kd_barang
+INNER JOIN (SELECT * FROM m_barang WHERE status<>0) m_barang ON m_barang.kd_barang= mbsup.kd_barang
+INNER JOIN 
+	(
+		SELECT kd_barang,kd_satuan,(SELECT nama FROM m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) as satuan FROM m_barang_satuan WHERE jumlah=1 
+	) satuan_terkecil 
+ON satuan_terkecil.kd_barang=mbsup.kd_barang
+INNER JOIN m_supplier_jadwal ON m_supplier_jadwal.kd_supplier=mbsup.kd_supplier
+LEFT JOIN(
+SELECT last_purchase.kd_barang,
+	last_purchase.kd_satuan_beli,
+	last_purchase.satuan_beli,
+	last_purchase.kd_supplier,
+	last_purchase.supplier,
+	last_purchase.last_price AS last_price
+	FROM
+	(
+		SELECT beli_dt.kd_barang,kd_supplier,GROUP_CONCAT(DISTINCT(m_satuan.kd_satuan)) AS kd_satuan_beli, GROUP_CONCAT(DISTINCT(m_satuan.nama)) AS satuan_beli,
+		(SELECT nama FROM m_supplier WHERE kd_supplier=beli.kd_supplier) AS supplier,
+			GROUP_CONCAT(harga_beli ORDER BY tanggal DESC LIMIT 1)/GROUP_CONCAT(jumlah ORDER BY tanggal DESC LIMIT 1) AS last_price
+		FROM t_pembelian beli INNER JOIN t_pembelian_detail beli_dt ON beli.no_transaksi=beli_dt.no_transaksi
+		INNER JOIN m_satuan ON m_satuan.kd_satuan=beli_dt.kd_satuan
+		INNER JOIN m_barang_satuan mbs ON mbs.kd_barang=beli_dt.kd_barang AND mbs.kd_satuan=beli_dt.kd_satuan
+		WHERE mbs.status<>0
+		GROUP BY beli_dt.kd_barang,kd_supplier
+	) last_purchase
+
+) purchasing ON purchasing.kd_barang=mbsup.kd_barang AND purchasing.kd_supplier=mbsup.kd_supplier;
+
 END
 
 
@@ -2188,7 +2546,743 @@ BEGIN
 	SELECT * FROM result_table;
 END
 
+//xyvdelimiter //
+DROP PROCEDURE
+IF EXISTS proc_mon_laba_rugi_v4;
+CREATE PROCEDURE proc_mon_laba_rugi_v4(
+IN `awal` datetime,IN `akhir` datetime
+)
+BEGIN
+	DECLARE persediaan_awal double;
+	DECLARE pembelian double;
+	DECLARE retur_pembelian double;
+	DECLARE siap_dijual double;
+	DECLARE penjualan_bruto double;
+	DECLARE penjualan_netto double;
+	DECLARE potongan_penjualan double;
+	DECLARE pajak double;
+	DECLARE retur_penjualan double;
+	DECLARE penjualan_tunai double;
+	DECLARE penjualan_kredit double;
+	DECLARE persediaan_akhir double;
+	DECLARE harga_avg_penjualan double;
+	DECLARE harga_avg_retur double;
+	DECLARE harga_pokok_penjualan double;
+	DECLARE rata_rata_persediaan double;
+	DECLARE rugi_laba_penjualan double;
+	DECLARE rasio_kontribusi double;
+	DECLARE biaya double;
+	DECLARE pendapatan double;
+	DECLARE tagihan_piutang double;
+	DECLARE penjualan_jasa double;
+	DECLARE persewaan double;
+	DECLARE pendapatan_surcharge double;
+	DECLARE rugi_laba_bersih double;
+	DECLARE opname_stok double;
+	
+	DECLARE rasio_kontribusi_bersih double;
+	DECLARE rasio_perputaran_persediaan double;
+	DECLARE awal1 DATETIME;		-- jika parameter tanggal awal lebih kecil dari pada tanggal tutup buku terakhir
+	DECLARE awal2 DATETIME;
+	DROP TEMPORARY TABLE IF EXISTS result_table;
+	CREATE TEMPORARY TABLE result_table(Keterangan VARCHAR(50),Nominal double);
+	SET persediaan_awal = 0;
+	SET pembelian = 0;
+	SET retur_pembelian = 0;
+	
+	SET siap_dijual = 0;
+	SET penjualan_bruto = 0;
+	SET penjualan_netto = 0;
+	SET potongan_penjualan = 0;
+	SET pajak = 0;
+	SET retur_penjualan = 0;
+	
+	SET penjualan_tunai = 0;
+	SET penjualan_kredit = 0;
+	SET persediaan_akhir = 0; 
+	SET harga_pokok_penjualan = 0;
+	SET rata_rata_persediaan = 0;
+	SET rugi_laba_penjualan = 0;
+	SET rasio_kontribusi = 0;
+	
+	SET biaya = 0; 
+	SET pendapatan = 0;
+	SET tagihan_piutang = 0;
+	SET penjualan_jasa = 0;
+	SET persewaan = 0;
+	SET pendapatan_surcharge = 0;
+	
+	SET rugi_laba_bersih = 0;
+	SET rasio_kontribusi_bersih = 0;
+	SET rasio_perputaran_persediaan = 0;
+	
+	SET awal1 = awal;
+	IF awal1 < GetTanggalTerakhirTutupBuku() THEN
+	SET awal1 = DATE_ADD(GetTanggalTerakhirTutupBuku(),INTERVAL 1 DAY);
+	-- SELECT DATE_ADD(GetTanggalTerakhirTutupBuku(),INTERVAL 1 DAY) INTO awal1;
+	END IF;
+	
+	-- DECLARE awal2 DATETIME;		-- untuk mengambil stok akhir per tanggal perlu dikurangi dengan tanggal terakhir
+	SET awal2 = DATE_ADD(awal1,INTERVAL -1 DAY);
 
+
+
+	SELECT SUM(qty * harga_jual)
+	INTO penjualan_bruto
+	FROM t_penjualan jual INNER JOIN t_penjualan_detail dtl ON jual.no_transaksi = dtl.no_transaksi
+	WHERE DATE(jual.tanggal) BETWEEN awal1 AND akhir;
+	
+	INSERT INTO result_table
+	SELECT 'Penjualan Bruto', penjualan_bruto;
+	
+	-- POTONGAN PENJUALAN
+	SELECT SUM(potongan)
+	INTO potongan_penjualan
+	FROM
+	(
+		SELECT jl.no_transaksi,ROUND(jl_dt.bruto-net.harga_net) AS potongan FROM (SELECT no_transaksi FROM t_penjualan WHERE DATE(tanggal) BETWEEN awal1 AND akhir) jl INNER JOIN (SELECT no_transaksi,SUM(qty*harga_jual) as bruto FROM t_penjualan_detail GROUP BY no_transaksi) jl_dt ON jl_dt.no_transaksi=	jl.no_transaksi
+		INNER JOIN
+		(SELECT no_transaksi, ((100/(100+(pajak*100)))*total) AS harga_net FROM x_total_penjualan) net ON net.no_transaksi=jl.no_transaksi
+		UNION ALL
+		SELECT net.no_transaksi,ROUND(bruto.total- net.total) AS potongan FROM
+		(SELECT t_penjualan_detail.no_transaksi, SUM(qty*harga_jual) AS total FROM t_penjualan_detail INNER JOIN t_penjualan ON t_penjualan.no_transaksi=t_penjualan_detail.no_transaksi WHERE DATE(tanggal) BETWEEN awal1 AND akhir GROUP BY t_penjualan_detail.no_transaksi) bruto
+		INNER JOIN
+		(
+			SELECT jl.no_transaksi,
+			ROUND(
+			SUM(GetHargaBersih(GetHargaBersih(harga_jual,jl_dt.diskon1,jl_dt.diskon2,jl_dt.diskon3,jl_dt.diskon4,0,0) *qty,jl.diskon1,jl.diskon2,jl.diskon3,jl.diskon4,pajak,0))
+			) - diskon_uang  AS total
+			FROM t_penjualan jl INNER JOIN t_penjualan_detail jl_dt ON jl_dt.no_transaksi=jl.no_transaksi
+			WHERE `status`=0 AND DATE(tanggal) BETWEEN awal1 AND akhir
+			GROUP BY jl.no_transaksi,kd_divisi) net
+		ON bruto.no_transaksi=net.no_transaksi
+	)pot;
+	
+-- 	FROM t_penjualan jual
+-- 	WHERE DATE(jual.tanggal) BETWEEN awal1 AND akhir;
+	
+	
+	INSERT INTO result_table
+	SELECT 'Potongan', potongan_penjualan;
+	
+	-- PAJAK PENJUALAN	
+-- 	INSERT INTO result_table
+-- 	SELECT 'Pajak', pajak;
+
+	-- RETUR PENJUALAN
+	SELECT IFNULL(SUM(harga_jual * qty), 0)
+	INTO retur_penjualan
+	FROM t_penjualan_retur INNER JOIN t_penjualan_retur_detail ON 
+		t_penjualan_retur.no_retur = t_penjualan_retur_detail.no_retur
+	WHERE DATE(tanggal) BETWEEN awal1 AND akhir;
+	
+	INSERT INTO result_table
+	SELECT 'Retur Penjualan', retur_penjualan;
+	
+	-- SPACE
+	-- INSERT INTO result_table
+	-- SELECT '',0;
+	
+	-- PENJUALAN NETTO
+-- 	SET penjualan_netto = penjualan_bruto - potongan + pajak - retur_penjualan;
+	SELECT SUM(total)
+	INTO penjualan_netto
+	FROM
+	(
+			SELECT total FROM((SELECT sum(total) as total FROM x_total_penjualan WHERE DATE(tanggal_tr) BETWEEN awal1 AND akhir) net_tunai)
+			UNION
+			SELECT
+			ROUND(SUM(GetHargaBersih(GetHargaBersih(harga_jual,jl_dt.diskon1,jl_dt.diskon2,jl_dt.diskon3,jl_dt.diskon4,0,0) *qty,jl.diskon1,jl.diskon2,jl.diskon3,jl.diskon4,pajak,0))) - diskon_uang  AS total
+			FROM t_penjualan jl INNER JOIN t_penjualan_detail jl_dt ON jl_dt.no_transaksi=jl.no_transaksi
+			INNER JOIN m_voucher ON m_voucher.kd_voucher=jl.kd_voucher
+			WHERE jl.`status`=0 AND DATE(tanggal) BETWEEN awal1 AND akhir
+			GROUP BY kd_divisi,nominal
+	) penjualan_netto;
+-- WHERE DATE(tanggal_tr) BETWEEN awal1 AND akhir;
+
+	INSERT INTO result_table
+	SELECT 'Penjualan Netto', penjualan_netto;
+
+	-- PENJUALAN TUNAI
+	SELECT SUM(total) AS total_penjualan
+	INTO penjualan_tunai
+	FROM x_total_penjualan jual WHERE DATE(tanggal_tr) BETWEEN awal1 AND akhir ;
+
+	INSERT INTO result_table
+	SELECT 'Penjualan Tunai', penjualan_tunai;
+
+	-- PENJUALAN KREDIT
+	SELECT SUM(total) 
+	INTO penjualan_kredit
+	FROM
+	(
+			SELECT
+			ROUND(SUM(GetHargaBersih(GetHargaBersih(harga_jual,jl_dt.diskon1,jl_dt.diskon2,jl_dt.diskon3,jl_dt.diskon4,0,0) *qty,jl.diskon1,jl.diskon2,jl.diskon3,jl.diskon4,pajak,0))) - diskon_uang  AS total
+			FROM t_penjualan jl INNER JOIN t_penjualan_detail jl_dt ON jl_dt.no_transaksi=jl.no_transaksi
+			INNER JOIN m_voucher ON m_voucher.kd_voucher=jl.kd_voucher
+			WHERE jl.`status`=0 AND DATE(tanggal) BETWEEN awal1 AND akhir
+			GROUP BY jl.no_transaksi,kd_divisi,nominal
+	) penjualan_kredit;
+	
+
+	INSERT INTO result_table
+	SELECT 'Penjualan Kredit', penjualan_kredit;
+
+SELECT 
+ROUND(SUM(ha.harga_average*(jual_qty-retur_qty)))
+INTO harga_pokok_penjualan
+FROM
+(
+	SELECT penjualan.kd_barang,penjualan.jml AS jual_qty,IFNULL(penjualan_retur.jml,0) AS retur_qty FROM
+	(
+		SELECT mbs.kd_barang,SUM(qty*jumlah) jml FROM
+		(
+			SELECT no_transaksi 
+			FROM t_penjualan WHERE DATE(tanggal) BETWEEN awal1 AND akhir
+		) jual
+		INNER JOIN
+		(
+			SELECT no_transaksi,kd_barang,kd_satuan,qty FROM t_penjualan_detail
+		) dtl 
+		ON jual.no_transaksi=dtl.no_transaksi
+		INNER JOIN m_barang_satuan mbs 
+		ON mbs.kd_barang=dtl.kd_barang AND mbs.kd_satuan=dtl.kd_satuan
+		GROUP BY mbs.kd_barang
+	) penjualan
+	LEFT JOIN
+	(
+		SELECT mbs.kd_barang,SUM(qty*jumlah) jml FROM
+		(
+			SELECT no_retur 
+			FROM t_penjualan_retur WHERE DATE(tanggal) BETWEEN awal1 AND akhir
+		) jual
+		INNER JOIN
+		(
+			SELECT no_retur,kd_barang,kd_satuan,qty FROM t_penjualan_retur_detail
+		) dtl 
+		ON jual.no_retur=dtl.no_retur
+		INNER JOIN m_barang_satuan mbs ON mbs.kd_barang=dtl.kd_barang AND mbs.kd_satuan=dtl.kd_satuan
+		GROUP BY mbs.kd_barang
+	) penjualan_retur
+	ON penjualan.kd_barang=penjualan_retur.kd_barang
+	UNION ALL
+	SELECT penjualan_retur.kd_barang,IFNULL(penjualan.jml,0)AS jual_qty,penjualan_retur.jml AS retur_qty FROM
+	(
+		SELECT mbs.kd_barang,SUM(qty*jumlah) jml FROM
+		(
+			SELECT no_transaksi 
+			FROM t_penjualan WHERE DATE(tanggal) BETWEEN awal1 AND akhir
+		) jual
+		INNER JOIN
+		(
+			SELECT no_transaksi,kd_barang,kd_satuan,qty FROM t_penjualan_detail
+		) dtl 
+		ON jual.no_transaksi=dtl.no_transaksi
+		INNER JOIN m_barang_satuan mbs 
+		ON mbs.kd_barang=dtl.kd_barang AND mbs.kd_satuan=dtl.kd_satuan
+		GROUP BY mbs.kd_barang
+	) penjualan
+	RIGHT JOIN
+	(
+		SELECT mbs.kd_barang,SUM(qty*jumlah) jml FROM
+		(
+			SELECT no_retur 
+			FROM t_penjualan_retur WHERE DATE(tanggal) BETWEEN awal1 AND akhir
+		) jual
+		INNER JOIN
+		(
+			SELECT no_retur,kd_barang,kd_satuan,qty FROM t_penjualan_retur_detail
+		) dtl 
+		ON jual.no_retur=dtl.no_retur
+		INNER JOIN m_barang_satuan mbs ON mbs.kd_barang=dtl.kd_barang AND mbs.kd_satuan=dtl.kd_satuan
+		GROUP BY mbs.kd_barang
+	) penjualan_retur
+	ON penjualan.kd_barang=penjualan_retur.kd_barang
+	
+) selisih_jual
+INNER JOIN
+(
+	SELECT kd_barang,
+		IFNULL(SUM(bh.qty * bh.harga), 0) / 
+		(
+			CASE 
+				WHEN IFNULL(SUM(bh.qty), 0) = 0 THEN 1 
+				ELSE IFNULL(SUM(bh.qty), 0) 
+			END
+		) as harga_average, 0 as harga_akhir 
+	FROM
+	(
+		SELECT kd_barang, (SELECT MAX(tanggal) FROM g_tutup_buku) as tanggal, 'STOK AWAL' as transaksi, 
+			IFNULL(SUM(IFNULL(stok_awal, 0)), 0) as qty, 
+			IFNULL(SUM(IFNULL(stok_awal * harga_beli_awal, 0)), 0) / 
+			(
+				CASE 
+					WHEN IFNULL(SUM(IFNULL(stok_awal, 0)), 0) = 0 THEN 1 
+					ELSE IFNULL(SUM(IFNULL(stok_awal, 0)), 0)
+				END
+			) AS harga
+		FROM m_barang_divisi
+		GROUP BY kd_barang 
+		UNION ALL
+		SELECT d.kd_barang, b.tanggal, 'PEMBELIAN', (bs.jumlah * d.qty),
+			GetHargaBersih(GetHargaBersih(d.harga_beli, d.diskon1, d.diskon2, d.diskon3, d.diskon4, 0, 0), b.diskon1, b.diskon2, b.diskon3, b.diskon4, b.pajak, b.ppnbm) / 
+			IFNULL(bs.jumlah, 0)
+		FROM t_pembelian b INNER JOIN t_pembelian_detail d ON b.no_transaksi = d.no_transaksi 
+		INNER JOIN m_barang_satuan bs ON d.kd_barang = bs.kd_barang AND d.kd_satuan = bs.kd_satuan
+		WHERE DATE(b.tanggal) BETWEEN DATE_ADD(DATE((SELECT MAX(tanggal) FROM g_tutup_buku)),INTERVAL 1 DAY) AND akhir
+	) bh
+	GROUP BY bh.kd_barang
+) ha
+ON ha.kd_barang=selisih_jual.kd_barang;
+
+
+
+
+
+	-- HARGA POKOK PENJUALAN
+-- 	SET harga_pokok_penjualan = harga_avg_penjualan- harga_avg_retur;
+	
+	INSERT INTO result_table
+	SELECT 'Harga Pokok Penjualan', harga_pokok_penjualan;
+	
+	-- LABA KOTOR
+	SET rugi_laba_penjualan = penjualan_netto - harga_pokok_penjualan;
+	
+	INSERT INTO result_table
+	SELECT 'Rugi Laba Penjualan Barang', rugi_laba_penjualan;
+	
+	-- RASIO KONTRIBUSI
+	IF harga_pokok_penjualan = 0 THEN
+		SET harga_pokok_penjualan = 1;
+	END IF;
+	SET rasio_kontribusi = rugi_laba_penjualan / harga_pokok_penjualan;
+	
+	INSERT INTO result_table
+	SELECT 'Rasio Kontribusi Kotor (%)' , rasio_kontribusi* 100;
+	
+	-- SPACE
+	-- INSERT INTO result_table
+	-- SELECT '',0;
+	
+	
+	
+	
+	
+	-- BIAYA 
+	SELECT IFNULL(SUM(nominal), 0)
+	INTO biaya
+	FROM t_biaya_operasional
+	WHERE DATE(tanggal) BETWEEN awal1 AND akhir;
+	
+	INSERT INTO result_table
+	SELECT 'Biaya Operasional', biaya;
+	
+	-- PENDAPATAN
+	SELECT IFNULL(SUM(nominal), 0)
+	INTO pendapatan
+	FROM t_pendapatan 
+	WHERE DATE(tanggal) BETWEEN awal1 AND akhir;
+	
+	INSERT INTO result_table
+	SELECT 'Pendapatan', pendapatan;
+	
+	-- LABA BERSIH
+	SET rugi_laba_bersih = rugi_laba_penjualan - biaya + pendapatan   + penjualan_jasa + persewaan + pendapatan_surcharge;
+	
+	INSERT INTO result_table
+	SELECT 'Rugi Laba Bersih', rugi_laba_bersih;
+	
+	-- RASIO KONTRIBUSI
+	IF harga_pokok_penjualan = 0 THEN
+		SET harga_pokok_penjualan = 1;
+	END IF;
+	SET rasio_kontribusi_bersih = rugi_laba_bersih / harga_pokok_penjualan;
+	
+	INSERT INTO result_table
+	SELECT 'Rasio Kontribusi Bersih (%)', rasio_kontribusi_bersih * 100;
+	
+	
+
+	-- opname stok
+select 
+-- t_opname_stok.qty * ha.harga_average
+IFNULL(sum(t_opname_stok.qty * ha.harga_average),0)
+INTO opname_stok
+from 
+(
+	SELECT mbs.kd_barang,sum(jumlah*qty) AS qty FROM
+	(
+		SELECT kd_barang,kd_satuan,SUM(qty) AS qty FROM
+		(
+			SELECT kd_barang,kd_satuan,
+			CASE WHEN status<>2 AND qty>0 THEN (qty*-1)	ELSE qty END AS qty
+			FROM t_opname_stok WHERE DATE(tanggal) >= awal1 AND DATE(tanggal) <= akhir
+		) op_stat
+		GROUP BY kd_barang,kd_satuan
+	) op
+	INNER JOIN
+	(
+		SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+	) mbs ON mbs.kd_barang=op.kd_barang AND mbs.kd_satuan=op.kd_satuan GROUP BY mbs.kd_barang
+)t_opname_stok 
+inner join 
+(
+	SELECT kd_barang,ROUND(
+		IFNULL(SUM(bh.qty * bh.harga), 0) / 
+		(
+			CASE 
+				WHEN IFNULL(SUM(bh.qty), 0) = 0 THEN 1 
+				ELSE IFNULL(SUM(bh.qty), 0) 
+			END
+		),4) as harga_average, 0 as harga_akhir
+	FROM
+	(
+		SELECT kd_barang, (SELECT MAX(tanggal) FROM g_tutup_buku) as tanggal, 'STOK AWAL' as transaksi, 
+			IFNULL(SUM(IFNULL(stok_awal, 0)), 0) as qty, 
+			IFNULL(SUM(IFNULL(stok_awal * harga_beli_awal, 0)), 0) / 
+			(
+				CASE 
+					WHEN IFNULL(SUM(IFNULL(stok_awal, 0)), 0) = 0 THEN 1 
+					ELSE IFNULL(SUM(IFNULL(stok_awal, 0)), 0)
+				END
+			) AS harga
+		FROM m_barang_divisi
+		GROUP BY kd_barang 
+		UNION ALL
+		SELECT d.kd_barang, b.tanggal, 'PEMBELIAN', (bs.jumlah * d.qty),
+			GetHargaBersih(GetHargaBersih(d.harga_beli, d.diskon1, d.diskon2, d.diskon3, d.diskon4, 0, 0), b.diskon1, b.diskon2, b.diskon3, b.diskon4, b.pajak, b.ppnbm) / 
+			IFNULL(bs.jumlah, 0)
+		FROM t_pembelian b INNER JOIN t_pembelian_detail d ON b.no_transaksi = d.no_transaksi 
+		INNER JOIN m_barang_satuan bs ON d.kd_barang = bs.kd_barang AND d.kd_satuan = bs.kd_satuan
+		WHERE DATE(b.tanggal) > (SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal)<= akhir
+	) bh
+	GROUP BY bh.kd_barang
+) ha 
+	on ha.kd_barang=t_opname_stok.kd_barang;
+
+	insert into result_table
+	select 'Opname Stok', opname_stok;
+
+-- ########################################## Rasio Perputaran Persedian ########################################
+
+SELECT SUM(stok.stok_awal*ha_awal.harga_average) AS persediaan_awal, SUM(stok.stok_akhir*ha_akhir.harga_average) AS persediaan_akhir,SUM((stok.stok_awal*ha_awal.harga_average+stok.stok_akhir*ha_akhir.harga_average)/2) AS rata_rata_persediaan 
+INTO persediaan_awal,persediaan_akhir,rata_rata_persediaan
+FROM
+(
+	SELECT stok_awal.kd_barang AS kd_barang,stok_awal.stok AS stok_awal,stok_akhir.stok AS stok_akhir FROM
+	(
+		SELECT m_barang.kd_barang,SUM(
+		stok_awal
+		+IFNULL(penjualan.jual_qty*-1,0)
+		+IFNULL(penjualan_retur.jual_retur_qty,0)
+		+IFNULL(pembelian.beli_qty,0)
+		+IFNULL(pembelian_retur.beli_retur_qty*-1,0)
+		+IFNULL(opname.qty_opname,0)
+		) AS stok
+		FROM 
+		(
+			SELECT brg.kd_barang,brg.nama AS barang,m_div.stok_awal FROM
+			(SELECT kd_kategori FROM m_kategori WHERE status<>2) kategori
+			INNER JOIN
+			(SELECT kd_kategori,kd_barang,nama FROM m_barang WHERE (m_barang.kd_barang LIKE '%%' OR m_barang.nama LIKE '%%')) brg
+			ON brg.kd_kategori=kategori.kd_kategori
+			INNER JOIN ( SELECT kd_barang,sum(stok_awal) AS stok_awal FROM m_barang_divisi  GROUP BY kd_barang) m_div 
+			ON m_div.kd_barang=brg.kd_barang
+		) m_barang 
+		LEFT JOIN 
+		(
+			SELECT mbs.kd_barang,SUM(jual_item_div.jual_qty*mbs.jumlah) AS jual_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS jual_qty FROM t_penjualan_detail jual_dt 
+				INNER JOIN (
+					SELECT no_transaksi FROM t_penjualan WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) < awal1
+				) jual 
+				ON jual.no_transaksi=jual_dt.no_transaksi 
+				GROUP BY kd_barang,kd_satuan
+			) jual_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=jual_item_div.kd_barang AND mbs.kd_satuan=jual_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) penjualan
+		ON m_barang.kd_barang=penjualan.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,SUM(jual_item_div.jual_qty*mbs.jumlah) AS jual_retur_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS jual_qty FROM t_penjualan_retur_detail jual_dt 
+				INNER JOIN (
+					SELECT no_retur FROM t_penjualan_retur WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) < awal1
+				) jual 
+				ON jual.no_retur=jual_dt.no_retur
+				GROUP BY kd_barang,kd_satuan
+			) jual_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=jual_item_div.kd_barang AND mbs.kd_satuan=jual_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) penjualan_retur
+		ON m_barang.kd_barang=penjualan_retur.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,SUM(beli_item_div.beli_qty*mbs.jumlah) AS beli_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS beli_qty FROM t_pembelian_detail beli_dt 
+				INNER JOIN (
+					SELECT no_transaksi FROM t_pembelian WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) < awal1
+				) beli 
+				ON beli.no_transaksi=beli_dt.no_transaksi 
+				GROUP BY kd_barang,kd_satuan
+			) beli_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=beli_item_div.kd_barang AND mbs.kd_satuan=beli_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) pembelian
+		ON m_barang.kd_barang=pembelian.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,SUM(beli_item_div.beli_qty*mbs.jumlah) AS beli_retur_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS beli_qty FROM t_pembelian_retur_detail beli_dt 
+				INNER JOIN (
+					SELECT no_retur FROM t_pembelian_retur WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) < awal1
+				) beli 
+				ON beli.no_retur=beli_dt.no_retur 
+				GROUP BY kd_barang,kd_satuan
+			) beli_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=beli_item_div.kd_barang AND mbs.kd_satuan=beli_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) pembelian_retur
+		ON m_barang.kd_barang=pembelian_retur.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,sum(jumlah*qty) AS qty_opname FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS qty FROM
+				(
+					SELECT kd_barang,kd_satuan,
+					CASE WHEN status<>2 AND qty>0 THEN (qty*-1)	ELSE qty END AS qty
+					FROM t_opname_stok WHERE tanggal>(SELECT MAX(tanggal) FROM g_tutup_buku)
+					AND DATE(tanggal) < awal1
+				) op_stat
+			GROUP BY kd_barang,kd_satuan
+			) op
+			INNER JOIN
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=op.kd_barang AND mbs.kd_satuan=op.kd_satuan GROUP BY mbs.kd_barang
+		) opname
+		ON m_barang.kd_barang=opname.kd_barang
+		GROUP BY m_barang.kd_barang 
+	) stok_awal
+	INNER JOIN
+	(
+		SELECT m_barang.kd_barang,SUM(
+		stok_awal
+		+IFNULL(penjualan.jual_qty*-1,0)
+		+IFNULL(penjualan_retur.jual_retur_qty,0)
+		+IFNULL(pembelian.beli_qty,0)
+		+IFNULL(pembelian_retur.beli_retur_qty*-1,0)
+		+IFNULL(opname.qty_opname,0)
+		)
+		 AS stok
+		FROM 
+		(
+			SELECT brg.kd_barang,brg.nama AS barang,m_div.stok_awal FROM
+			(SELECT kd_kategori FROM m_kategori WHERE status<>2) kategori
+			INNER JOIN
+			(SELECT kd_kategori,kd_barang,nama FROM m_barang WHERE (m_barang.kd_barang LIKE '%%' OR m_barang.nama LIKE '%%')) brg
+			ON brg.kd_kategori=kategori.kd_kategori
+			INNER JOIN (SELECT kd_barang,sum(stok_awal) AS stok_awal FROM m_barang_divisi  GROUP BY kd_barang) m_div ON m_div.kd_barang=brg.kd_barang
+		) m_barang 
+		LEFT JOIN 
+		(
+			SELECT mbs.kd_barang,SUM(jual_item_div.jual_qty*mbs.jumlah) AS jual_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS jual_qty FROM t_penjualan_detail jual_dt 
+				INNER JOIN (
+					SELECT no_transaksi FROM t_penjualan WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) <= akhir
+				) jual 
+				ON jual.no_transaksi=jual_dt.no_transaksi 
+				GROUP BY kd_barang,kd_satuan
+			) jual_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=jual_item_div.kd_barang AND mbs.kd_satuan=jual_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) penjualan
+		ON m_barang.kd_barang=penjualan.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,SUM(jual_item_div.jual_qty*mbs.jumlah) AS jual_retur_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS jual_qty FROM t_penjualan_retur_detail jual_dt 
+				INNER JOIN (
+					SELECT no_retur FROM t_penjualan_retur WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) <= akhir
+				) jual 
+				ON jual.no_retur=jual_dt.no_retur
+				GROUP BY kd_barang,kd_satuan
+			) jual_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=jual_item_div.kd_barang AND mbs.kd_satuan=jual_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) penjualan_retur
+		ON m_barang.kd_barang=penjualan_retur.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,SUM(beli_item_div.beli_qty*mbs.jumlah) AS beli_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS beli_qty FROM t_pembelian_detail beli_dt 
+				INNER JOIN (
+					SELECT no_transaksi FROM t_pembelian WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) <= akhir
+				) beli 
+				ON beli.no_transaksi=beli_dt.no_transaksi 
+				GROUP BY kd_barang,kd_satuan
+			) beli_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=beli_item_div.kd_barang AND mbs.kd_satuan=beli_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) pembelian
+		ON m_barang.kd_barang=pembelian.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,SUM(beli_item_div.beli_qty*mbs.jumlah) AS beli_retur_qty FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS beli_qty FROM t_pembelian_retur_detail beli_dt 
+				INNER JOIN (
+					SELECT no_retur FROM t_pembelian_retur WHERE tanggal >(SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) <= akhir
+				) beli 
+				ON beli.no_retur=beli_dt.no_retur 
+				GROUP BY kd_barang,kd_satuan
+			) beli_item_div
+			INNER JOIN 
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=beli_item_div.kd_barang AND mbs.kd_satuan=beli_item_div.kd_satuan
+			GROUP BY mbs.kd_barang
+		) pembelian_retur
+		ON m_barang.kd_barang=pembelian_retur.kd_barang
+		LEFT JOIN
+		(
+			SELECT mbs.kd_barang,sum(jumlah*qty) AS qty_opname FROM
+			(
+				SELECT kd_barang,kd_satuan,SUM(qty) AS qty FROM
+				(
+					SELECT kd_barang,kd_satuan,
+					CASE WHEN status<>2 AND qty>0 THEN (qty*-1)	ELSE qty END AS qty
+					FROM t_opname_stok WHERE tanggal>(SELECT MAX(tanggal) FROM g_tutup_buku)
+					AND DATE(tanggal) <= akhir
+				) op_stat
+			GROUP BY kd_barang,kd_satuan
+			) op
+			INNER JOIN
+			(
+				SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
+			) mbs ON mbs.kd_barang=op.kd_barang AND mbs.kd_satuan=op.kd_satuan GROUP BY mbs.kd_barang
+		) opname
+		ON m_barang.kd_barang=opname.kd_barang
+		GROUP BY m_barang.kd_barang
+	) stok_akhir
+	ON stok_awal.kd_barang=stok_akhir.kd_barang
+) stok
+INNER JOIN
+(
+SELECT kd_barang,ROUND(
+		IFNULL(SUM(bh.qty * bh.harga), 0) / 
+		(
+			CASE 
+				WHEN IFNULL(SUM(bh.qty), 0) = 0 THEN 1 
+				ELSE IFNULL(SUM(bh.qty), 0) 
+			END
+		),4) as harga_average, 0 as harga_akhir 
+	FROM
+	(
+		SELECT kd_barang, (SELECT MAX(tanggal) FROM g_tutup_buku) as tanggal, 'STOK AWAL' as transaksi, 
+			IFNULL(SUM(IFNULL(stok_awal, 0)), 0) as qty, 
+			IFNULL(SUM(IFNULL(stok_awal * harga_beli_awal, 0)), 0) / 
+			(
+				CASE 
+					WHEN IFNULL(SUM(IFNULL(stok_awal, 0)), 0) = 0 THEN 1 
+					ELSE IFNULL(SUM(IFNULL(stok_awal, 0)), 0)
+				END
+			) AS harga
+		FROM m_barang_divisi
+		GROUP BY kd_barang 
+		UNION ALL
+		SELECT d.kd_barang, b.tanggal, 'PEMBELIAN', (bs.jumlah * d.qty),
+			GetHargaBersih(GetHargaBersih(d.harga_beli, d.diskon1, d.diskon2, d.diskon3, d.diskon4, 0, 0), b.diskon1, b.diskon2, b.diskon3, b.diskon4, b.pajak, b.ppnbm) / 
+			IFNULL(bs.jumlah, 0)
+		FROM t_pembelian b INNER JOIN t_pembelian_detail d ON b.no_transaksi = d.no_transaksi 
+		INNER JOIN m_barang_satuan bs ON d.kd_barang = bs.kd_barang AND d.kd_satuan = bs.kd_satuan
+		WHERE DATE(b.tanggal) > (SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) < awal1
+	) bh
+	GROUP BY bh.kd_barang
+)ha_awal
+ON ha_awal.kd_barang=stok.kd_barang
+INNER JOIN
+(
+SELECT kd_barang,ROUND(
+		IFNULL(SUM(bh.qty * bh.harga), 0) / 
+		(
+			CASE 
+				WHEN IFNULL(SUM(bh.qty), 0) = 0 THEN 1 
+				ELSE IFNULL(SUM(bh.qty), 0) 
+			END
+		),4) as harga_average, 0 as harga_akhir 
+	FROM
+	(
+		SELECT kd_barang, (SELECT MAX(tanggal) FROM g_tutup_buku) as tanggal, 'STOK AWAL' as transaksi, 
+			IFNULL(SUM(IFNULL(stok_awal, 0)), 0) as qty, 
+			IFNULL(SUM(IFNULL(stok_awal * harga_beli_awal, 0)), 0) / 
+			(
+				CASE 
+					WHEN IFNULL(SUM(IFNULL(stok_awal, 0)), 0) = 0 THEN 1 
+					ELSE IFNULL(SUM(IFNULL(stok_awal, 0)), 0)
+				END
+			) AS harga
+		FROM m_barang_divisi
+		GROUP BY kd_barang 
+		UNION ALL
+		SELECT d.kd_barang, b.tanggal, 'PEMBELIAN', (bs.jumlah * d.qty),
+			GetHargaBersih(GetHargaBersih(d.harga_beli, d.diskon1, d.diskon2, d.diskon3, d.diskon4, 0, 0), b.diskon1, b.diskon2, b.diskon3, b.diskon4, b.pajak, b.ppnbm) / 
+			IFNULL(bs.jumlah, 0)
+		FROM t_pembelian b INNER JOIN t_pembelian_detail d ON b.no_transaksi = d.no_transaksi 
+		INNER JOIN m_barang_satuan bs ON d.kd_barang = bs.kd_barang AND d.kd_satuan = bs.kd_satuan
+		WHERE DATE(b.tanggal) > (SELECT MAX(tanggal) FROM g_tutup_buku) AND DATE(tanggal) <= akhir
+	) bh
+	GROUP BY bh.kd_barang
+)ha_akhir
+ON ha_akhir.kd_barang=stok.kd_barang;
+
+	
+-- ########################################## Rasio Perputaran Persedian ########################################	
+
+
+INSERT INTO result_table
+	SELECT 'Persediaan Awal' , persediaan_awal;
+
+INSERT INTO result_table
+	SELECT 'Persediaan Akhir' , persediaan_akhir;
+
+SET rasio_perputaran_persediaan = harga_pokok_penjualan / rata_rata_persediaan;
+
+INSERT INTO result_table
+	SELECT 'Rasio Perputaran Persediaan' , rasio_perputaran_persediaan;
+
+	SELECT * FROM result_table;
+END
 
 //xyvdelimiter //
 DROP PROCEDURE IF EXISTS proc_report_penjualan;
@@ -2378,5 +3472,2170 @@ AND b.tanggal_daftar<=inTGLAWAL
 and a.`status`<>0;
 
 
+END
+
+//xyvdelimiter //
+DROP FUNCTION
+IF EXISTS getTotalPenjualanPerTransaksi;
+CREATE FUNCTION getTotalPenjualanPerTransaksi(no_transaksi_p VARCHAR(30)) RETURNS FLOAT
+BEGIN
+SET @total =0;
+SELECT SUM(
+GetHargaBersih(
+GetHargaBersih(harga_jual,b.diskon1,b.diskon2,b.diskon3,b.diskon4,0,0),a.diskon1,a.diskon2,a.diskon3,a.diskon4,pajak,0
+)
+) AS total INTO @total
+FROM t_penjualan a INNER  JOIN t_penjualan_detail b ON a.no_transaksi=b.no_transaksi WHERE a.no_transaksi=no_transaksi_p
+GROUP BY a.no_transaksi;
+
+RETURN @total;
+END
+
+//xyvdelimiter //
+
+DROP PROCEDURE
+IF EXISTS proc_histori_kas;
+
+CREATE PROCEDURE proc_histori_kas (
+	IN INkd_kas varchar (20),
+	IN INperiode_awal CHAR (20),
+	IN INperiode_akhir CHAR (20)
+)
+BEGIN
+
+SELECT `No. Rekening`,transaksi,INperiode_awal AS awal,INperiode_akhir AS akhir,SUM(debet) AS debet,SUM(kredit) AS kredit FROM
+(
+SELECT histori.tanggal, histori.transaksi, histori.no_transaksi AS `No. Transaksi`, 
+                      histori.Objek, histori.debet, histori.kredit, m_kas.no_rekening AS `No. Rekening`, 
+                      m_bank.nama AS Bank
+FROM
+
+(SELECT     kd_kas, GetTanggalTerakhirTutupBuku() AS tanggal, 'SALDO AWAL' AS transaksi, '-' AS no_transaksi, '-' AS 
+Objek, saldo_awal AS debet, 0 AS kredit,
+                       '' AS keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi,
+                          (SELECT     MIN(kd_user)
+                            FROM          m_userx
+                            WHERE      status <> 0) AS `Kode User`,
+                          (SELECT     nama
+                            FROM          m_userx
+                            WHERE      kd_user IN
+                                                       (SELECT     MIN(kd_user)
+                                                         FROM          m_userx
+                                                         WHERE      status <> 0)) AS `User`
+FROM         m_kas
+
+where GetTanggalTerakhirTutupBuku() between INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_biaya_operasional.kd_kas, t_biaya_operasional.tanggal, 'BIAYA OPERASIONAL' AS transaksi, 
+
+t_biaya_operasional.no_transaksi, 
+                      '-' AS Objek, 0 AS debet, t_biaya_operasional.nominal AS kredit, 
+
+t_biaya_operasional.keterangan, t_biaya_operasional.kd_divisi, 
+                      m_divisi.nama, t_biaya_operasional.kd_user, m_userx.nama AS Expr1
+FROM         t_biaya_operasional INNER JOIN
+                      m_divisi ON t_biaya_operasional.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t_biaya_operasional.kd_user = m_userx.kd_user
+WHERE     (t_biaya_operasional.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_biaya_operasional.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_hutang_aset_cicilan.kd_kas, t_hutang_aset_cicilan.tanggal, 'CICILAN HUTANG ASET' AS transaksi, 
+                      CAST(t_hutang_aset_cicilan.no_cicilan AS VARCHAR(20)) AS no_transaksi, '-' AS Objek, 0 AS debet, 
+
+t_hutang_aset_cicilan.nominal AS kredit, 
+                      t_hutang_aset_cicilan.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, 
+
+t_hutang_aset_cicilan.kd_user, m_userx.nama
+FROM         t_hutang_aset_cicilan INNER JOIN
+                      m_userx ON t_hutang_aset_cicilan.kd_user = m_userx.kd_user
+WHERE     (t_hutang_aset_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_hutang_aset_cicilan.no_bukti NOT 
+
+IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_hutang_biaya_angkut_cicilan.kd_kas, t_hutang_biaya_angkut_cicilan.tanggal, 'CICILAN HUTANG BIAYA ANGKUT' 
+
+AS transaksi, 
+                      t_hutang_biaya_angkut_cicilan.no_cicilan AS no_transaksi, '-' AS Objek, 0 AS debet, 
+
+t_hutang_biaya_angkut_cicilan.nominal AS kredit, 
+                      t_hutang_biaya_angkut_cicilan.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, 
+
+t_hutang_biaya_angkut_cicilan.kd_user, m_userx.nama
+FROM         t_hutang_biaya_angkut_cicilan INNER JOIN
+                      m_userx ON t_hutang_biaya_angkut_cicilan.kd_user = m_userx.kd_user
+WHERE     (t_hutang_biaya_angkut_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND 
+
+(t_hutang_biaya_angkut_cicilan.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_hutang_cicilan.kd_kas, t_hutang_cicilan.tanggal, 'CICILAN HUTANG PEMBELIAN' AS transaksi, 
+
+t_hutang_cicilan.no_cicilan, 
+                      m_supplier.nama AS Objek, 0 AS debet, t_hutang_cicilan.nominal AS kredit, 
+
+t_hutang_cicilan.keterangan, t_pembelian.kd_divisi, 
+                      m_divisi.nama, t_hutang_cicilan.kd_user, m_userx.nama AS Expr1
+FROM         t_hutang_cicilan INNER JOIN
+                      t_pembelian ON t_hutang_cicilan.no_transaksi = t_pembelian.no_transaksi INNER JOIN
+                      m_supplier ON t_pembelian.kd_supplier = m_supplier.kd_supplier INNER JOIN
+                      m_divisi ON t_pembelian.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t_hutang_cicilan.kd_user = m_userx.kd_user
+WHERE     (t_hutang_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_hutang_cicilan.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(t_hutang_cicilan.tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_hutang_pegawai_cicilan.kd_kas, t_hutang_pegawai_cicilan.tanggal, 'CICILAN HUTANG PEGAWAI' AS transaksi, 
+                      CAST(t_hutang_pegawai_cicilan.no_cicilan AS VARCHAR(20)) AS no_transaksi, '-' AS Objek, 
+
+t_hutang_pegawai_cicilan.nominal AS debet, 
+                      0 AS kredit, t_hutang_pegawai_cicilan.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, 
+
+t_hutang_pegawai_cicilan.kd_user, m_userx.nama
+FROM         t_hutang_pegawai_cicilan INNER JOIN
+                      m_userx ON t_hutang_pegawai_cicilan.kd_user = m_userx.kd_user
+WHERE     (t_hutang_pegawai_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND 
+
+(t_hutang_pegawai_cicilan.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_hutang_pegawai.kd_kas, t_hutang_pegawai.tanggal, 'HUTANG PEGAWAI' AS transaksi, 
+
+t_hutang_pegawai.no_transaksi, '-' AS Objek, 
+                      0 AS debet, t_hutang_pegawai.nominal AS kredit, t_hutang_pegawai.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_hutang_pegawai.kd_user, 
+
+m_userx.nama
+FROM         t_hutang_pegawai INNER JOIN
+                      m_userx ON t_hutang_pegawai.kd_user = m_userx.kd_user
+WHERE     (t_hutang_pegawai.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_hutang_pegawai.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_mutasi_kas.kd_kas_sumber, t_mutasi_kas.tanggal, 'MUTASI KAS (KELUAR)' AS transaksi, 
+
+t_mutasi_kas.no_transaksi, '-' AS Objek, 
+                      0 AS debet, t_mutasi_kas.nominal AS kredit, t_mutasi_kas.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_mutasi_kas.kd_user, 
+
+m_userx.nama
+FROM         t_mutasi_kas INNER JOIN
+                      m_userx ON t_mutasi_kas.kd_user = m_userx.kd_user
+WHERE     (t_mutasi_kas.tanggal > GetTanggalTerakhirTutupBuku())
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_mutasi_kas.kd_kas_tujuan, t_mutasi_kas.tanggal, 'MUTASI KAS (MASUK)' AS transaksi, 
+
+t_mutasi_kas.no_transaksi, '-' AS Objek, 
+                      t_mutasi_kas.nominal AS debet, 0 AS kredit, t_mutasi_kas.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_mutasi_kas.kd_user, 
+
+m_userx.nama
+FROM         t_mutasi_kas INNER JOIN
+                      m_userx ON t_mutasi_kas.kd_user = m_userx.kd_user
+WHERE     (t_mutasi_kas.tanggal > GetTanggalTerakhirTutupBuku())
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     b.kd_kas, b.tanggal, 'PEMBELIAN BARANG' AS transaksi, b.no_transaksi, m_supplier.nama AS Objek, 0 AS debet, 
+                      SUM(GetHargaBersih(GetHargaBersih(d.harga_beli, d.diskon1, d.diskon2, d.diskon3, d.diskon4, 0, 
+
+0), b.diskon1, b.diskon2, b.diskon3, 
+                      b.diskon4, b.pajak, b.ppnbm) * d.qty) AS kredit, b.keterangan, b.kd_divisi, m_divisi.nama, 
+
+b.kd_user, m_userx.nama AS Expr1
+FROM         t_pembelian b INNER JOIN
+                      t_pembelian_detail d ON b.no_transaksi = d.no_transaksi INNER JOIN
+                      m_supplier ON b.kd_supplier = m_supplier.kd_supplier INNER JOIN
+                      m_divisi ON b.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON b.kd_user = m_userx.kd_user
+WHERE     (b.status = 1) AND (b.tanggal > GetTanggalTerakhirTutupBuku())
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+GROUP BY b.kd_kas, b.tanggal, b.no_transaksi, b.keterangan, m_supplier.nama, b.kd_divisi, m_divisi.nama, b.kd_user, 
+
+m_userx.nama
+
+UNION ALL
+
+SELECT     ba.kd_kas, b.tanggal, 'BIAYA ANGKUT PEMBELIAN' AS transaksi, ba.no_nota, '-' AS Objek, 0 AS debet, ba.nominal AS 
+
+kredit, b.keterangan, b.kd_divisi, 
+                      m_divisi.nama, b.kd_user, m_userx.nama AS Expr1
+FROM         t_pembelian_biaya_angkut ba INNER JOIN
+                      t_pembelian b ON ba.no_transaksi = b.no_transaksi INNER JOIN
+                      m_divisi ON b.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON b.kd_user = m_userx.kd_user
+WHERE     (b.tanggal > GetTanggalTerakhirTutupBuku()) AND (ba.status = 1)
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     r.kd_kas, r.tanggal, 'RETUR PEMBELIAN' AS transaksi, r.no_retur AS no_transaksi, m_supplier.nama AS Objek, 
+                      SUM(GetHargaBersih(GetHargaBersih(rd.harga, rd.diskon1, rd.diskon2, rd.diskon3, rd.diskon4, 0, 
+
+0), r.diskon1, r.diskon2, r.diskon3, r.diskon4, 
+                      r.pajak, r.ppnbm) * rd.qty) AS debet, 0 AS kredit, r.keterangan, r.kd_divisi, m_divisi.nama, 
+
+r.kd_user, m_userx.nama AS Expr1
+FROM         t_pembelian_retur r INNER JOIN
+                      t_pembelian_retur_detail rd ON r.no_retur = rd.no_retur INNER JOIN
+                      m_supplier ON r.kd_supplier = m_supplier.kd_supplier INNER JOIN
+                      m_divisi ON r.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON r.kd_user = m_userx.kd_user
+WHERE     (r.tanggal > GetTanggalTerakhirTutupBuku()) AND (r.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+GROUP BY r.kd_kas, r.tanggal, r.no_retur, r.keterangan, m_supplier.nama, r.kd_divisi, m_divisi.nama, r.kd_user, 
+
+m_userx.nama
+
+UNION ALL
+
+SELECT     t_pendapatan.kd_kas, t_pendapatan.tanggal, 'PENDAPATAN LAIN-LAIN' AS transaksi, 
+
+t_pendapatan.no_transaksi, '-' AS Objek, 
+                      t_pendapatan.nominal AS debet, 0 AS kredit, t_pendapatan.keterangan, 
+
+t_pendapatan.kd_divisi, m_divisi.nama, 
+                      t_pendapatan.kd_user, m_userx.nama AS Expr1
+FROM         t_pendapatan INNER JOIN
+                      m_divisi ON t_pendapatan.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t_pendapatan.kd_user = m_userx.kd_user
+WHERE     (t_pendapatan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_pendapatan.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t.kd_kas, t.tanggal, 'PENJUALAN BARANG' AS transaksi, t.no_transaksi, m_customer.nama AS Objek, getTotalPenjualanPerTransaksi2(t.no_transaksi) AS 
+
+debet, 0 AS kredit, t.keterangan, 
+                      t.kd_divisi, m_divisi.nama, t.kd_user, m_userx.nama AS Expr1
+FROM         t_penjualan t INNER JOIN
+                      
+                      m_customer ON t.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t.kd_user = m_userx.kd_user
+WHERE     (t.status = 1) 
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir AND (t.tanggal > GetTanggalTerakhirTutupBuku())
+UNION ALL
+
+SELECT     r.kd_kas, r.tanggal, 'RETUR PENJUALAN' AS transaksi, r.no_retur AS no_transaksi, m_customer.nama AS Objek, 0 
+
+AS debet, 
+                      SUM(GetHargaBersih(GetHargaBersih(rd.harga_jual, rd.diskon1, rd.diskon2, rd.diskon3, 
+
+rd.diskon4, 0, 0), r.diskon1, r.diskon2, r.diskon3, 
+                      r.diskon4, r.pajak, 0) * rd.qty) AS kredit, r.keterangan, r.kd_divisi, m_divisi.nama, r.kd_user, 
+
+m_userx.nama AS Expr1
+FROM         t_penjualan_retur r INNER JOIN
+                      t_penjualan_retur_detail rd ON r.no_retur = rd.no_retur INNER JOIN
+                      m_customer ON r.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON r.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON r.kd_user = m_userx.kd_user
+WHERE     (r.tanggal > GetTanggalTerakhirTutupBuku()) AND (r.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+GROUP BY r.kd_kas, r.tanggal, r.no_retur, r.keterangan, m_customer.nama, r.kd_divisi, m_divisi.nama, r.kd_user, 
+
+m_userx.nama
+
+UNION ALL
+
+SELECT     t_piutang_cicilan.kd_kas, t_piutang_cicilan.tanggal, 'CICILAN PIUTANG' AS transaksi, 
+
+t_piutang_cicilan.no_cicilan AS no_transaksi, 
+                      m_customer.nama AS Objek, t_piutang_cicilan.nominal AS debet, 0 AS kredit, 
+
+t_piutang_cicilan.keterangan, t_penjualan.kd_divisi, 
+                      m_divisi.nama, t_piutang_cicilan.kd_user, m_userx.nama AS Expr1
+FROM         t_piutang_cicilan INNER JOIN
+                      t_penjualan ON t_piutang_cicilan.no_transaksi = t_penjualan.no_transaksi INNER JOIN
+                      m_customer ON t_penjualan.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_userx ON t_piutang_cicilan.kd_user = m_userx.kd_user INNER JOIN
+                      m_divisi ON t_penjualan.kd_divisi = m_divisi.kd_divisi
+WHERE     (t_piutang_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_piutang_cicilan.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(t_piutang_cicilan.tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_piutang_cicilan.kd_kas, t_piutang_cicilan.tanggal, 'PENDATAPAN KARTU KREDIT DARI PIUTANG' AS transaksi, 
+                      t_piutang_cicilan.no_cicilan AS no_transaksi, m_customer.nama AS Objek, 
+                      t_piutang_cicilan.nominal * t_piutang_cicilan.other AS debet, 0 AS kredit, 
+
+t_piutang_cicilan.keterangan, t_penjualan.kd_divisi, 
+                      m_divisi.nama, t_piutang_cicilan.kd_user, m_userx.nama AS Expr1
+FROM         t_piutang_cicilan INNER JOIN
+                      t_penjualan ON t_piutang_cicilan.no_transaksi = t_penjualan.no_transaksi INNER JOIN
+                      m_customer ON t_penjualan.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_userx ON t_piutang_cicilan.kd_user = m_userx.kd_user INNER JOIN
+                      m_divisi ON t_penjualan.kd_divisi = m_divisi.kd_divisi
+WHERE     (t_piutang_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_piutang_cicilan.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga)) AND (t_piutang_cicilan.other > 0)
+
+AND DATE(t_piutang_cicilan.tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_surat_berharga.kd_kas_setor, t_surat_berharga.tanggal_cair, 'SURAT BERHARGA (KELUAR)' AS transaksi, 
+                      t_surat_berharga.no_surat_berharga AS no_transaksi, '-' AS Objek, 0 AS debet, 
+
+t_surat_berharga.nominal AS kredit, 
+                      t_surat_berharga.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_surat_berharga.kd_user, 
+
+m_userx.nama
+FROM         t_surat_berharga INNER JOIN
+                      m_userx ON t_surat_berharga.kd_user = m_userx.kd_user
+WHERE     (t_surat_berharga.tanggal_cair > GetTanggalTerakhirTutupBuku()) AND (GetFormatTanggal
+
+(t_surat_berharga.tanggal_cair) 
+                      >= GetFormatTanggal(t_surat_berharga.tanggal_setor)) AND (t_surat_berharga.status_blong = 
+
+0) AND 
+                      (t_surat_berharga.status_asal = 0)
+
+AND DATE(t_surat_berharga.tanggal_cair) between INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_surat_berharga.kd_kas_setor, t_surat_berharga.tanggal_cair, 'SURAT BERHARGA (MASUK)' AS transaksi, 
+                      t_surat_berharga.no_surat_berharga AS no_transaksi, '-' AS Objek, t_surat_berharga.nominal AS 
+
+debet, 0 AS kredit, 
+                      t_surat_berharga.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_surat_berharga.kd_user, 
+
+m_userx.nama
+FROM         t_surat_berharga INNER JOIN
+                      m_userx ON t_surat_berharga.kd_user = m_userx.kd_user
+WHERE     (t_surat_berharga.tanggal_cair > GetTanggalTerakhirTutupBuku()) AND (GetFormatTanggal
+
+(t_surat_berharga.tanggal_cair) 
+                      >= GetFormatTanggal(t_surat_berharga.tanggal_setor)) AND (t_surat_berharga.status_blong = 
+
+0) AND 
+                      (t_surat_berharga.status_asal = 1)
+
+AND t_surat_berharga.tanggal_cair between INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_penambahan_kas.kd_kas, t_penambahan_kas.tanggal, 'PENAMBAHAN MODAL' AS transaksi, 
+
+t_penambahan_kas.no_transaksi, 
+                      '-' AS Objek, t_penambahan_kas.nominal AS debet, 0 AS kredit, t_penambahan_kas.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_penambahan_kas.kd_user, 
+
+m_userx.nama
+FROM         t_penambahan_kas INNER JOIN
+                      m_userx ON t_penambahan_kas.kd_user = m_userx.kd_user
+WHERE     (t_penambahan_kas.tanggal > GetTanggalTerakhirTutupBuku())
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_prive.kd_kas, t_prive.tanggal, 'PRIVE' AS transaksi, t_prive.no_transaksi, '-' AS Objek, 0 AS debet, 
+
+t_prive.nominal AS kredit, 
+                      t_prive.keterangan,
+                          (SELECT     MIN(kd_divisi)
+                            FROM          m_divisi
+                            WHERE      status <> 0) AS `Kode Divisi`,
+                          (SELECT     nama
+                            FROM          m_divisi
+                            WHERE      kd_divisi IN
+                                                       ((SELECT     MIN(kd_divisi)
+                                                           FROM         m_divisi
+                                                           WHERE     status <> 0))) AS Divisi, t_prive.kd_user, 
+
+m_userx.nama
+FROM         t_prive INNER JOIN
+                      m_userx ON t_prive.kd_user = m_userx.kd_user
+WHERE     (t_prive.tanggal > GetTanggalTerakhirTutupBuku())
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     m_aset.kd_kas, m_aset.tanggal_jual, 'PENJUALAN ASET' AS Expr1, 'PA-' + m_aset.kd_aset AS Expr2, '-' AS 
+
+Objek, 
+                      m_aset.harga_beli - GetPenyusutanAset(m_aset.kd_aset, m_aset.tanggal_beli, 
+
+m_aset.tanggal_jual) AS debet, 0 AS kredit, 
+                      'PENJUALAN ' + m_aset.nama AS Keterangan, m_aset.kd_divisi, m_divisi.nama,
+                          (SELECT     MIN(kd_user)
+                            FROM          m_userx
+                            WHERE      status <> 0) AS `Kode User`,
+                          (SELECT     nama
+                            FROM          m_userx
+                            WHERE      kd_user IN
+                                                       (SELECT     MIN(kd_user)
+                                                         FROM          m_userx
+                                                         WHERE      status <> 0)) AS `User`
+FROM         m_aset INNER JOIN
+                      m_divisi ON m_aset.kd_divisi = m_divisi.kd_divisi
+WHERE     (GetFormatTanggal(m_aset.tanggal_jual) >= GetFormatTanggal(m_aset.tanggal_beli)) AND 
+                      (m_aset.tanggal_jual > GetTanggalTerakhirTutupBuku()) AND (m_aset.tanggal_jual > 
+
+GetTanggalTerakhirTutupBuku()) AND 
+                      (m_aset.no_bukti NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND m_aset.tanggal_jual between INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t.kd_kas, t.tanggal_pesan, 'PENJUALAN JASA' AS transaksi, t.no_transaksi, m_customer.nama AS Objek, 
+                      SUM(GetHargaBersih(GetHargaBersih(d.harga, d.diskon, 0, 0, 0, 0, 0), t.diskon, 0, 0, 0, 
+
+t.pajak, 0) * d.qty) AS debet, 0 AS kredit, t.keterangan, 
+                      t.kd_divisi, m_divisi.nama, t.kd_user, m_userx.nama AS Expr1
+FROM         m_jasa m INNER JOIN
+                      t_penjualan_jasa_detail d ON m.kd_jasa = d.kd_jasa INNER JOIN
+                      m_jasa_kategori k ON m.kd_jasa_kategori = k.kd_jasa_kategori INNER JOIN
+                      t_penjualan_jasa t ON d.no_transaksi = t.no_transaksi INNER JOIN
+                      m_customer ON t.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t.kd_user = m_userx.kd_user
+WHERE     (k.status = 2) AND (t.status = 1) AND (t.tanggal_pesan > GetTanggalTerakhirTutupBuku())
+AND t.tanggal_pesan between INperiode_awal AND INperiode_akhir
+GROUP BY t.kd_kas, t.tanggal_pesan, t.no_transaksi, t.keterangan, m_customer.nama, t.kd_divisi, m_divisi.nama, 
+
+t.kd_user, m_userx.nama
+
+UNION ALL
+
+SELECT     t.kd_kas, t.tanggal_pesan, 'PENDAPATAN KARTU KREDIT PENJUALAN JASA' AS transaksi, t.no_transaksi, 
+
+m_customer.nama AS Objek, 
+                      SUM(GetHargaBersih(GetHargaBersih(d.harga, d.diskon, 0, 0, 0, 0, 0), t.diskon, 0, 0, 0, 
+
+t.pajak, 0) * d.qty * t.other) AS debet, 0 AS kredit, 
+                      t.keterangan, t.kd_divisi, m_divisi.nama, t.kd_user, m_userx.nama AS Expr1
+FROM         m_jasa m INNER JOIN
+                      t_penjualan_jasa_detail d ON m.kd_jasa = d.kd_jasa INNER JOIN
+                      m_jasa_kategori k ON m.kd_jasa_kategori = k.kd_jasa_kategori INNER JOIN
+                      t_penjualan_jasa t ON d.no_transaksi = t.no_transaksi INNER JOIN
+                      m_customer ON t.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t.kd_user = m_userx.kd_user
+WHERE     (k.status = 2) AND (t.status = 1) AND (t.tanggal_pesan > GetTanggalTerakhirTutupBuku())
+AND t.tanggal_pesan between INperiode_awal AND INperiode_akhir
+GROUP BY t.kd_kas, t.tanggal_pesan, t.no_transaksi, t.keterangan, m_customer.nama, t.kd_divisi, m_divisi.nama, 
+
+t.kd_user, m_userx.nama
+
+
+UNION ALL
+
+SELECT     t.kd_kas, t.awal, 'PERSEWAAN' AS transaksi, t.no_transaksi, m_customer.nama AS `Customer /Supplier`, 
+                      SUM(GetHargaBersih(GetHargaBersih(d.harga, d.diskon, 0, 0, 0, 0, 0), t.diskon, 0, 0, 0, 
+
+t.pajak, 0) * d.qty) AS debet, 0 AS kredit, t.keterangan, 
+                      t.kd_divisi, m_divisi.nama, t.kd_user, m_userx.nama AS Expr1
+FROM         m_jasa m INNER JOIN
+                      t_penjualan_jasa_detail d ON m.kd_jasa = d.kd_jasa INNER JOIN
+                      m_jasa_kategori k ON m.kd_jasa_kategori = k.kd_jasa_kategori INNER JOIN
+                      t_penjualan_jasa t ON d.no_transaksi = t.no_transaksi INNER JOIN
+                      m_customer ON t.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t.kd_user = m_userx.kd_user
+WHERE     (k.status = 1) AND (t.status = 1) AND (t.tanggal_pesan > GetTanggalTerakhirTutupBuku())
+AND t.awal between INperiode_awal AND INperiode_akhir
+GROUP BY t.kd_kas, t.awal, t.no_transaksi, t.keterangan, m_customer.nama, t.kd_divisi, m_divisi.nama, t.kd_user, 
+
+m_userx.nama
+
+UNION ALL
+
+SELECT     t.kd_kas, t.awal, 'PENDAPATAN KARTU KREDIT PERSEWAAN' AS transaksi, t.no_transaksi, m_customer.nama AS Objek, 
+                      SUM(GetHargaBersih(GetHargaBersih(d.harga, d.diskon, 0, 0, 0, 0, 0), t.diskon, 0, 0, 0, 
+
+t.pajak, 0) * d.qty * t.other) AS debet, 0 AS kredit, 
+                      t.keterangan, t.kd_divisi, m_divisi.nama, t.kd_user, m_userx.nama AS Expr1
+FROM         m_jasa m INNER JOIN
+                      t_penjualan_jasa_detail d ON m.kd_jasa = d.kd_jasa INNER JOIN
+                      m_jasa_kategori k ON m.kd_jasa_kategori = k.kd_jasa_kategori INNER JOIN
+                      t_penjualan_jasa t ON d.no_transaksi = t.no_transaksi INNER JOIN
+                      m_customer ON t.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t.kd_user = m_userx.kd_user
+WHERE     (k.status = 1) AND (t.status = 1) AND (t.tanggal_pesan > GetTanggalTerakhirTutupBuku())
+AND t.awal between INperiode_awal AND INperiode_akhir
+GROUP BY t.kd_kas, t.awal, t.no_transaksi, t.keterangan, m_customer.nama, t.kd_divisi, m_divisi.nama, t.kd_user, 
+
+m_userx.nama
+
+UNION ALL
+
+SELECT     t_piutang_jasa_cicilan.kd_kas, t_piutang_jasa_cicilan.tanggal, 'CICILAN PIUTANG JASA' AS transaksi, 
+                      t_piutang_jasa_cicilan.no_cicilan AS no_transaksi, m_customer.nama AS Objek, 
+
+t_piutang_jasa_cicilan.nominal AS debet, 0 AS kredit, 
+                      t_piutang_jasa_cicilan.keterangan, t_penjualan_jasa.kd_divisi, m_divisi.nama, 
+
+t_piutang_jasa_cicilan.kd_user, 
+                      m_userx.nama AS Expr1
+FROM         t_piutang_jasa_cicilan INNER JOIN
+                      t_penjualan_jasa ON t_piutang_jasa_cicilan.no_transaksi = t_penjualan_jasa.no_transaksi 
+
+INNER JOIN
+                      m_customer ON t_penjualan_jasa.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t_penjualan_jasa.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t_piutang_jasa_cicilan.kd_user = m_userx.kd_user
+WHERE     (t_piutang_jasa_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_piutang_jasa_cicilan.no_bukti 
+
+NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir
+UNION ALL
+
+SELECT     t_piutang_jasa_cicilan.kd_kas, t_piutang_jasa_cicilan.tanggal, 'PENDAPATAN KARTU KREDIT CICILAN PIUTANG JASA' AS transaksi, 
+                      t_piutang_jasa_cicilan.no_cicilan AS no_transaksi, m_customer.nama AS Objek, 
+                      t_piutang_jasa_cicilan.nominal * t_piutang_jasa_cicilan.other AS debet, 0 AS kredit, 
+
+t_piutang_jasa_cicilan.keterangan, 
+                      t_penjualan_jasa.kd_divisi, m_divisi.nama, t_piutang_jasa_cicilan.kd_user, m_userx.nama 
+
+AS Expr1
+FROM         t_piutang_jasa_cicilan INNER JOIN
+                      t_penjualan_jasa ON t_piutang_jasa_cicilan.no_transaksi = t_penjualan_jasa.no_transaksi 
+
+INNER JOIN
+                      m_customer ON t_penjualan_jasa.kd_customer = m_customer.kd_customer INNER JOIN
+                      m_divisi ON t_penjualan_jasa.kd_divisi = m_divisi.kd_divisi INNER JOIN
+                      m_userx ON t_piutang_jasa_cicilan.kd_user = m_userx.kd_user
+WHERE     ((t_piutang_jasa_cicilan.nominal * t_piutang_jasa_cicilan.other)>0) AND (t_piutang_jasa_cicilan.tanggal > GetTanggalTerakhirTutupBuku()) AND (t_piutang_jasa_cicilan.no_bukti 
+
+NOT IN
+                          (SELECT     no_surat_berharga
+                            FROM          t_surat_berharga))
+
+AND DATE(tanggal) BETWEEN INperiode_awal AND INperiode_akhir) histori
+INNER JOIN
+                      m_kas ON histori.kd_kas = m_kas.kd_kas INNER JOIN
+                      m_bank ON m_kas.kd_bank = m_bank.kd_bank
+WHERE histori.kd_kas=INkd_kas ) totalan GROUP BY `No. Rekening`,transaksi;
+
+END
+
+//xyvdelimiter //
+DROP FUNCTION IF EXISTS `GetHargaBersih_vd`;
+CREATE FUNCTION `GetHargaBersih_vd`(harga FLOAT, diskon1 FLOAT,diskon2 FLOAT,diskon3 FLOAT,diskon4 FLOAT,pajak1 FLOAT,ppnbm FLOAT,jenis FLOAT)
+ RETURNS double
+BEGIN 
+	DECLARE harga_bersih FLOAT;
+	DECLARE	diskon1_rp FLOAT;
+	DECLARE	diskon2_rp FLOAT;
+	DECLARE diskon3_rp FLOAT;
+	DECLARE	diskon4_rp FLOAT;
+	DECLARE	pajak_rp FLOAT;
+	DECLARE ppnbm_rp FLOAT;
+	DECLARE output FLOAT;
+	SET harga_bersih = harga;
+	SET diskon1_rp=0;
+	SET diskon2_rp=0;
+	SET diskon3_rp=0;
+	SET diskon4_rp=0;
+	SET pajak_rp=0;
+
+-- jika harga lebih dari 0 baru diproses, jika tidak langsung return harga bersih menjadi 0
+	IF harga_bersih > 0 THEN
+-- 		BEGIN
+		-- DISKON PERTAMA
+			IF diskon1 >-1 AND diskon1 < 1 THEN
+					SET diskon1_rp= (harga_bersih * diskon1);
+					SET harga_bersih = harga_bersih - (harga_bersih * diskon1);
+			ELSEIF diskon1 >= 1 OR diskon1 <= -1 THEN
+					SET diskon1_rp= diskon1;
+					SET harga_bersih = harga_bersih - diskon1;
+			END IF;
+
+		-- DISKON KEDUA
+			IF diskon2 > -1 AND diskon2 < 1 THEN
+				SET diskon2_rp= (harga_bersih * diskon2);
+				SET harga_bersih = harga_bersih - (harga_bersih * diskon2);
+			ELSEIF diskon2 >=1 OR diskon2 <= -1 THEN
+				SET diskon2_rp= diskon2;
+				SET harga_bersih = harga_bersih - diskon2;
+			END IF;
+
+		
+		-- DISKON KETIGA
+			IF diskon3 > -1 AND diskon3 < 1 THEN
+				SET diskon3_rp= (harga_bersih * diskon3);
+				SET harga_bersih = harga_bersih - (harga_bersih * diskon3);
+			ELSEIF diskon3 >=1 OR diskon3 <= -1 THEN
+				SET diskon3_rp= diskon3;
+				SET harga_bersih = harga_bersih - diskon3;
+			END IF;
+			
+
+		-- DISKON KEEMPAT
+			IF diskon4 > -1 AND diskon4 < 1 THEN
+				SET diskon4_rp= (harga_bersih * diskon4);
+				SET harga_bersih = harga_bersih - (harga_bersih * diskon4);
+			ELSEIF diskon4 >=1 OR diskon4 <= -1 THEN
+				SET diskon4_rp= diskon4;
+				SET harga_bersih = harga_bersih - diskon4;
+			END IF;
+			
+		-- PAJAK
+			SET pajak_rp= (harga_bersih * pajak1);
+			SET harga_bersih = harga_bersih + (harga_bersih * pajak1);
+
+	 	-- PPNBM
+			SET ppnbm_rp= (harga_bersih * ppnbm);
+			SET harga_bersih = harga_bersih + (harga_bersih * ppnbm);
+	END IF;
+		 
+		
+	IF jenis = 0 THEN
+		SET output=harga_bersih;
+	ELSEIF jenis = 1 THEN
+		SET output=diskon1_rp;
+	ELSEIF jenis = 2 THEN
+		SET output=diskon2_rp;
+	ELSEIF jenis = 3 THEN
+		SET output=diskon3_rp;
+	ELSEIF jenis = 4 THEN
+		SET output=diskon4_rp;
+	ELSEIF jenis = 5 THEN
+		SET output=pajak_rp;
+	ELSEIF jenis = 6 THEN
+		SET output=ppnbm_rp;
+	END IF;
+	RETURN output;
+END
+
+//xyvdelimiter //
+DROP VIEW IF EXISTS `mon_all_t_penjualan_retur`;
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `mon_all_t_penjualan_retur` AS select `penjualan`.`no_retur` AS `no_retur`,`penjualan`.`kd_customer` AS `kd_customer`,(select `m_customer`.`nama` from `m_customer` where `m_customer`.`kd_customer` = `penjualan`.`kd_customer`) AS `nama`,`penjualan`.`kd_divisi` AS `kd_divisi`,(select `m_divisi`.`nama` from `m_divisi` where `m_divisi`.`kd_divisi` = `penjualan`.`kd_divisi`) AS `divisi`,`penjualan`.`kd_jenis` AS `kd_jenis`,(select `m_jenis_bayar`.`nama` from `m_jenis_bayar` where `m_jenis_bayar`.`kd_jenis` = `penjualan`.`kd_jenis`) AS `jenis_bayar`,`penjualan`.`kd_kas` AS `kd_kas`,(select `m_kas`.`no_rekening` from `m_kas` where `m_kas`.`kd_kas` = `penjualan`.`kd_kas`) AS `no_rekening`,`penjualan`.`no_bukti` AS `no_bukti`,`penjualan`.`tanggal` AS `tanggal`,`penjualan`.`keterangan` AS `keterangan`,`penjualan`.`kd_user` AS `kd_user`,`penjualan`.`tanggal_server` AS `tanggal_server`,`penjualan`.`kd_barang` AS `kd_barang`,(select `m_barang`.`nama` from `m_barang` where `m_barang`.`kd_barang` = `penjualan`.`kd_barang`) AS `barang`,`penjualan`.`kd_satuan` AS `kd_satuan`,`penjualan`.`kd_pegawai` AS `kd_pegawai`,(select `m_pegawai`.`nama` from `m_pegawai` where `m_pegawai`.`kd_pegawai` = `penjualan`.`kd_pegawai`) AS `pegawai`,`penjualan`.`qty` AS `qty`,`penjualan`.`qty_konversi` AS `qty_konversi`,`penjualan`.`harga_jual` AS `harga_jual`,`penjualan`.`mdiskon1` AS `mdiskon1`,`penjualan`.`mdiskon2` AS `mdiskon2`,`penjualan`.`mdiskon3` AS `mdiskon3`,`penjualan`.`mdiskon4` AS `mdiskon4`,`penjualan`.`ddiskon1` * `penjualan`.`qty` AS `ddiskon1`,`penjualan`.`ddiskon2` * `penjualan`.`qty` AS `ddiskon2`,`penjualan`.`ddiskon3` * `penjualan`.`qty` AS `ddiskon3`,`penjualan`.`ddiskon4` * `penjualan`.`qty` AS `ddiskon14`,`penjualan`.`mdiskon1` + `penjualan`.`mdiskon2` + `penjualan`.`mdiskon3` + `penjualan`.`mdiskon4` + (`penjualan`.`ddiskon1` + `penjualan`.`ddiskon2` + `penjualan`.`ddiskon3` + `penjualan`.`ddiskon4`) * `penjualan`.`qty` + `penjualan`.`jumlah` / (111 / 100) AS `dpp_kotor`,`penjualan`.`mdiskon1` + `penjualan`.`mdiskon2` + `penjualan`.`mdiskon3` + `penjualan`.`mdiskon4` + (`penjualan`.`ddiskon1` + `penjualan`.`ddiskon2` + `penjualan`.`ddiskon3` + `penjualan`.`ddiskon4`) * `penjualan`.`qty` AS `jumlah_diskon`,`penjualan`.`jumlah` / (111 / 100) AS `dpp_bersih`,`penjualan`.`jumlah` / (111 / 100) * 111 / 100 AS `jumlah_ppn`,`penjualan`.`jumlah` AS `total`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `penjualan`.`kd_satuan_terkecil`) AS `satuan_terkecil`,`penjualan`.`jumlah_bs` AS `jumlah_bs` from (select `jl`.`no_retur` AS `no_retur`,`jl`.`kd_customer` AS `kd_customer`,`jl`.`kd_divisi` AS `kd_divisi`,`jl`.`kd_jenis` AS `kd_jenis`,`jl`.`kd_kas` AS `kd_kas`,`jl`.`no_bukti` AS `no_bukti`,`jl`.`tanggal` AS `tanggal`,`jl`.`keterangan` AS `keterangan`,`jl`.`kd_user` AS `kd_user`,`jl`.`tanggal_server` AS `tanggal_server`,`jl_dt`.`kd_barang` AS `kd_barang`,`jl_dt`.`kd_satuan` AS `kd_satuan`,`jl_dt`.`kd_pegawai` AS `kd_pegawai`,`jl_dt`.`qty` AS `qty`,`jl_dt`.`qty` * `bst`.`jumlah` AS `qty_konversi`,`jl_dt`.`harga_jual` AS `harga_jual`,`jl_dt`.`ddiskon1` AS `ddiskon1`,`jl_dt`.`ddiskon2` AS `ddiskon2`,`jl_dt`.`ddiskon3` AS `ddiskon3`,`jl_dt`.`ddiskon4` AS `ddiskon4`,`GetHargaBersih_vd`(`jl_dt`.`dsubtotal`,`jl`.`diskon1`,`jl`.`diskon2`,`jl`.`diskon3`,`jl`.`diskon4`,0,0,1) AS `mdiskon1`,`GetHargaBersih_vd`(`jl_dt`.`dsubtotal`,`jl`.`diskon1`,`jl`.`diskon2`,`jl`.`diskon3`,`jl`.`diskon4`,0,0,2) AS `mdiskon2`,`GetHargaBersih_vd`(`jl_dt`.`dsubtotal`,`jl`.`diskon1`,`jl`.`diskon2`,`jl`.`diskon3`,`jl`.`diskon4`,0,0,3) AS `mdiskon3`,`GetHargaBersih_vd`(`jl_dt`.`dsubtotal`,`jl`.`diskon1`,`jl`.`diskon2`,`jl`.`diskon3`,`jl`.`diskon4`,0,0,4) AS `mdiskon4`,`GetHargaBersih_vd`(`jl_dt`.`dsubtotal`,`jl`.`diskon1`,`jl`.`diskon2`,`jl`.`diskon3`,`jl`.`diskon4`,`jl`.`pajak`,0,0) * `jl_dt`.`qty` AS `jumlah`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `jl_dt`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil`,`bst`.`jumlah` AS `jumlah_bs` from ((((select `t_penjualan_retur`.`no_retur` AS `no_retur`,`t_penjualan_retur`.`kd_divisi` AS `kd_divisi`,`t_penjualan_retur`.`kd_customer` AS `kd_customer`,`t_penjualan_retur`.`kd_jenis` AS `kd_jenis`,`t_penjualan_retur`.`kd_kas` AS `kd_kas`,`t_penjualan_retur`.`tanggal` AS `tanggal`,`t_penjualan_retur`.`no_bukti` AS `no_bukti`,`t_penjualan_retur`.`diskon1` AS `diskon1`,`t_penjualan_retur`.`diskon2` AS `diskon2`,`t_penjualan_retur`.`diskon3` AS `diskon3`,`t_penjualan_retur`.`diskon4` AS `diskon4`,`t_penjualan_retur`.`pajak` AS `pajak`,`t_penjualan_retur`.`keterangan` AS `keterangan`,`t_penjualan_retur`.`kd_user` AS `kd_user`,`t_penjualan_retur`.`tanggal_server` AS `tanggal_server`,`t_penjualan_retur`.`date_add` AS `date_add`,`t_penjualan_retur`.`user_add` AS `user_add`,`t_penjualan_retur`.`date_modif` AS `date_modif`,`t_penjualan_retur`.`user_modif` AS `user_modif`,`t_penjualan_retur`.`divisi_id` AS `divisi_id` from `t_penjualan_retur`) `jl` join (select `t_penjualan_retur_detail`.`no_retur` AS `no_retur`,`t_penjualan_retur_detail`.`kd_barang` AS `kd_barang`,`t_penjualan_retur_detail`.`kd_satuan` AS `kd_satuan`,`t_penjualan_retur_detail`.`kd_pegawai` AS `kd_pegawai`,`t_penjualan_retur_detail`.`qty` AS `qty`,`t_penjualan_retur_detail`.`harga_jual` AS `harga_jual`,`GetHargaBersih_vd`(`t_penjualan_retur_detail`.`harga_jual`,`t_penjualan_retur_detail`.`diskon1`,`t_penjualan_retur_detail`.`diskon2`,`t_penjualan_retur_detail`.`diskon3`,`t_penjualan_retur_detail`.`diskon4`,0,0,1) AS `ddiskon1`,`GetHargaBersih_vd`(`t_penjualan_retur_detail`.`harga_jual`,`t_penjualan_retur_detail`.`diskon1`,`t_penjualan_retur_detail`.`diskon2`,`t_penjualan_retur_detail`.`diskon3`,`t_penjualan_retur_detail`.`diskon4`,0,0,2) AS `ddiskon2`,`GetHargaBersih_vd`(`t_penjualan_retur_detail`.`harga_jual`,`t_penjualan_retur_detail`.`diskon1`,`t_penjualan_retur_detail`.`diskon2`,`t_penjualan_retur_detail`.`diskon3`,`t_penjualan_retur_detail`.`diskon4`,0,0,3) AS `ddiskon3`,`GetHargaBersih_vd`(`t_penjualan_retur_detail`.`harga_jual`,`t_penjualan_retur_detail`.`diskon1`,`t_penjualan_retur_detail`.`diskon2`,`t_penjualan_retur_detail`.`diskon3`,`t_penjualan_retur_detail`.`diskon4`,0,0,4) AS `ddiskon4`,`GetHargaBersih_vd`(`t_penjualan_retur_detail`.`harga_jual`,`t_penjualan_retur_detail`.`diskon1`,`t_penjualan_retur_detail`.`diskon2`,`t_penjualan_retur_detail`.`diskon3`,`t_penjualan_retur_detail`.`diskon4`,0,0,0) AS `dsubtotal` from `t_penjualan_retur_detail`) `jl_dt` on(`jl`.`no_retur` = `jl_dt`.`no_retur`)) join (select `t_penjualan_retur`.`no_retur` AS `no_retur`,sum(`t_penjualan_retur_detail`.`harga_jual` * `t_penjualan_retur_detail`.`qty`) AS `subtotal_kotor` from (`t_penjualan_retur` join `t_penjualan_retur_detail` on(`t_penjualan_retur`.`no_retur` = `t_penjualan_retur_detail`.`no_retur`)) group by `t_penjualan_retur`.`no_retur`) `penjualan_kotor` on(`penjualan_kotor`.`no_retur` = `jl`.`no_retur`)) join `m_barang_satuan` `bst` on(`jl_dt`.`kd_barang` = `bst`.`kd_barang` and `jl_dt`.`kd_satuan` = `bst`.`kd_satuan`))) `penjualan`;
+
+//xyvdelimiter //
+DROP VIEW IF EXISTS `v_mon_report_GetLaporanMutasiStokFull`;
+CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_mon_report_GetLaporanMutasiStokFull` AS select `result`.`no_transaksi` AS `no_transaksi`,`result`.`kd_barang` AS `kd_barang`,`result`.`kd_satuan` AS `kd_satuan`,`result`.`tanggal` AS `tanggal`,`result`.`qty_masuk` AS `qty_masuk`,`result`.`rupiah_masuk` AS `rupiah_masuk`,`result`.`qty_keluar` AS `qty_keluar`,`result`.`rupiah_keluar` AS `rupiah_keluar`,`result`.`jenis` AS `jenis`,`result`.`jenis_transaksi` AS `jenis_transaksi`,`result`.`keterangan` AS `keterangan`,`result`.`satuan_terkecil` AS `satuan_terkecil`,row_number() over ( partition by `result`.`kd_barang` order by `result`.`kd_barang`,`result`.`tanggal`) AS `rn` from (select '-' AS `no_transaksi`,`m_barang_divisi`.`kd_barang` AS `kd_barang`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `m_barang_divisi`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan`,(select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) AS `tanggal`,`m_barang_divisi`.`stok_awal` AS `qty_masuk`,`m_barang_divisi`.`harga` AS `rupiah_masuk`,0 AS `qty_keluar`,0 AS `rupiah_keluar`,0 AS `jenis`,'stok awal' AS `jenis_transaksi`,'saldo awal' AS `keterangan`,(select `m_satuan`.`nama` from (`m_satuan` join `m_barang_satuan` on(`m_satuan`.`kd_satuan` = `m_barang_satuan`.`kd_satuan`)) where `m_barang_satuan`.`kd_barang` = `m_barang_divisi`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `satuan_terkecil` from (select `m_barang_divisi`.`kd_barang` AS `kd_barang`,sum(`m_barang_divisi`.`stok_awal`) AS `stok_awal`,sum(`m_barang_divisi`.`harga_beli_awal`) AS `harga_beli_awal`,case when sum(`m_barang_divisi`.`stok_awal`) = 0 then 0 else sum(`m_barang_divisi`.`harga_beli_awal` * `m_barang_divisi`.`stok_awal`) / sum(`m_barang_divisi`.`stok_awal`) end AS `harga` from `m_barang_divisi` group by `m_barang_divisi`.`kd_barang`) `m_barang_divisi` union all select `t_pembelian_detail`.`no_transaksi` AS `no_transaksi`,`t_pembelian_detail`.`kd_barang` AS `kd_barang`,`t_pembelian_detail`.`kd_satuan` AS `kd_satuan`,`t_pembelian`.`tanggal` AS `tanggal`,`t_pembelian_detail`.`qty` * `satuan`.`jumlah` AS `qty_masuk`,`GetHargaBersih`(`GetHargaBersih`(`t_pembelian_detail`.`harga_beli`,`t_pembelian_detail`.`diskon1`,`t_pembelian_detail`.`diskon2`,`t_pembelian_detail`.`diskon3`,`t_pembelian_detail`.`diskon4`,0,0),`t_pembelian`.`diskon1`,`t_pembelian`.`diskon2`,`t_pembelian`.`diskon3`,`t_pembelian`.`diskon4`,0,0) / `satuan`.`jumlah` AS `rupiah_masuk`,0 AS `qty_keluar`,0 AS `rupiah_keluar`,5 AS `jenis`,'pembelian' AS `jenis_transaksi`,`t_pembelian`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_pembelian_detail`.`kd_satuan_terkecil`) AS `satuan_terkecil` from (((select `t_pembelian_detail`.`no_transaksi` AS `no_transaksi`,`t_pembelian_detail`.`kd_barang` AS `kd_barang`,`t_pembelian_detail`.`kd_satuan` AS `kd_satuan`,`t_pembelian_detail`.`jenis` AS `jenis`,`t_pembelian_detail`.`qty` AS `qty`,`t_pembelian_detail`.`harga_beli` AS `harga_beli`,`t_pembelian_detail`.`diskon1` AS `diskon1`,`t_pembelian_detail`.`diskon2` AS `diskon2`,`t_pembelian_detail`.`diskon3` AS `diskon3`,`t_pembelian_detail`.`diskon4` AS `diskon4`,`t_pembelian_detail`.`point1` AS `point1`,`t_pembelian_detail`.`date_add` AS `date_add`,`t_pembelian_detail`.`user_add` AS `user_add`,`t_pembelian_detail`.`date_modif` AS `date_modif`,`t_pembelian_detail`.`user_modif` AS `user_modif`,`t_pembelian_detail`.`divisi_id` AS `divisi_id`,`t_pembelian_detail`.`keterangan` AS `keterangan`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_pembelian_detail`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_pembelian_detail`) `t_pembelian_detail` join `t_pembelian` on(`t_pembelian_detail`.`no_transaksi` = `t_pembelian`.`no_transaksi`)) join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_pembelian_detail`.`kd_barang` = `satuan`.`kd_barang` and `t_pembelian_detail`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_pembelian`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) union all select `t_penjualan_detail`.`no_transaksi` AS `no_transaksi`,`t_penjualan_detail`.`kd_barang` AS `kd_barang`,`t_penjualan_detail`.`kd_satuan` AS `kd_satuan`,`t_penjualan`.`tanggal` AS `tanggal`,0 AS `qty_masuk`,0 AS `rupiah_masuk`,`t_penjualan_detail`.`qty` * `satuan`.`jumlah` AS `qty_keluar`,`t_penjualan_detail`.`harga_jual` / `satuan`.`jumlah` AS `rupiah_keluar`,7 AS `jenis`,'penjualan' AS `jenis_transaksi`,`t_penjualan`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_penjualan_detail`.`kd_satuan_terkecil`) AS `satuan_terkecil` from (((select `t_penjualan_detail`.`no_transaksi` AS `no_transaksi`,`t_penjualan_detail`.`kd_barang` AS `kd_barang`,`t_penjualan_detail`.`kd_satuan` AS `kd_satuan`,`t_penjualan_detail`.`kd_pegawai` AS `kd_pegawai`,`t_penjualan_detail`.`jenis` AS `jenis`,`t_penjualan_detail`.`diskon1` AS `diskon1`,`t_penjualan_detail`.`diskon2` AS `diskon2`,`t_penjualan_detail`.`diskon3` AS `diskon3`,`t_penjualan_detail`.`diskon4` AS `diskon4`,`t_penjualan_detail`.`harga_jual` AS `harga_jual`,`t_penjualan_detail`.`qty` AS `qty`,`t_penjualan_detail`.`point1` AS `point1`,`t_penjualan_detail`.`point2` AS `point2`,`t_penjualan_detail`.`date_add` AS `date_add`,`t_penjualan_detail`.`user_add` AS `user_add`,`t_penjualan_detail`.`date_modif` AS `date_modif`,`t_penjualan_detail`.`user_modif` AS `user_modif`,`t_penjualan_detail`.`divisi_id` AS `divisi_id`,`t_penjualan_detail`.`keterangan` AS `keterangan`,`t_penjualan_detail`.`group_id` AS `group_id`,`t_penjualan_detail`.`no_urut` AS `no_urut`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_penjualan_detail`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_penjualan_detail`) `t_penjualan_detail` join `t_penjualan` on(`t_penjualan_detail`.`no_transaksi` = `t_penjualan`.`no_transaksi`)) join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_penjualan_detail`.`kd_barang` = `satuan`.`kd_barang` and `t_penjualan_detail`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_penjualan`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) union all select `t_pembelian_retur_detail`.`no_retur` AS `no_retur`,`t_pembelian_retur_detail`.`kd_barang` AS `kd_barang`,`t_pembelian_retur_detail`.`kd_satuan` AS `kd_satuan`,`t_pembelian_retur`.`tanggal` AS `tanggal`,0 AS `qty_masuk`,0 AS `rupiah_masuk`,`t_pembelian_retur_detail`.`qty` * `satuan`.`jumlah` AS `qty_keluar`,`t_pembelian_retur_detail`.`total_detail` / `satuan`.`jumlah` AS `rupiah_keluar`,6 AS `jenis`,'pembelian retur' AS `jenis_transaksi`,`t_pembelian_retur`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_pembelian_retur_detail`.`kd_satuan_terkecil`) AS `satuan_terkecil` from (((select `t_pembelian_retur_detail`.`no_retur` AS `no_retur`,`t_pembelian_retur_detail`.`kd_barang` AS `kd_barang`,`t_pembelian_retur_detail`.`kd_satuan` AS `kd_satuan`,`t_pembelian_retur_detail`.`qty` AS `qty`,`t_pembelian_retur_detail`.`harga` AS `harga`,`t_pembelian_retur_detail`.`diskon1` AS `diskon1`,`t_pembelian_retur_detail`.`diskon2` AS `diskon2`,`t_pembelian_retur_detail`.`diskon3` AS `diskon3`,`t_pembelian_retur_detail`.`diskon4` AS `diskon4`,`t_pembelian_retur_detail`.`date_add` AS `date_add`,`t_pembelian_retur_detail`.`user_add` AS `user_add`,`t_pembelian_retur_detail`.`date_modif` AS `date_modif`,`t_pembelian_retur_detail`.`user_modif` AS `user_modif`,`t_pembelian_retur_detail`.`divisi_id` AS `divisi_id`,`t_pembelian_retur_detail`.`keterangan` AS `keterangan`,`t_pembelian_retur_detail`.`harga` AS `total_detail`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_pembelian_retur_detail`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_pembelian_retur_detail`) `t_pembelian_retur_detail` join `t_pembelian_retur` on(`t_pembelian_retur_detail`.`no_retur` = `t_pembelian_retur`.`no_retur`)) join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_pembelian_retur_detail`.`kd_barang` = `satuan`.`kd_barang` and `t_pembelian_retur_detail`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_pembelian_retur`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) union all select `t_penjualan_retur`.`no_retur` AS `no_retur`,`t_penjualan_retur`.`kd_barang` AS `kd_barang`,`t_penjualan_retur`.`kd_satuan` AS `kd_satuan`,`t_penjualan_retur`.`tanggal` AS `tanggal`,`t_penjualan_retur`.`qty` * `t_penjualan_retur`.`jumlah_bs` AS `qty_masuk`,`t_penjualan_retur`.`dpp_bersih` / `t_penjualan_retur`.`qty_konversi` AS `rupiah_masuk`,0 AS `qty_keluar`,0 AS `rupiah_keluar`,8 AS `jenis`,'penjualan retur' AS `jenis_transaksi`,`t_penjualan_retur`.`keterangan` AS `keterangan`,`t_penjualan_retur`.`satuan_terkecil` AS `satuan_terkecil` from `mon_all_t_penjualan_retur` `t_penjualan_retur` where cast(`t_penjualan_retur`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) union all select `t_opname_stok`.`no_transaksi` AS `no_transaksi`,`t_opname_stok`.`kd_barang` AS `kd_barang`,`t_opname_stok`.`kd_satuan` AS `kd_satuan`,`t_opname_stok`.`tanggal` AS `tanggal`,`t_opname_stok`.`qty` * `satuan`.`jumlah` AS `qty_masuk`,ifnull(`t_opname_stok`.`harga`,0) AS `rupiah_masuk`,0 AS `qty_keluar`,0 AS `rupiah_keluar`,3 AS `jenis`,'opname masuk' AS `jenis_transaksi`,`t_opname_stok`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_opname_stok`.`kd_satuan_terkecil`) AS `satuan_terkecil` from ((select `t_opname_stok`.`no_transaksi` AS `no_transaksi`,`t_opname_stok`.`kd_divisi` AS `kd_divisi`,`t_opname_stok`.`kd_barang` AS `kd_barang`,`t_opname_stok`.`kd_satuan` AS `kd_satuan`,`t_opname_stok`.`tanggal` AS `tanggal`,`t_opname_stok`.`qty` AS `qty`,`t_opname_stok`.`keterangan` AS `keterangan`,`t_opname_stok`.`kd_user` AS `kd_user`,`t_opname_stok`.`status` AS `status`,`t_opname_stok`.`tanggal_server` AS `tanggal_server`,`t_opname_stok`.`date_add` AS `date_add`,`t_opname_stok`.`user_add` AS `user_add`,`t_opname_stok`.`date_modif` AS `date_modif`,`t_opname_stok`.`user_modif` AS `user_modif`,`t_opname_stok`.`divisi_id` AS `divisi_id`,`t_opname_stok`.`harga` AS `harga`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_opname_stok`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_opname_stok`) `t_opname_stok` join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_opname_stok`.`kd_barang` = `satuan`.`kd_barang` and `t_opname_stok`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_opname_stok`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) and `t_opname_stok`.`qty` <> 0 and `t_opname_stok`.`status` = 2 union all select `t_opname_stok`.`no_transaksi` AS `no_transaksi`,`t_opname_stok`.`kd_barang` AS `kd_barang`,`t_opname_stok`.`kd_satuan` AS `kd_satuan`,`t_opname_stok`.`tanggal` AS `tanggal`,0 AS `qty_masuk`,0 AS `rupiah_masuk`,`t_opname_stok`.`qty` * `satuan`.`jumlah` AS `qty_keluar`,ifnull(`t_opname_stok`.`harga`,0) AS `rupiah_keluar`,4 AS `jenis`,'opname keluar' AS `jenis_transaksi`,`t_opname_stok`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_opname_stok`.`kd_satuan_terkecil`) AS `satuan_terkecil` from ((select `t_opname_stok`.`no_transaksi` AS `no_transaksi`,`t_opname_stok`.`kd_divisi` AS `kd_divisi`,`t_opname_stok`.`kd_barang` AS `kd_barang`,`t_opname_stok`.`kd_satuan` AS `kd_satuan`,`t_opname_stok`.`tanggal` AS `tanggal`,`t_opname_stok`.`qty` AS `qty`,`t_opname_stok`.`keterangan` AS `keterangan`,`t_opname_stok`.`kd_user` AS `kd_user`,`t_opname_stok`.`status` AS `status`,`t_opname_stok`.`tanggal_server` AS `tanggal_server`,`t_opname_stok`.`date_add` AS `date_add`,`t_opname_stok`.`user_add` AS `user_add`,`t_opname_stok`.`date_modif` AS `date_modif`,`t_opname_stok`.`user_modif` AS `user_modif`,`t_opname_stok`.`divisi_id` AS `divisi_id`,`t_opname_stok`.`harga` AS `harga`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_opname_stok`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_opname_stok`) `t_opname_stok` join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_opname_stok`.`kd_barang` = `satuan`.`kd_barang` and `t_opname_stok`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_opname_stok`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) and `t_opname_stok`.`qty` <> 0 and `t_opname_stok`.`status` <> 2 union all select `t_mutasi_internal_detail`.`no_transaksi` AS `no_transaksi`,`t_mutasi_internal_detail`.`kd_barang` AS `kd_barang`,`t_mutasi_internal_detail`.`kd_satuan` AS `kd_satuan`,`t_mutasi_internal`.`tanggal` AS `tanggal`,`t_mutasi_internal_detail`.`qty` * `satuan`.`jumlah` AS `qty_keluar`,`t_mutasi_internal_detail`.`harga` / `satuan`.`jumlah` AS `rupiah_keluar`,0 AS `qty_masuk`,0 AS `rupiah_masuk`,14 AS `jenis`,'mutasi internal keluar' AS `jenis_transaksi`,`t_mutasi_internal`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_mutasi_internal_detail`.`kd_satuan_terkecil`) AS `satuan_terkecil` from (((select `t_mutasi_internal_detail`.`no_transaksi` AS `no_transaksi`,`t_mutasi_internal_detail`.`kd_barang` AS `kd_barang`,`t_mutasi_internal_detail`.`kd_satuan` AS `kd_satuan`,`t_mutasi_internal_detail`.`harga` AS `harga`,`t_mutasi_internal_detail`.`qty` AS `qty`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_mutasi_internal_detail`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_mutasi_internal_detail`) `t_mutasi_internal_detail` join `t_mutasi_internal` on(`t_mutasi_internal_detail`.`no_transaksi` = `t_mutasi_internal`.`no_transaksi`)) join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_mutasi_internal_detail`.`kd_barang` = `satuan`.`kd_barang` and `t_mutasi_internal_detail`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_mutasi_internal`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) and `t_mutasi_internal`.`jenis` = 1 union all select `t_mutasi_internal_detail`.`no_transaksi` AS `no_transaksi`,`t_mutasi_internal_detail`.`kd_barang` AS `kd_barang`,`t_mutasi_internal_detail`.`kd_satuan` AS `kd_satuan`,`t_mutasi_internal`.`tanggal` AS `tanggal`,`t_mutasi_internal_detail`.`qty` * `satuan`.`jumlah` AS `qty_masuk`,`t_mutasi_internal_detail`.`harga` / `satuan`.`jumlah` AS `rupiah_masuk`,0 AS `qty_keluar`,0 AS `rupiah_keluar`,15 AS `jenis`,'mutasi internal masuk' AS `jenis_transaksi`,`t_mutasi_internal`.`keterangan` AS `keterangan`,(select `m_satuan`.`nama` from `m_satuan` where `m_satuan`.`kd_satuan` = `t_mutasi_internal_detail`.`kd_satuan_terkecil`) AS `satuan_terkecil` from (((select `t_mutasi_internal_detail`.`no_transaksi` AS `no_transaksi`,`t_mutasi_internal_detail`.`kd_barang` AS `kd_barang`,`t_mutasi_internal_detail`.`kd_satuan` AS `kd_satuan`,`t_mutasi_internal_detail`.`harga` AS `harga`,`t_mutasi_internal_detail`.`qty` AS `qty`,(select `m_barang_satuan`.`kd_satuan` from `m_barang_satuan` where `m_barang_satuan`.`kd_barang` = `t_mutasi_internal_detail`.`kd_barang` and `m_barang_satuan`.`jumlah` = 1 limit 1) AS `kd_satuan_terkecil` from `t_mutasi_internal_detail`) `t_mutasi_internal_detail` join `t_mutasi_internal` on(`t_mutasi_internal_detail`.`no_transaksi` = `t_mutasi_internal`.`no_transaksi`)) join (select `m_barang_satuan`.`kd_barang` AS `kd_barang`,`m_barang_satuan`.`kd_satuan` AS `kd_satuan`,`m_barang_satuan`.`jumlah` AS `jumlah`,`m_barang_satuan`.`harga_jual` AS `harga_jual`,`m_barang_satuan`.`status` AS `status`,`m_barang_satuan`.`margin` AS `margin`,`m_barang_satuan`.`date_add` AS `date_add`,`m_barang_satuan`.`user_add` AS `user_add`,`m_barang_satuan`.`date_modif` AS `date_modif`,`m_barang_satuan`.`user_modif` AS `user_modif`,`m_barang_satuan`.`divisi_id` AS `divisi_id`,`m_satuan`.`nama` AS `nama` from (`m_barang_satuan` join `m_satuan` on(`m_barang_satuan`.`kd_satuan` = `m_satuan`.`kd_satuan`))) `satuan` on(`t_mutasi_internal_detail`.`kd_barang` = `satuan`.`kd_barang` and `t_mutasi_internal_detail`.`kd_satuan` = `satuan`.`kd_satuan`)) where cast(`t_mutasi_internal`.`tanggal` as date) between (select max(`g_tutup_buku`.`tanggal`) from `g_tutup_buku`) and cast(current_timestamp() as date) and `t_mutasi_internal`.`jenis` = 2) `result`;
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_get_customer_item`;
+CREATE PROCEDURE `p_get_customer_item`(IN comp_id VARCHAR ( 100 ), IN order_col VARCHAR(100), IN order_type VARCHAR (100), IN forlimit INT, IN forlength INT, IN search VARCHAR(6000), IN count_stats INT)
+BEGIN 
+	DECLARE query_sql VARCHAR (16000);
+	DECLARE query_order VARCHAR(6000);
+	DECLARE query_limit VARCHAR(6000);
+	DECLARE query_search VARCHAR(6000);
+	DECLARE query_count VARCHAR(6000);
+	
+	SET query_order = '';
+	SET query_limit = '';
+	SET query_search = '';
+	SET query_count = '*';
+	
+	IF order_col <> '' AND order_type <> '' THEN 
+		SET query_order=CONCAT(" ORDER BY ",order_col," ",order_type,"");
+	ELSE 
+		SET query_order=CONCAT(" ORDER BY item ASC");
+	END IF;
+	
+	IF forlength <> 0 THEN 
+		SET query_limit=CONCAT(" LIMIT ",forlimit,",",forlength,"") ;
+	ELSE 
+		SET query_limit="";
+	END IF;
+	
+	IF search <> '' THEN
+		SET query_search=CONCAT(" WHERE item LIKE '%",search,"%' OR merk LIKE '%",search,"%' OR kategori LIKE '%",search,"%'");
+	END IF;
+	
+	IF count_stats <> 0 THEN 
+		SET query_count=CONCAT(" COUNT(a.item) AS `jumlah record` ");
+	END IF;
+
+SET query_sql=CONCAT("SELECT ",query_count," FROM (SELECT
+	barang.*,
+	barang_satuan.kd_satuan,
+	barang_satuan.satuan,
+	barang_satuan.`status` AS mbs_status 
+FROM
+	(
+	SELECT
+		m_barang.kd_barang,
+		m_barang.nama AS item,
+		m_merk.kd_merk,
+		m_merk.nama AS merk,
+		m_kategori.kd_kategori,
+		m_kategori.nama AS kategori 
+	FROM
+		misterkong_",comp_id,".m_barang m_barang
+		INNER JOIN misterkong_",comp_id,".m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
+		INNER JOIN misterkong_",comp_id,".m_merk m_merk ON m_merk.kd_merk = m_barang.kd_merk 
+	WHERE
+		m_barang.STATUS <> 0 
+	) barang
+	INNER JOIN (
+	SELECT
+		kd_barang,
+		GROUP_CONCAT( m_satuan.kd_satuan ) AS kd_satuan,
+		GROUP_CONCAT( nama ) AS satuan,
+		GROUP_CONCAT( m_barang_satuan.`status` ) AS `status` 
+	FROM
+		misterkong_",comp_id,".m_barang_satuan m_barang_satuan
+		INNER JOIN misterkong_",comp_id,".m_satuan m_satuan ON m_satuan.kd_satuan = m_barang_satuan.kd_satuan 
+	WHERE
+		m_barang_satuan.`status` <> 0 
+	GROUP BY
+	kd_barang 
+	) barang_satuan ON barang.kd_barang = barang_satuan.kd_barang) a ",query_search, query_order, query_limit);
+	PREPARE prepare_statement FROM query_sql;
+	EXECUTE prepare_statement;
+END
+
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_getRekomendasiMenu`;
+CREATE PROCEDURE `p_getRekomendasiMenu`(IN INlat DOUBLE, IN INlng DOUBLE,IN INoffset INT , IN INkategori INT)
+BEGIN
+
+	SELECT 
+		m_user_company.id, 
+		m_user_company.company_id,
+		nama_usaha, 
+		jml_transaksi,
+		(
+			3959 * ACOS (COS (RADIANS(koordinat_lat))
+			* COS(RADIANS(INlat))
+			* COS(RADIANS(INlng) - RADIANS(koordinat_lng))
+			+ SIN (RADIANS(koordinat_lat))
+			* SIN(RADIANS(INlat))
+			)
+		) AS distance 
+
+	FROM m_user_company 
+	INNER JOIN 
+	(
+		SELECT COUNT(no_transaksi) AS jml_transaksi, user_id_toko 
+		FROM t_penjualan WHERE jenis_transaksi='FOOD' GROUP BY user_id_toko ORDER BY jml_transaksi DESC
+	)	t_penjualan ON m_user_company.id = t_penjualan.user_id_toko
+	INNER JOIN 
+		(
+			SELECT company_id FROM m_barang INNER JOIN 
+			(
+				SELECT barang_id FROM m_barang_gambar WHERE gambar <> ''
+			) gambar ON m_barang.id = gambar.barang_id 
+			INNER JOIN (SELECT barang_id FROM m_barang_verifikasi WHERE status_barang=1) brg_ver ON m_barang.id=brg_ver.barang_id
+			INNER JOIN (SELECT barang_gambar_id FROM m_barang_gambar_verifikasi WHERE status_gambar=1) brg_gbr_ver ON gambar.id=brg_gbr_ver.barang_gambar_id
+-- 			WHERE `status` = 2 
+			GROUP BY company_id
+		) barang_gambar ON m_user_company.id = barang_gambar.company_id	 
+	INNER JOIN m_kategori_usaha ON m_user_company.kategori_usaha=m_kategori_usaha.kd_kategori_usaha
+	WHERE m_kategori_usaha.kode_kategori=1
+-- 	WHERE (kategori_usaha = 2 OR kategori_usaha = 7) and status = 1 
+HAVING distance < 30
+	LIMIT 10 OFFSET INoffset;
+
+END
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_labaRugi`;
+CREATE PROCEDURE `p_labaRugi`(IN awal DATE, IN akhir DATE)
+BEGIN
+
+DECLARE pembelian DOUBLE;
+DECLARE retur_pembelian DOUBLE;
+DECLARE penjualan_bruto DOUBLE;
+DECLARE potongan DOUBLE;
+DECLARE pajak DOUBLE;
+DECLARE retur_penjualan DOUBLE;
+DECLARE penjualan_netto DOUBLE;
+
+
+SELECT
+	SUM(GetHargaBersih (
+		GetHargaBersih ( harga_beli * qty, t_pembelian_detail.diskon1, t_pembelian_detail.diskon2, t_pembelian_detail.diskon3, t_pembelian_detail.diskon4, 0, 0 ),
+		t_pembelian.diskon1,
+		t_pembelian.diskon2,
+		t_pembelian.diskon3,
+		t_pembelian.diskon4,
+		t_pembelian.pajak,
+		t_pembelian.ppnbm 
+	)) AS nominal
+INTO pembelian
+FROM 
+	t_pembelian
+	INNER JOIN t_pembelian_detail ON t_pembelian.no_transaksi = t_pembelian_detail.no_transaksi 
+WHERE
+	DATE ( tanggal ) BETWEEN awal AND akhir AND `status`=1;
+	
+	
+SELECT
+	SUM(GetHargaBersih (
+		GetHargaBersih ( harga * qty, t_pembelian_retur_detail.diskon1, t_pembelian_retur_detail.diskon2, t_pembelian_retur_detail.diskon3, t_pembelian_retur_detail.diskon4, 0, 0 ),
+		t_pembelian_retur.diskon1,
+		t_pembelian_retur.diskon2,
+		t_pembelian_retur.diskon3,
+		t_pembelian_retur.diskon4,
+		t_pembelian_retur.pajak,
+		t_pembelian_retur.ppnbm 
+	)) AS nominal
+INTO retur_pembelian
+FROM
+	t_pembelian_retur
+	INNER JOIN t_pembelian_retur_detail ON t_pembelian_retur.no_retur = t_pembelian_retur_detail.no_retur
+WHERE
+	DATE ( tanggal ) BETWEEN awal AND akhir;
+	
+	
+SELECT
+	SUM(harga_jual*qty) AS nominal
+INTO penjualan_bruto
+FROM
+	t_penjualan
+	INNER JOIN t_penjualan_detail ON t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi 
+WHERE
+	DATE ( tanggal ) BETWEEN awal AND akhir AND `status`=1;
+	
+	
+
+
+SELECT
+-- 	no_transaksi, kotor, bersih, kotor-bersih AS nominal
+	SUM(kotor)-SUM(bersih) AS nominal
+INTO potongan
+FROM
+	( SELECT 
+			t_penjualan.no_transaksi,
+			(harga_jual*qty) AS kotor,
+			GetHargaBersih (
+			GetHargaBersih ( harga_jual * qty, t_penjualan_detail.diskon1, t_penjualan_detail.diskon2, t_penjualan_detail.diskon3, t_penjualan_detail.diskon4, 0, 0 ),
+			t_penjualan.diskon1,
+			t_penjualan.diskon2,
+			t_penjualan.diskon3,
+			t_penjualan.diskon4,
+			0,
+			0 
+		) AS bersih FROM t_penjualan
+		INNER JOIN t_penjualan_detail ON t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi 
+		WHERE
+			DATE ( tanggal ) BETWEEN awal AND akhir AND `status`=1
+	) penjualan;
+	
+	
+	
+SELECT
+	SUM(bersih)-SUM(kotor) AS nominal
+INTO pajak
+FROM
+		( SELECT 
+			t_penjualan.no_transaksi,
+			(harga_jual*qty) AS kotor,
+			GetHargaBersih (
+			GetHargaBersih ( harga_jual * qty, 0, 0, 0, 0, 0, 0 ),
+			0,
+			0,
+			0,
+			0,
+			t_penjualan.pajak,
+			0 
+		) AS bersih
+		FROM t_penjualan
+		INNER JOIN t_penjualan_detail ON t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi 
+		WHERE
+			DATE ( tanggal ) BETWEEN awal AND akhir AND `status`=1
+-- 			 AND t_penjualan.no_transaksi='HM2205220149'
+	) penjualan;
+	
+	
+
+SELECT
+	SUM(GetHargaBersih (
+		GetHargaBersih ( harga_jual * qty, t_penjualan_retur_detail.diskon1, t_penjualan_retur_detail.diskon2, t_penjualan_retur_detail.diskon3, t_penjualan_retur_detail.diskon4, 0, 0 ),
+		t_penjualan_retur.diskon1,
+		t_penjualan_retur.diskon2,
+		t_penjualan_retur.diskon3,
+		t_penjualan_retur.diskon4,
+		t_penjualan_retur.pajak,
+		0 
+	)) AS nominal
+INTO retur_penjualan
+FROM
+	t_penjualan_retur
+	INNER JOIN t_penjualan_retur_detail ON t_penjualan_retur.no_retur = t_penjualan_retur_detail.no_retur
+WHERE
+	DATE ( tanggal ) BETWEEN awal AND akhir;
+	
+	
+SELECT
+	penjualan_bruto - potongan + pajak - retur_penjualan AS nominal
+INTO penjualan_netto;
+
+
+
+SELECT 'pembelian' AS keterangan, pembelian AS nominal
+UNION
+SELECT 'pembelian retur' AS keterangan, retur_pembelian AS nominal
+UNION
+SELECT 'penjualan bruto' AS keterangan, penjualan_bruto AS nominal
+UNION
+SELECT 'potongan' AS keterangan, potongan AS nominal
+UNION
+SELECT 'pajak' AS keterangan, pajak AS nominal
+UNION
+SELECT 'penjualan retur' AS keterangan, retur_penjualan AS nominal
+UNION
+SELECT 'penjualan netto' AS keterangan, penjualan_netto AS nominal;
+
+
+END
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_mon_report_kartu_stok`;
+CREATE PROCEDURE `p_mon_report_kartu_stok`(IN awal DATE, IN akhir DATE, IN kode_item VARCHAR(60), IN for_limit INT, IN for_length INT)
+BEGIN
+DROP TEMPORARY TABLE IF EXISTS result_table;
+CREATE TEMPORARY TABLE result_table AS
+
+
+SELECT transaksi.*, @prev_barang AS prev_kd_barang,
+		CASE 
+			WHEN qty_masuk <> 0 THEN
+					@harga := rupiah_masuk
+			WHEN qty_masuk = 0 THEN
+					@harga := rupiah_keluar
+		END AS harga,
+		CASE
+		WHEN @prev_barang=kd_barang THEN
+			CASE 
+					WHEN jenis_transaksi='stok awal' THEN
+							 @saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='pembelian' THEN 
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='penjualan' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='opname masuk' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='opname keluar' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='penjualan retur' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='pembelian retur' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='mutasi internal masuk' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='mutasi internal keluar' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+				END
+				
+		ELSE
+			@saldo_qty:=qty_masuk-qty_keluar
+	END as saldo_qty, 
+	
+	
+	CASE WHEN @prev_barang=kd_barang THEN
+		CASE WHEN (@prev_saldo_qty + qty_masuk - qty_keluar) <> 0 THEN
+				CASE 
+					WHEN jenis_transaksi='pembelian' OR jenis_transaksi='opname masuk' OR jenis_transaksi='mutasi internal masuk' OR jenis_transaksi='penjualan retur'  THEN
+-- 							@average:=IFNULL(((@prev_saldo_qty * @prev_average) + ((qty_masuk - qty_keluar) * @harga)) / (@prev_saldo_qty + qty_masuk - qty_keluar),0)
+						CASE 
+							WHEN @saldo_qty <= 0 THEN
+								@average:=@harga
+							ELSE
+								@average:=IFNULL(((@prev_saldo_qty * @prev_average) + ((qty_masuk - qty_keluar) * @harga)	) / (@prev_saldo_qty + qty_masuk - qty_keluar),0)
+						END
+					ELSE 
+							@average:=@prev_average
+				END
+	  ELSE
+		   @average:=@prev_average
+		END 
+	ELSE
+		@prev_average:=@harga
+	END AS average,
+	
+	CASE
+		WHEN @prev_barang=kd_barang THEN
+			CASE 
+					WHEN jenis_transaksi='stok awal' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='pembelian' THEN 
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='penjualan' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+					WHEN jenis_transaksi='opname masuk' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='opname keluar' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+					WHEN jenis_transaksi='penjualan retur' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='pembelian retur' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+					WHEN jenis_transaksi='mutasi internal masuk' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='mutasi internal keluar' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+				END
+		ELSE
+			@saldo_rp:= (rupiah_masuk*qty_masuk)-(rupiah_keluar*qty_keluar)
+	END as saldo_rp, 
+	
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_average
+	ELSE
+		0
+	END AS prev_average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_average:=@average
+	ELSE
+		@prev_average:=@harga
+	END AS current_average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_saldo_qty 
+	ELSE
+		0
+END AS prev_saldo_qty,
+	@prev_barang:=kd_barang AS current_kd_barang,
+	@prev_saldo_qty:=@saldo_qty AS current_saldo_qty
+FROM v_t_mon_report_GetLaporanMutasiStokFull transaksi 
+	CROSS JOIN (SELECT @saldo_qty := 0) saldo_qty
+	CROSS JOIN (SELECT @saldo_rp := 0) saldo_rp
+	CROSS JOIN (SELECT @prev_barang := '') br
+	CROSS JOIN (SELECT @average := 0) average
+	CROSS JOIN (SELECT @prev_average := 0) prev_average 
+	CROSS JOIN (SELECT @prev_saldo_qty := 0) prev_saldo_qty WHERE kd_barang=kode_item;
+	
+-- 	SELECT * FROM result_table WHERE kd_barang='GASISI3KG'; 	
+	
+SELECT * FROM (
+SELECT * FROM 
+( SELECT 
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL
+ELSE MAX(no_transaksi) 
+END
+AS no_transaksi,
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1)
+END
+AS qty_masuk, 
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) 
+END
+AS rupiah_masuk, 
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE 0
+END
+AS qty_keluar,
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE 0
+END
+AS rupiah_keluar,
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE 'stok awal'
+END
+AS jenis_transaksi,
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1)
+END
+AS saldo_qty, 
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1)
+END
+AS saldo_rp,
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) / GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1)
+END
+AS average, 
+-- 0 AS average,
+CASE WHEN ISNULL(MAX(no_transaksi)) THEN NULL 
+ELSE MAX(tanggal)
+END
+AS tanggal_tr 
+FROM result_table WHERE DATE(tanggal) < awal AND kd_barang=kode_item) a WHERE saldo_rp IS NOT NULL
+UNION
+SELECT no_transaksi, qty_masuk, rupiah_masuk, qty_keluar, rupiah_keluar, jenis_transaksi, saldo_qty, saldo_rp, average, tanggal AS tanggal_tr FROM result_table WHERE DATE(tanggal) BETWEEN awal AND akhir AND kd_barang=kode_item) for_alias LIMIT for_limit, for_length;
+END
+
+//xyvdelimiter //
+-- Procedure structure for p_mon_report_kartu_stok_test
+DROP PROCEDURE IF EXISTS `p_mon_report_kartu_stok_test`;
+
+CREATE PROCEDURE `p_mon_report_kartu_stok_test`(IN awal DATE, IN akhir DATE, IN kode_item VARCHAR(60))
+BEGIN
+DROP TEMPORARY TABLE IF EXISTS result_table;
+CREATE TEMPORARY TABLE result_table AS
+
+
+SELECT transaksi.*, @prev_barang AS prev_kd_barang,
+		CASE 
+			WHEN qty_masuk <> 0 THEN
+					@harga := rupiah_masuk
+			WHEN qty_masuk = 0 THEN
+					@harga := rupiah_keluar
+		END AS harga,
+		CASE
+		WHEN @prev_barang=kd_barang THEN
+			CASE 
+					WHEN jenis_transaksi='stok awal' THEN
+							 @saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='pembelian' THEN 
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='penjualan' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='opname masuk' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='opname keluar' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='penjualan retur' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='pembelian retur' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='mutasi internal masuk' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='mutasi internal keluar' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+				END
+				
+		ELSE
+			@saldo_qty:=qty_masuk-qty_keluar
+	END as saldo_qty, 
+	CASE
+		WHEN @prev_barang=kd_barang THEN
+			CASE 
+					WHEN jenis_transaksi='stok awal' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='pembelian' THEN 
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='penjualan' THEN
+							@saldo_rp := @saldo_rp + (rupiah_keluar * qty_keluar)
+					WHEN jenis_transaksi='opname masuk' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='opname keluar' THEN
+							@saldo_rp := @saldo_rp + (rupiah_keluar * qty_keluar)
+					WHEN jenis_transaksi='penjualan retur' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='pembelian retur' THEN
+							@saldo_rp := @saldo_rp + (rupiah_keluar * qty_keluar)
+					WHEN jenis_transaksi='mutasi internal masuk' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='mutasi internal keluar' THEN
+							@saldo_rp := @saldo_rp + (rupiah_keluar * qty_keluar)
+				END
+		ELSE
+			@saldo_rp:= (rupiah_masuk*qty_masuk)-(rupiah_keluar*qty_keluar)
+	END as saldo_rp, 
+	
+
+	CASE WHEN @prev_barang=kd_barang THEN
+		CASE WHEN (@prev_saldo_qty + qty_masuk - qty_keluar) <> 0 THEN
+				CASE 
+					WHEN jenis_transaksi='pembelian' OR jenis_transaksi='opname masuk' OR jenis_transaksi='mutasi internal masuk' OR jenis_transaksi='penjualan retur'  THEN
+-- 							@average:=IFNULL(((@prev_saldo_qty * @prev_average) + ((qty_masuk - qty_keluar) * @harga)) / (@prev_saldo_qty + qty_masuk - qty_keluar),0)
+-- 						CASE 
+-- 							WHEN @saldo_qty <= 0 THEN
+-- 								@average:=IFNULL(((0 * @prev_average) + ((qty_masuk - qty_keluar) * @harga)) / (0 + qty_masuk - qty_keluar),0)
+-- 							ELSE
+								@average:=IFNULL(((@prev_saldo_qty * @prev_average) + ((qty_masuk - qty_keluar) * @harga)	) / (@prev_saldo_qty + qty_masuk - qty_keluar),0)
+-- 						END
+					ELSE 
+							@average:=@prev_average
+				END
+	  ELSE
+		   @average:=@prev_average
+		END 
+	ELSE
+		@average=@harga
+	END 
+	AS average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_average
+	ELSE
+		0
+	END AS prev_average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_average:=@average
+	ELSE
+		@prev_average:=@harga
+	END AS current_average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_saldo_qty 
+	ELSE
+		0
+END AS prev_saldo_qty,
+	@prev_barang:=kd_barang AS current_kd_barang,
+	@prev_saldo_qty:=@saldo_qty AS current_saldo_qty
+FROM v_t_mon_report_GetLaporanMutasiStokFull transaksi 
+	CROSS JOIN (SELECT @saldo_qty := 0) saldo_qty
+	CROSS JOIN (SELECT @saldo_rp := 0) saldo_rp
+	CROSS JOIN (SELECT @prev_barang := '') br
+	CROSS JOIN (SELECT @average := 0) average
+	CROSS JOIN (SELECT @prev_average := 0) prev_average 
+	CROSS JOIN (SELECT @prev_saldo_qty := 0) prev_saldo_qty WHERE kd_barang=kode_item;
+	
+SELECT * FROM result_table;
+-- SELECT awal AS tanggal, MAX(no_transaksi) as no_transaksi, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS qty_masuk, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) rupiah_masuk, 0 AS qty_keluar, 0 AS rupiah_keluar, 'stok awal' AS jenis_transaksi, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS saldo_qty, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) AS saldo_rp, 0 AS average, MAX(tanggal) AS tanggal_tr FROM result_table WHERE DATE(tanggal) < awal
+-- UNION ALL
+-- SELECT awal AS tanggal, no_transaksi, qty_masuk, rupiah_masuk, qty_keluar, rupiah_keluar, jenis_transaksi, saldo_qty, saldo_rp, average, tanggal AS tanggal_tr FROM result_table WHERE DATE(tanggal) BETWEEN awal AND akhir;
+END
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_mon_report_labaRugi`;
+CREATE PROCEDURE `p_mon_report_labaRugi`(IN awal DATE, IN akhir DATE)
+BEGIN
+
+-- SET awal = '2022-9-1';
+-- SET akhir = '2022-12-31';
+DROP TEMPORARY TABLE IF EXISTS result_table;
+CREATE TEMPORARY TABLE result_table AS
+SELECT transaksi.*, @prev_barang AS prev_kd_barang,
+		CASE 
+			WHEN qty_masuk <> 0 THEN
+					@harga := rupiah_masuk
+			WHEN qty_masuk = 0 THEN
+					@harga := rupiah_keluar
+		END AS harga,
+		CASE
+		WHEN @prev_barang=kd_barang THEN
+			CASE 
+					WHEN jenis_transaksi='stok awal' THEN
+							 @saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='pembelian' THEN 
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='penjualan' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='opname masuk' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='opname keluar' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='penjualan retur' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='pembelian retur' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+					WHEN jenis_transaksi='mutasi internal masuk' THEN
+							@saldo_qty := @saldo_qty + qty_masuk
+					WHEN jenis_transaksi='mutasi internal keluar' THEN
+							@saldo_qty := @saldo_qty - qty_keluar
+				END
+				
+		ELSE
+			@saldo_qty:=qty_masuk-qty_keluar
+	END as saldo_qty, 
+	
+	
+	CASE WHEN @prev_barang=kd_barang THEN
+		CASE WHEN (@prev_saldo_qty + qty_masuk - qty_keluar) <> 0 THEN
+				CASE 
+					WHEN jenis_transaksi='pembelian' OR jenis_transaksi='opname masuk' OR jenis_transaksi='mutasi internal masuk' OR jenis_transaksi='penjualan retur'  THEN
+-- 							@average:=IFNULL(((@prev_saldo_qty * @prev_average) + ((qty_masuk - qty_keluar) * @harga)) / (@prev_saldo_qty + qty_masuk - qty_keluar),0)
+						CASE 
+							WHEN @saldo_qty <= 0 THEN
+								@average:=@harga
+							ELSE
+								@average:=IFNULL(((@prev_saldo_qty * @prev_average) + ((qty_masuk - qty_keluar) * @harga)	) / (@prev_saldo_qty + qty_masuk - qty_keluar),0)
+						END
+					ELSE 
+							@average:=@prev_average
+				END
+	  ELSE
+		   @average:=@prev_average
+		END 
+	ELSE
+		@prev_average:=@harga
+	END AS average,
+	
+	CASE
+		WHEN @prev_barang=kd_barang THEN
+			CASE 
+					WHEN jenis_transaksi='stok awal' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='pembelian' THEN 
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='penjualan' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+					WHEN jenis_transaksi='opname masuk' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='opname keluar' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+					WHEN jenis_transaksi='penjualan retur' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='pembelian retur' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+					WHEN jenis_transaksi='mutasi internal masuk' THEN
+							@saldo_rp := @saldo_rp + (rupiah_masuk * qty_masuk)
+					WHEN jenis_transaksi='mutasi internal keluar' THEN
+							@saldo_rp := (@average * @saldo_qty) 
+				END
+		ELSE
+			@saldo_rp:= (rupiah_masuk*qty_masuk)-(rupiah_keluar*qty_keluar)
+	END as saldo_rp, 
+	
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_average
+	ELSE
+		0
+	END AS prev_average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_average:=@average
+	ELSE
+		@prev_average:=@harga
+	END AS current_average,
+	CASE WHEN @prev_barang=kd_barang THEN
+		@prev_saldo_qty 
+	ELSE
+		0
+END AS prev_saldo_qty,
+	@prev_barang:=kd_barang AS current_kd_barang,
+	@prev_saldo_qty:=@saldo_qty AS current_saldo_qty
+FROM v_t_mon_report_GetLaporanMutasiStokFull transaksi 
+	CROSS JOIN (SELECT @saldo_qty := 0) saldo_qty
+	CROSS JOIN (SELECT @saldo_rp := 0) saldo_rp
+	CROSS JOIN (SELECT @prev_barang := '') br
+	CROSS JOIN (SELECT @average := 0) average
+	CROSS JOIN (SELECT @prev_average := 0) prev_average 
+	CROSS JOIN (SELECT @prev_saldo_qty := 0) prev_saldo_qty;
+
+SELECT SUM(average*qty_keluar) INTO @hpp_jual FROM result_table WHERE jenis_transaksi='penjualan';
+SELECT SUM(average*qty_masuk) INTO @hpp_retur_jual FROM result_table WHERE jenis_transaksi='penjualan retur';
+
+SELECT SUM(saldo) INTO @temp_awal FROM (SELECT kd_barang, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) AS saldo FROM result_table WHERE DATE(tanggal) < awal GROUP BY kd_barang) awal;
+
+SELECT SUM(saldo) INTO @temp_akhir FROM (SELECT kd_barang, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) AS saldo FROM result_table WHERE DATE(tanggal) <= akhir GROUP BY kd_barang) akhir; 
+
+
+-- PEMBELIAN
+SELECT
+	SUM( bersih ) AS bersih
+INTO @pembelian
+FROM
+	v_t_mon_report_GetLaporanMutasiStokFull 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir AND jenis=5 
+-- 	AND `status`=1
+GROUP BY
+	jenis_transaksi;
+	
+	
+
+-- RETUR PEMBELIAN
+SELECT
+	SUM( bersih ) AS bersih
+INTO @retur_pembelian
+FROM
+	v_t_mon_report_GetLaporanMutasiStokFull 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir AND jenis=6
+GROUP BY
+	jenis_transaksi;
+
+
+
+-- RETUR PEMBELIAN
+-- 		SELECT SUM(bersih) AS retur_beli_rp INTO @pembelian_retur_test FROM result_table WHERE DATE(tanggal) BETWEEN awal AND  akhir AND jenis=6 GROUP BY kd_barang;
+
+
+
+-- PENJUALAN BRUTO, POTONGAN, PAJAK
+SELECT
+	SUM( kotor ) AS kotor,
+	SUM( potongan ) AS potongan,
+	SUM( pajak ) AS pajak,
+	SUM( bersih ) AS bersih
+INTO @penjualan_bruto, @potongan, @pajak, @penjualan_netto
+FROM
+	v_t_mon_report_GetLaporanMutasiStokFull 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir 
+-- 	AND `status`=1 
+	AND jenis=7
+GROUP BY
+	jenis_transaksi;
+	
+
+
+-- RETUR PENJUALAN
+SELECT
+	SUM( bersih ) AS retur_jual
+INTO @retur_penjualan
+FROM
+	v_t_mon_report_GetLaporanMutasiStokFull 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir AND jenis=8
+GROUP BY
+	jenis_transaksi;
+	
+	
+	
+-- PENJUALAN NETTO
+-- SELECT
+-- 	SUM( bersih )
+-- INTO @penjualan_netto_test
+-- FROM
+-- 	v_t_mon_report_GetLaporanMutasiStokFull 
+-- WHERE
+-- 	DATE ( tanggal ) BETWEEN awal 
+-- 	AND akhir AND `status`=1 AND jenis=7
+-- GROUP BY
+-- 	jenis_transaksi;
+
+
+
+-- PENJUALAN TUNAI
+SELECT SUM(total)
+INTO @penjualan_tunai
+FROM x_total_penjualan jual WHERE DATE(tanggal_tr) BETWEEN awal AND akhir ;
+
+
+
+-- PENJUALAN KREDIT
+	SELECT SUM(total) 
+	INTO @penjualan_kredit
+	FROM
+	(
+			SELECT
+			ROUND(SUM(GetHargaBersih(GetHargaBersih(harga_jual,jl_dt.diskon1,jl_dt.diskon2,jl_dt.diskon3,jl_dt.diskon4,0,0) *qty,jl.diskon1,jl.diskon2,jl.diskon3,jl.diskon4,pajak,0))) - diskon_uang  AS total
+			FROM t_penjualan jl INNER JOIN t_penjualan_detail jl_dt ON jl_dt.no_transaksi=jl.no_transaksi
+			INNER JOIN m_voucher ON m_voucher.kd_voucher=jl.kd_voucher
+			WHERE jl.`status`=0 AND DATE(tanggal) BETWEEN awal AND akhir
+			GROUP BY jl.no_transaksi,kd_divisi,nominal
+	) penjualan_kredit;
+
+
+
+-- PENJUALAN JASA
+SELECT
+	IFNULL( SUM( GetTotalPenjualanJasa ( t_penjualan_jasa.no_transaksi )), 0 ) INTO @penjualan_jasa 
+FROM
+	t_penjualan_jasa
+	INNER JOIN t_penjualan_jasa_detail ON t_penjualan_jasa.no_transaksi = t_penjualan_jasa.no_transaksi
+	INNER JOIN m_jasa ON t_penjualan_jasa_detail.kd_jasa = m_jasa.kd_jasa
+	INNER JOIN m_jasa_kategori ON m_jasa.kd_jasa_kategori = m_jasa_kategori.kd_jasa_kategori 
+WHERE
+	DATE ( tanggal_pesan ) BETWEEN awal 
+	AND akhir 
+	AND m_jasa_kategori.STATUS = 2;
+	
+	
+	
+-- PENYEWAAN
+SELECT
+	IFNULL( SUM( GetTotalPenjualanJasa ( t_penjualan_jasa.no_transaksi )), 0 ) INTO @penyewaan 
+FROM
+	t_penjualan_jasa
+	INNER JOIN t_penjualan_jasa_detail ON t_penjualan_jasa.no_transaksi = t_penjualan_jasa.no_transaksi
+	INNER JOIN m_jasa ON t_penjualan_jasa_detail.kd_jasa = m_jasa.kd_jasa
+	INNER JOIN m_jasa_kategori ON m_jasa.kd_jasa_kategori = m_jasa_kategori.kd_jasa_kategori 
+WHERE 
+	DATE ( tanggal_pesan ) BETWEEN awal 
+	AND akhir 
+	AND m_jasa_kategori.`status` = 1;
+	
+	
+	
+-- HARGA POKOK PENJUALAN
+-- SELECT
+-- 	 ROUND(@hpp_jual,0)-ROUND(@hpp_retur_jual,0)
+-- INTO @harga_pokok_penjualan;
+SELECT
+	@temp_awal + @pembelian - @temp_akhir - @retur_pembelian AS nominal
+INTO @harga_pokok_penjualan;
+
+
+-- BIAYA OPERASIONAL
+SELECT
+	IFNULL( SUM( nominal ), 0 ) INTO @biaya 
+FROM
+	t_biaya_operasional 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir;
+
+
+
+-- PENDAPATAN
+SELECT
+	IFNULL( SUM( nominal ), 0 ) INTO @pendapatan 
+FROM
+	t_pendapatan 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir ;
+	
+	
+	
+-- TAGIHAN PIUTANG	
+SELECT
+	IFNULL( SUM( nominal ), 0 ) INTO @tagihan_piutang 
+FROM
+	t_piutang_cicilan 
+WHERE
+	DATE ( tanggal ) BETWEEN awal 
+	AND akhir ;
+	
+	
+	
+-- OPNAME STOCK
+SELECT SUM(qty_masuk*rupiah_masuk) INTO @opname_masuk FROM v_t_mon_report_GetLaporanMutasiStokFull WHERE jenis=3 AND DATE ( tanggal ) BETWEEN awal 
+	AND akhir;
+SELECT SUM(qty_keluar*rupiah_keluar) INTO @opname_keluar FROM v_t_mon_report_GetLaporanMutasiStokFull WHERE jenis=4 AND DATE ( tanggal ) BETWEEN awal 
+	AND akhir;
+SELECT (@opname_masuk-@opname_keluar) INTO @opname;
+
+
+
+-- LABA KOTOR
+SELECT
+	@penjualan_netto - @harga_pokok_penjualan AS nominal
+INTO @rugi_laba_penjualan;
+
+
+
+-- RASIO KONTRIBUSI
+SELECT 
+	CASE 
+		WHEN @harga_pokok_penjualan=0 THEN (@rugi_laba_penjualan / 1) * 100 
+		ELSE (@rugi_laba_penjualan / @harga_pokok_penjualan) * 100 
+	END 
+INTO @rasio_kontribusi;
+
+
+-- LABA BERSIH
+SELECT @rugi_laba_penjualan - @biaya + @pendapatan + @penjualan_jasa + @penyewaan + 0 INTO @rugi_laba_bersih;
+
+
+
+-- RASIO KONTRIBUSI BERSIH
+SELECT 
+	CASE 
+		WHEN 
+			@harga_pokok_penjualan=0 
+		THEN (@rugi_laba_bersih / 1) * 100 
+	ELSE 
+			(@rugi_laba_bersih / @harga_pokok_penjualan) * 100 
+	END 
+INTO @rasio_kontribusi_bersih;
+
+
+
+
+SELECT (@temp_awal + @temp_akhir) / 2 INTO @rata_rata_persediaan;
+SELECT @harga_pokok_penjualan / @rata_rata_persediaan INTO @rasio_perputaran_persediaan;
+	
+
+
+-- 	SET rugi_laba_bersih = rugi_laba_penjualan - biaya + pendapatan   + penjualan_jasa + persewaan + pendapatan_surcharge;
+
+
+IF ISNULL(@penjualan_bruto) THEN
+		SET @penjualan_bruto=0;
+END IF;
+IF ISNULL(@potongan) THEN
+		SET @potongan=0;
+END IF;
+IF ISNULL(@retur_penjualan) THEN
+		SET @retur_penjualan=0;
+END IF;
+IF ISNULL(@penjualan_netto) THEN
+		SET @penjualan_netto=0;
+END IF;
+IF ISNULL(@temp_awal) THEN
+		SET @temp_awal=0;
+END IF;
+IF ISNULL(@pembelian) THEN
+		SET @pembelian=0;
+END IF;
+IF ISNULL(@retur_pembelian) THEN
+		SET @retur_pembelian=0;
+END IF;
+IF ISNULL(@temp_akhir) THEN
+		SET @temp_akhir=0;
+END IF;
+IF ISNULL(@harga_pokok_penjualan) THEN
+		SET @harga_pokok_penjualan=0;
+END IF;
+IF ISNULL(@rugi_laba_penjualan) THEN
+		SET @rugi_laba_penjualan=0;
+END IF;
+IF ISNULL(@biaya) THEN
+		SET @biaya=0;
+END IF;
+IF ISNULL(@pendapatan) THEN
+		SET @pendapatan=0;
+END IF;
+IF ISNULL(@rugi_laba_bersih) THEN
+		SET @rugi_laba_bersih=0;
+END IF;
+-- IF ISNULL(@penjualan_netto_test) THEN
+-- 		SET @penjualan_netto_test=0;
+-- END IF;
+-- IF ISNULL(@retur_pembelian_test) THEN
+-- 		SET @retur_pembelian_test=0;
+-- END IF;
+
+
+
+SELECT 1 AS id, 'Total penjualan' AS keterangan, IFNULL( @penjualan_bruto, 0) AS nominal
+UNION
+SELECT 2, 'Potongan' AS keterangan, IFNULL(@potongan, 0) AS nominal
+UNION
+SELECT 3, 'Retur Penjualan' AS keterangan, IFNULL(@retur_penjualan, 0) AS nominal
+UNION
+SELECT 4, 'Penjualan Bersih' AS keterangan, IFNULL(@penjualan_netto, 0) AS nominal
+UNION
+SELECT 5, 'Persediaan Awal' AS keterangan, IFNULL(@temp_awal, 0) AS nominal
+UNION
+SELECT 6,'Pembelian' AS keterangan, @pembelian AS nominal
+UNION
+SELECT 7,'Retur Pembelian' AS keterangan, @retur_pembelian AS nominal
+UNION
+SELECT 8, 'Persediaan Akhir' AS keterangan, IFNULL(@temp_akhir, 0) AS nominal
+UNION
+SELECT 9, 'Harga Pokok Penjualan' AS keterangan, IFNULL(@harga_pokok_penjualan, 0) AS nominal
+UNION
+SELECT 10, 'Rugi Laba Kotor' AS keterangan, IFNULL(@rugi_laba_penjualan, 0) AS nominal
+UNION
+SELECT 11, 'Biaya Operasional' AS keterangan, IFNULL(@biaya, 0) AS nominal
+UNION
+SELECT 12, 'Pendapatan' AS keterangan, IFNULL(@pendapatan, 0) AS nominal
+UNION
+SELECT 13, 'Rugi Laba Bersih' AS keterangan, IFNULL(@rugi_laba_bersih, 0) AS nominal
+-- UNION
+-- SELECT 14, 'Penjualan Netto test' AS keterangan, IFNULL(@penjualan_netto_test,0) AS nominal
+-- UNION
+-- SELECT 15, 'Retur Pembelian test' AS keterangan, IFNULL(@retur_pembelian_test,0) AS nominal
+;
+
+END
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_mon_report_mutasi_stok`;
+CREATE PROCEDURE `p_mon_report_mutasi_stok`(IN awal DATE, IN akhir DATE, IN in_jenis INT, IN search VARCHAR(100), IN order_col VARCHAR(100), IN order_type VARCHAR(100), IN q_limit INT, IN q_length INT, IN count_stats INT)
+BEGIN
+-- jenis 
+-- 1. sisa stok
+-- 3. tingkat laku produk
+-- 4. pergerakan stok
+-- 5. usia stok	
+-- 6. daftar harga
+
+DECLARE sql_query VARCHAR(16000);
+
+
+IF ( in_jenis = 1 ) THEN
+SET sql_query = CONCAT("SELECT * FROM (
+		SELECT 
+			sisa_stok.*
+		FROM
+			(SELECT v_t_result_table.kd_barang, m_barang.nama AS nama_barang, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS sisa_stok, GROUP_CONCAT(stok_min ORDER BY rn ASC LIMIT 1) AS stok_min, GROUP_CONCAT(satuan_terkecil ORDER BY rn ASC LIMIT 1) AS satuan_terkecil FROM v_t_result_table INNER JOIN m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE DATE(tanggal) <= '",akhir,"' AND (m_barang.kd_barang LIKE '%",search,"%' OR m_barang.nama LIKE '%",search,"%') GROUP BY v_t_result_table.kd_barang, m_barang.nama ORDER BY TRIM(m_barang.nama) ASC) sisa_stok	
+	) for_alias LIMIT ",q_limit,", ",q_length," ");
+			 
+ELSEIF ( in_jenis = 3 ) THEN
+SET sql_query = CONCAT("SELECT * FROM (
+			SELECT 
+				(SELECT nama FROM m_barang WHERE kd_barang=a_sisa_stok.kd_barang) AS nama_barang,
+				a_sisa_stok.*, IFNULL(total_sales,0) AS total_sales, IFNULL(qty_sales,0) AS qty_sales
+			FROM
+				(SELECT kd_barang, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS sisa_stok, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) AS nominal_persediaan, GROUP_CONCAT(satuan_terkecil ORDER BY rn DESC LIMIT 1) AS satuan_terkecil FROM v_t_result_table WHERE DATE(tanggal) <= '",akhir,"' GROUP BY kd_barang ) a_sisa_stok
+						LEFT JOIN 
+						( 	
+							SELECT kd_barang, SUM(bersih) AS total_sales, SUM(qty_keluar) AS qty_sales FROM v_t_result_table WHERE jenis=7 AND DATE(tanggal) <= '",akhir,"'
+							GROUP BY kd_barang 
+						) bersih ON a_sisa_stok.kd_barang = bersih.kd_barang
+				) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%'
+	 ORDER BY sisa_stok DESC LIMIT ",q_limit,", ",q_length," ");
+				 
+ELSEIF ( in_jenis = 4 ) THEN
+	 SET sql_query = CONCAT("SELECT * FROM (
+			SELECT 
+				(SELECT nama FROM m_barang WHERE kd_barang=sisa_stok.kd_barang) AS nama_barang,
+				sisa_stok.*, saldo_awal_rp, saldo_awal_qty, saldo_akhir_rp, saldo_akhir_qty, IFNULL(qty_masuk,0) AS debet_qty, IFNULL(rupiah_masuk,0) AS debet_rp, IFNULL(qty_keluar,0) AS kredit_qty, IFNULL(rupiah_keluar,0) AS kredit_rp
+			FROM
+				(SELECT kd_barang, satuan_terkecil, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS sisa_stok, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) AS nominal_persediaan FROM v_t_result_table WHERE DATE(tanggal) <= '",akhir,"' GROUP BY kd_barang ) sisa_stok
+						LEFT JOIN 
+						(
+							SELECT kd_barang, GROUP_CONCAT(saldo_rp ORDER BY rn DESC LIMIT 1) AS saldo_awal_rp, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS saldo_awal_qty FROM v_t_result_table WHERE DATE(tanggal) < '",awal,"' GROUP BY kd_barang, satuan_terkecil
+						) saldo_awal ON sisa_stok.kd_barang = saldo_awal.kd_barang
+						LEFT JOIN 
+						(
+							SELECT kd_barang, GROUP_CONCAT(saldo_rp ORDER BY rn ASC LIMIT 1) AS saldo_akhir_rp, GROUP_CONCAT(saldo_qty ORDER BY rn ASC LIMIT 1) AS saldo_akhir_qty FROM v_t_result_table WHERE DATE(tanggal) <= '",akhir,"' GROUP BY kd_barang
+						) saldo_akhir ON sisa_stok.kd_barang = saldo_akhir.kd_barang
+						LEFT JOIN
+						(
+							SELECT kd_barang, SUM(qty_masuk) AS qty_masuk, SUM(qty_keluar) AS qty_keluar, SUM(qty_masuk*rupiah_masuk) AS rupiah_masuk, SUM(qty_keluar*rupiah_keluar) AS rupiah_keluar FROM v_t_result_table WHERE DATE(tanggal) BETWEEN '",awal,"' AND '",akhir,"' GROUP BY kd_barang
+						) debet_kredit ON saldo_awal.kd_barang = debet_kredit.kd_barang
+				) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY TRIM(nama_barang) ASC LIMIT ",q_limit,", ",q_length," ");
+
+ELSEIF ( in_jenis = 5 ) THEN
+SET sql_query = CONCAT("SELECT * FROM (
+			SELECT 
+				(SELECT nama FROM m_barang WHERE kd_barang=sisa_stok.kd_barang) AS nama_barang,
+				sisa_stok.*, 
+				IFNULL(terakhir_jual.tanggal,'-') AS tgl_jual_terakhir, 
+				IFNULL(terakhir_beli.tanggal,'-') AS tgl_terakhir_beli 
+			FROM
+				(SELECT kd_barang, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS sisa_stok, GROUP_CONCAT(satuan_terkecil ORDER BY rn DESC LIMIT 1) AS satuan_terkecil FROM v_t_result_table WHERE DATE(tanggal) <= '",akhir,"' GROUP BY kd_barang ) sisa_stok
+						LEFT JOIN 
+						(
+							SELECT kd_barang, GROUP_CONCAT(tanggal ORDER BY rn DESC LIMIT 1) AS tanggal FROM v_t_result_table WHERE 
+							DATE(tanggal) <='",akhir,"' AND jenis=7 GROUP BY kd_barang
+						) terakhir_jual ON sisa_stok.kd_barang = terakhir_jual.kd_barang
+						LEFT JOIN 
+						(
+							SELECT kd_barang, tanggal, GetHargaBersih(GetHargaBersih(harga, ddiskon1, ddiskon2, ddiskon3, ddiskon4, 0, 0), mdiskon1, mdiskon2, mdiskon3, mdiskon4, mpajak, mppnbm) / jumlah AS last_purchase FROM
+							(
+							SELECT
+								mbs.kd_barang,
+								GROUP_CONCAT( mbs.jumlah ORDER BY DATE ( tanggal ) DESC, harga_beli DESC LIMIT 1 ) AS jumlah,
+								GROUP_CONCAT( t_pembelian.tanggal ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS tanggal,
+								GROUP_CONCAT( harga_beli ORDER BY DATE ( tanggal ) DESC, harga_beli DESC LIMIT 1 ) AS harga,
+								GROUP_CONCAT( t_pembelian_detail.kd_satuan ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS kd_satuan,
+								GROUP_CONCAT( t_pembelian.diskon1 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS mdiskon1,
+								GROUP_CONCAT( t_pembelian.diskon2 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS mdiskon2,
+								GROUP_CONCAT( t_pembelian.diskon3 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS mdiskon3,	
+								GROUP_CONCAT( t_pembelian.diskon4 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS mdiskon4,
+								GROUP_CONCAT( t_pembelian.pajak ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS mpajak,
+								GROUP_CONCAT( t_pembelian.ppnbm ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS mppnbm,
+								GROUP_CONCAT( t_pembelian_detail.diskon1 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS ddiskon1,
+								GROUP_CONCAT( t_pembelian_detail.diskon2 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS ddiskon2,
+								GROUP_CONCAT( t_pembelian_detail.diskon3 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS ddiskon3,	
+								GROUP_CONCAT( t_pembelian_detail.diskon4 ORDER BY DATE ( tanggal ) DESC LIMIT 1 ) AS ddiskon4	
+							FROM
+								t_pembelian
+								INNER JOIN t_pembelian_detail ON t_pembelian.no_transaksi = t_pembelian_detail.no_transaksi 
+								INNER JOIN m_barang_satuan mbs ON t_pembelian_detail.kd_barang=mbs.kd_barang AND t_pembelian_detail.kd_satuan=mbs.kd_satuan
+							WHERE
+								DATE ( tanggal ) <= '",akhir,"'
+							GROUP BY
+								mbs.kd_barang
+							) a
+						) terakhir_beli ON sisa_stok.kd_barang = terakhir_beli.kd_barang) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY tgl_jual_terakhir DESC
+			LIMIT ",q_limit,", ",q_length," ");
+
+ELSEIF ( in_jenis = 6 ) THEN
+SET sql_query = CONCAT("SELECT * FROM (
+		SELECT
+			( SELECT nama FROM m_barang WHERE kd_barang = a.kd_barang ) AS nama_barang,
+			a.* 
+		FROM
+			( SELECT kd_barang, GROUP_CONCAT( harga ORDER BY rn DESC LIMIT 1 ) AS harga FROM v_t_result_table GROUP BY kd_barang ) a ) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY TRIM(nama_barang) ASC LIMIT ",q_limit,", ",q_length," ");
+END IF;
+
+-- select sql_query;
+PREPARE prepared_stmt FROM sql_query;
+EXECUTE prepared_stmt;
+	
+
+END
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_proc_prepare_order_kontrak`;
+CREATE PROCEDURE `p_proc_prepare_order_kontrak`(IN INcompany_id VARCHAR(20), IN INkd_supplier VARCHAR(20))
+BEGIN
+
+DECLARE query_sql VARCHAR(16000);
+DECLARE select_with_contract VARCHAR(1000);
+DECLARE query_with_contract VARCHAR(6000);
+
+DECLARE contract_status INT;
+
+SELECT COUNT(*) INTO contract_status FROM misterkong_mp.h_kontrak_request 
+WHERE kd_supplier=INkd_supplier AND NOW() BETWEEN tanggal_kontrak AND tanggal_jatuh_tempo AND status=1;
+
+
+IF contract_status > 0 THEN
+SET select_with_contract=",satuan_sup,kd_barang_supplier,kd_satuan_min,satuan_supplier_min";
+SET query_with_contract=CONCAT("
+	INNER JOIN 
+	(
+		SELECT mb_sup.kd_barang_supplier AS kd_brg_supplier,kd_satuan_min,satuan_supplier_min FROM
+		(
+			SELECT kd_barang_supplier FROM m_barang_satuan_supplier WHERE kd_supplier='",INkd_supplier,"'
+			GROUP BY kd_barang
+		) mb_sup
+		INNER JOIN 
+		(
+			SELECT kd_barang,kd_satuan AS kd_satuan_min,
+			(SELECT nama FROM misterkong_",INcompany_id,".m_satuan WHERE kd_satuan=mbs.kd_satuan) AS satuan_supplier_min
+			FROM misterkong_",INcompany_id,".m_barang_satuan mbs WHERE jumlah=1
+		) mbs_sup
+		ON mb_sup.kd_barang_supplier=mbs_sup.kd_barang
+	) barang_supplier_min
+	ON data_sp.kd_barang=barang_supplier_min.kd_brg_supplier
+	INNER JOIN
+	(
+		SELECT mb_sup.kd_barang_supplier,
+		GROUP_CONCAT(CONCAT(satuan_supplier,' ( ',jumlah,' )') ORDER BY jumlah) AS satuan_sup 
+		FROM
+		(
+			SELECT kd_barang_supplier FROM m_barang_satuan_supplier WHERE kd_supplier='",INkd_supplier,"'
+			GROUP BY kd_barang
+		) mb_sup
+		INNER JOIN 
+		(
+			SELECT kd_barang,kd_satuan,
+			(SELECT nama FROM misterkong_",INcompany_id,".m_satuan WHERE kd_satuan=mbs.kd_satuan) AS satuan_supplier
+			,jumlah
+			FROM misterkong_",INcompany_id,".m_barang_satuan mbs
+		) mbs_sup
+		ON mb_sup.kd_barang_supplier=mbs_sup.kd_barang
+		GROUP BY mb_sup.kd_barang_supplier
+	) barang_supplier_cross
+	ON data_sp.kd_barang=barang_supplier_cross.kd_barang_supplier");
+ELSE
+	SET select_with_contract="";
+	SET query_with_contract="";
+END IF;
+
+DROP TEMPORARY TABLE IF EXISTS stok_item;
+	CREATE TEMPORARY TABLE stok_item(kd_barang VARCHAR(50),stok double);
+INSERT INTO stok_item(kd_barang,stok)
+SELECT kd_barang,SUM(stok) AS stok_akhir FROM mon_g_stok_barang_per_divisi_vd GROUP BY kd_barang;
+
+
+SET query_sql=CONCAT("SELECT kd_barang, nama AS supplier,kd_supplier,lead_time,visit_time,kunjungan,kunjungan2,st_retur,
+pembayaran,jenis,stok,avg,need,rekomendasi,
+g_kd_satuan,g_satuan,g_jumlah",select_with_contract,"
+
+FROM
+(
+	SELECT data_sp.*,stok,avg,
+	ROUND(CASE 
+	WHEN ISNULL(visit_time) THEN (avg*(7+IFNULL(lead_time,2))) + (avg*buffer)
+	ELSE (avg*(visit_time*IFNULL(lead_time,2))) + (avg*buffer)
+	END,0) AS need,
+	CASE WHEN ((CASE 
+	WHEN ISNULL(visit_time) THEN (avg*(7+IFNULL(lead_time,2))) + (avg*buffer)
+	ELSE (avg*(visit_time*IFNULL(lead_time,2))) + (avg*buffer)
+	END) - stok) <0 THEN 0
+	ELSE
+	ROUND((CASE 
+	WHEN ISNULL(visit_time) THEN (avg*(7*IFNULL(lead_time,2))) + (avg*buffer)
+	ELSE (avg*(visit_time*IFNULL(lead_time,2))) + (avg*buffer)
+	END) - stok,0)
+	END AS rekomendasi,
+	g_kd_satuan,g_satuan,g_jumlah",select_with_contract,"
+	FROM
+	(
+		SELECT item_sup.kd_barang,nama,sp_jadwal.*
+		FROM
+		(
+			SELECT kd_supplier,nama FROM m_supplier WHERE kd_supplier='",INkd_supplier,"'
+		) supplier
+		INNER JOIN 
+		(
+			SELECT kd_supplier,kd_barang FROM m_barang_supplier WHERE `status` <> 0 
+		) item_sup
+		ON supplier.kd_supplier=item_sup.kd_supplier
+		INNER JOIN
+		(
+			SELECT kd_supplier,lead_time,visit_time,hari AS kunjungan,
+			CASE
+				WHEN
+					m_supplier_jadwal.visit_time<7 THEN m_supplier_jadwal.hari+m_supplier_jadwal.visit_time
+				ELSE m_supplier_jadwal.hari
+			END AS kunjungan2,
+			st_retur,pembayaran,jenis FROM m_supplier_jadwal
+		) sp_jadwal
+		ON supplier.kd_supplier=sp_jadwal.kd_supplier
+	) data_sp
+	INNER JOIN
+	(
+		SELECT penjualan.kd_barang, stok,buffer,
+		CASE 
+			WHEN stok =0 THEN
+			(
+				select SUM(qty*jumlah)/(periode*sampling) FROM t_penjualan jual INNER JOIN t_penjualan_detail dtl
+				ON jual.no_transaksi=dtl.no_transaksi
+				INNER JOIN m_barang_satuan mbs ON mbs.kd_barang=dtl.kd_barang AND dtl.kd_satuan=mbs.kd_satuan
+				WHERE tanggal BETWEEN DATE_ADD(last_sales,INTERVAL -(periode*sampling) DAY) AND last_sales AND dtl.kd_barang=penjualan.kd_barang
+			)
+			ELSE
+			(
+				select IFNULL(SUM(qty*jumlah)/(periode*sampling),0) FROM t_penjualan jual INNER JOIN t_penjualan_detail dtl
+				ON jual.no_transaksi=dtl.no_transaksi
+				INNER JOIN m_barang_satuan mbs ON mbs.kd_barang=dtl.kd_barang AND dtl.kd_satuan=mbs.kd_satuan
+				WHERE tanggal BETWEEN DATE_ADD(NOW(),INTERVAL -(periode*sampling) DAY) AND NOW() AND dtl.kd_barang=penjualan.kd_barang
+			)
+		END AS avg
+		FROM stok_item
+		INNER JOIN 
+		(
+			SELECT kd_barang,MAX(tanggal) AS last_sales FROM t_penjualan INNER JOIN t_penjualan_detail
+			ON t_penjualan.no_transaksi=t_penjualan_detail.no_transaksi
+			GROUP BY kd_barang
+		) penjualan
+		ON penjualan.kd_barang=stok_item.kd_barang
+		CROSS JOIN ans_item
+	) penjualan_stok
+	ON data_sp.kd_barang=penjualan_stok.kd_barang
+	INNER JOIN
+	(
+		SELECT kd_barang, 
+		GROUP_CONCAT(m_satuan.kd_satuan ORDER BY jumlah) AS g_kd_satuan,
+		GROUP_CONCAT(nama ORDER BY jumlah) AS g_satuan,
+		GROUP_CONCAT(jumlah ORDER BY jumlah) AS g_jumlah
+		FROM m_barang_satuan
+		INNER JOIN m_satuan ON m_barang_satuan.kd_satuan=m_satuan.kd_satuan
+		GROUP BY kd_barang
+	) mbs
+	ON data_sp.kd_barang=mbs.kd_barang ",query_with_contract,"
+
+	
+) data_order");
+
+-- SELECT query_sql;
+-- '2020-10-03 11:44:03'
+PREPARE prepared_stmt FROM query_sql;
+
+EXECUTE prepared_stmt;
+END;
+
+//xyvdelimiter //
+-- Procedure structure for p_report_penjuanNewBorn
+DROP PROCEDURE IF EXISTS `p_report_penjuanNewBorn`;
+
+CREATE PROCEDURE `p_report_penjuanNewBorn`(IN awal DATE, IN akhir DATE, IN jenis INT, IN q_limit INT, IN q_length INT)
+BEGIN
+
+-- jenis 1 = penjualan pertanggal v
+-- jenis 2 = penjualan perstatus transaksi v
+-- jenis 3 = penjualan belum realisasi
+-- jenis 4 = penjualan belum lunas v
+
+IF(jenis = 1) THEN
+	-- penjualan pertanggal
+	 SELECT DATE_FORMAT(jumlah.tanggal,'%d-%m-%Y') AS tanggal, IFNULL(jumlah.jumlah, 0) AS jumlah
+	 , IFNULL(tunai.jumlah_tunai, 0) AS jumlah_tunai, IFNULL(kredit.jumlah_kredit, 0) AS jumlah_kredit 
+	 FROM 
+	 (
+	 SELECT DATE(tanggal) AS tanggal, COUNT(t_penjualan.no_transaksi) AS jumlah FROM t_penjualan WHERE DATE(tanggal) BETWEEN awal AND akhir GROUP BY DATE(tanggal)
+	 ) jumlah
+	 LEFT JOIN
+	 (
+	 SELECT DATE(tanggal) AS tanggal, COUNT(t_penjualan.no_transaksi) AS jumlah_tunai FROM t_penjualan WHERE DATE(tanggal) BETWEEN awal AND akhir AND `status`=1 GROUP BY DATE(tanggal) 
+	 ) tunai ON DATE(jumlah.tanggal) = DATE(tunai.tanggal)
+	 LEFT JOIN
+	 (
+	 SELECT DATE(tanggal) AS tanggal, COUNT(t_penjualan.no_transaksi) AS jumlah_kredit FROM t_penjualan WHERE DATE(tanggal) BETWEEN awal AND akhir AND `status`=0 GROUP BY DATE(tanggal) 
+	 ) kredit ON DATE(jumlah.tanggal) = DATE(kredit.tanggal) LIMIT q_limit, q_length; 
+END IF;
+
+
+IF(jenis = 2) THEN
+	-- penjualan per status transaksi
+	SELECT COUNT(*) AS jumlah_tunai, a.jumlah_kredit, b.online_kredit, c.online_tunai, d.offline_kredit, e.offline_tunai FROM t_penjualan 
+	CROSS JOIN ( SELECT 'kredit' AS keterangan, COUNT(*) AS jumlah_kredit FROM t_penjualan WHERE `status`=0 AND DATE(tanggal) BETWEEN awal AND akhir) a
+	CROSS JOIN ( SELECT 'online_kredit' AS keterangan, COUNT(*) AS online_kredit FROM t_penjualan  WHERE kd_customer=-1 AND `status`=0 AND DATE(tanggal) BETWEEN awal AND akhir) b
+	CROSS JOIN ( SELECT 'online_tunai' AS keterangan, COUNT(*) AS online_tunai FROM t_penjualan  WHERE kd_customer=-1 AND `status`=1 AND DATE(tanggal) BETWEEN awal AND akhir) c
+	CROSS JOIN ( SELECT 'offline_kredit' AS keterangan, COUNT(*) AS offline_kredit FROM t_penjualan  WHERE kd_customer<>-1 AND `status`=0 AND DATE(tanggal) BETWEEN awal AND akhir) d
+	CROSS JOIN ( SELECT 'offline_tunai' AS keterangan, COUNT(*) AS offline_tunai FROM t_penjualan  WHERE kd_customer<>-1 AND `status`=1 AND DATE(tanggal) BETWEEN awal AND akhir) e
+	WHERE `status`=1 AND DATE(tanggal) BETWEEN awal AND akhir;
+END IF;
+
+
+IF(jenis = 3) THEN
+	-- penjualan belum lunas
+	SELECT * FROM (
+	SELECT MAX(no_cicilan) AS no_cicilan, SUM(nominal) AS nominal, MAX(t_piutang_cicilan.tanggal) AS tanggal_cicil, penjualan.* FROM t_piutang_cicilan
+	INNER JOIN 
+	(
+		SELECT
+			t_penjualan.no_transaksi, t_penjualan.kd_customer, m_customer.nama AS customer, tanggal, t_penjualan.`status`, t_penjualan_detail.jumlah
+		FROM
+			t_penjualan
+			INNER JOIN (SELECT no_transaksi, SUM(harga_jual*qty) AS jumlah FROM t_penjualan_detail GROUP BY no_transaksi) t_penjualan_detail ON t_penjualan.no_transaksi = t_penjualan_detail.no_transaksi
+			INNER JOIN m_customer ON t_penjualan.kd_customer = m_customer.kd_customer	
+		WHERE t_penjualan.`status`=0
+	) penjualan ON t_piutang_cicilan.no_transaksi = penjualan.no_transaksi
+	WHERE 
+	DATE(t_piutang_cicilan.tanggal) BETWEEN awal AND akhir
+	 GROUP BY t_piutang_cicilan.no_transaksi ORDER BY t_piutang_cicilan.no_transaksi
+	 ) a WHERE jumlah - nominal <> 0 LIMIT q_limit, q_length;
+END IF;
+
+
+IF(jenis = 4) THEN
+	-- penjualan belum realisasi
+	SELECT 
+		t_penjualan_order.no_order, 
+		m_customer.kd_customer, 
+		m_customer.nama AS customer,
+		tanggal, 
+		t_penjualan_order.`status`, 
+		diskon_uang, 
+		t_penjualan_order.keterangan, 
+		no_transaksi, 
+		jumlah, 
+		Jumlah-diskon_uang AS total 
+	FROM t_penjualan_order 
+		INNER JOIN 
+		(
+		SELECT no_order, SUM(qty*harga_jual) AS jumlah FROM t_penjualan_order_detail GROUP BY no_order
+		) t_penjualan_order_detail ON t_penjualan_order.no_order = t_penjualan_order_detail.no_order 
+		INNER JOIN m_customer ON t_penjualan_order.kd_customer = m_customer.kd_customer
+	WHERE no_transaksi NOT IN (SELECT no_transaksi FROM t_penjualan) AND DATE(tanggal) BETWEEN awal AND akhir LIMIT q_limit, q_length;
+END IF;
+
+END
+
+//xyvdelimiter //
+DROP PROCEDURE IF EXISTS `p_update_histori_stok`;
+
+CREATE PROCEDURE `p_update_histori_stok`()
+BEGIN
+	DROP TABLE IF EXISTS v_t_histori_stok_temp;
+	CREATE TABLE v_t_histori_stok_temp AS
+	SELECT
+		no_transaksi,
+		kd_barang,
+		kd_satuan,
+		GROUP_CONCAT( tanggal ORDER BY last_update DESC LIMIT 1 ) AS tanggal,
+		GROUP_CONCAT( qty_masuk ORDER BY last_update DESC LIMIT 1 ) AS qty_masuk,
+		GROUP_CONCAT( rupiah_masuk ORDER BY last_update DESC LIMIT 1 ) rupiah_masuk,
+		GROUP_CONCAT( qty_keluar ORDER BY last_update DESC LIMIT 1 ) AS qty_keluar,
+		GROUP_CONCAT( rupiah_keluar ORDER BY last_update DESC LIMIT 1 ) AS rupiah_keluar,
+		jenis,
+		jenis_transaksi,
+		GROUP_CONCAT( keterangan ORDER BY last_update DESC LIMIT 1 ) AS keterangan,
+		GROUP_CONCAT( satuan_terkecil ORDER BY last_update DESC LIMIT 1 ) AS satuan_terkecil,
+		GROUP_CONCAT( kotor ORDER BY last_update DESC LIMIT 1 ) AS kotor,
+		GROUP_CONCAT( potongan ORDER BY last_update DESC LIMIT 1 ) AS potongan,
+		GROUP_CONCAT( pajak ORDER BY last_update DESC LIMIT 1 ) AS pajak,
+		GROUP_CONCAT( bersih ORDER BY last_update DESC LIMIT 1 ) AS bersih,
+		GROUP_CONCAT( `status` ORDER BY last_update DESC LIMIT 1 ) AS `status`,
+		GROUP_CONCAT( stok_min ORDER BY last_update DESC LIMIT 1 ) AS stok_min,
+		GROUP_CONCAT( kd_kas ORDER BY last_update DESC LIMIT 1 ) AS kd_kas,
+		row_number() over ( PARTITION BY result.kd_barang ORDER BY result.kd_barang, result.tanggal ) AS rn,
+		GROUP_CONCAT( last_update ORDER BY last_update DESC LIMIT 1 ) AS last_update
+	FROM
+		( SELECT * FROM v_t_histori_update_stok UNION SELECT * FROM v_t_mon_report_GetLaporanMutasiStokFull ) result
+	GROUP BY
+		no_transaksi,
+		kd_barang,
+		kd_satuan,
+		jenis_transaksi,
+		jenis;
+
+		TRUNCATE v_t_mon_report_GetLaporanMutasiStokFull;
+		INSERT INTO v_t_mon_report_GetLaporanMutasiStokFull 
+		SELECT * FROM v_t_histori_stok_temp;
 END
 //
