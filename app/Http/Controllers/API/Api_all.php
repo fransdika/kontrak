@@ -282,7 +282,7 @@ class Api_all extends Controller
             return response()->json([
                 'status' => 1,
                 'error' => 0,
-                'message' => 'Updated Data',
+                'message' => 'Berhasil upload gambar',
                 'data' => [
                     'file' => "misterkong.com/back_end_mp/".$request->comp_id."_config/images/$name"
                 ]
@@ -865,7 +865,7 @@ class Api_all extends Controller
         return response()->json([
             'status' => 1,
             'error' => 0,
-            'message' => 'Updated Data',
+            'message' => 'File berhasil di upload',
             'data' => [
                 'file' => 'misterkong.com/back_end_mp/'.$request->comp_id."_config/".$folder."/".$imei."/".$filename
             ]
