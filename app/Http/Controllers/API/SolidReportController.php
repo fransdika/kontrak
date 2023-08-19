@@ -204,35 +204,40 @@ class SolidReportController extends Controller
     public function updateGambar(Request $request)
     {
         $file = $request->file('file');
-        $name = $file->hashName(); 
-        // print_r($name);
-        $file->move("../../../public_html/back_end_mp/".$request->comp_id."_config/images/",$name);
+        $name = $file->hashName();
+        $ext = $file->getClientOriginalExtension();
 
-        DB::beginTransaction();
-        try {
-            DB::update("UPDATE misterkong_$request->comp_id.g_db_config SET `value`='$name' WHERE `name`='comp_profile_img'");
-            DB::commit();
-            return response()->json([
-                'status' => 1,
-                'error' => 0,
-                'message' => 'Updated Data',
-                'data' => [
-                    'file' => "misterkong.com/back_end_mp/".$request->comp_id."_config/images/$name"
-                ]
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
+        if (strcasecmp($ext, 'jpg') == 0 || strcasecmp($ext, 'jpeg') == 0 || strcasecmp($ext, 'bmp') == 0 || strcasecmp($ext, 'png') == 0) {
+            // print_r($name);
+            $file->move("../../../public_html/back_end_mp/".$request->comp_id."_config/images/",$name);
+            DB::beginTransaction();
+            try {
+                DB::update("UPDATE misterkong_$request->comp_id.g_db_config SET `value`='$name' WHERE `name`='comp_profile_img'");
+                DB::commit();
+                return response()->json([
+                    'status' => 1,
+                    'error' => 0,
+                    'message' => 'Updated Data',
+                    'data' => [
+                        'file' => "misterkong.com/back_end_mp/".$request->comp_id."_config/images/$name"
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 0,
+                    'error' => 500,
+                    'message' => 'Failed Update Data',
+                    'data' => []
+                ]);
+            }
+        } else {
             return response()->json([
                 'status' => 0,
                 'error' => 500,
-                'message' => 'Failed Update Data',
+                'message' => 'Format file harus berextention jpg atau jpeg atau bmp atau png',
                 'data' => []
             ]);
         }
-        // Return a response
-        // return response()->json([
-        //     'message' => 'File uploaded successfully.',
-        //     'file' => 'misterkong.com/back_end_mp/'.$request->comp_id."_config/GET/".$request->imei."/".$name
-        // ]);
     }
 }

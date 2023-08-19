@@ -50,7 +50,7 @@ Route::post('post_compare_supplier_data', [Api_all::class, 'post_compare_supplie
 Route::post('post_customer_respons_contract', [Api_all::class, 'post_customer_respons_contract']);
 Route::post('post_do_payment', [Api_all::class, 'post_do_payment']);
 Route::post('prepare_order', [Api_all::class, 'procedure_prepare_kontrak']);
-Route::post('upload_image', [Api_all::class, 'upload_image']);
+Route::post('upload-image', [Api_all::class, 'upload_image']);
 Route::post('postBarangSatuan', [Api_all::class, 'postBarangSatuan']);
 Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
 Route::post('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
