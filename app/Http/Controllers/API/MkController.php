@@ -62,9 +62,71 @@ class MkController extends Controller
         return response()->json($dt);
     }
 
-    public function open_new_store()//waiting
+    public function open_new_store(Request $req)
     {
 
+        $data = null;
+        $no_hp = $req->email;
+        $no_hp_new = substr($no_hp, 0, 1) == 0 ? "62" . substr($no_hp, 1) : $no_hp;
+        $data[]=$no_hp_new;
+
+        $data_usaha_qb = [
+            "id" => 0,
+            "company_id" => "",
+            "db_name" => "",
+            "kd_user" => 0,
+            "nama_usaha" => $req->str_nm,
+            "nickname_usaha" => $req->str_nick,
+            "no_telepon" => $this->format_phone($req->str_ph),
+            "email_usaha" => $req->str_email,
+            "kategori_usaha" => $req->str_catgr,
+            "alamat" => $req->str_addr,
+            "kd_desa" => $req->str_vil,
+            "kd_kecamatan" => $req->str_dist,
+            "kd_kabupaten" => $req->str_cty,
+            "kd_provinsi" => $req->str_prov,
+            "koordinat_lat" => $req->lat,
+            "koordinat_lng" => $req->lng,
+            "date_add" => date('Y-m-d H:i:s'),
+            "date_modif" => date('Y-m-d H:i:s'),
+            "user_id" => 0,
+            "kd_bank" => $req->kd_bank,
+            "no_rek" => $req->no_rek,
+            "nama_pemilik_rekening" => $req->pemilik_rekening
+        ];
+        $data[]=$data_usaha_qb;
+
+        $respon = m_api::open_new_store($data);
+
+        if ($respon[0]['error'] == 0) {
+            $data_profile = [
+                'nama_toko' => $req->str_nm,
+                'alamat' => $req->str_addr,
+                'kota' => $respon[0]['kota'], // kota
+                'telp' => $this->format_phone($req->str_ph),
+                'hp' => $req->str_ph,
+                'email' => $req->str_email,
+                'nama_kontak' => $req->pemilik_rekening,
+                'no_rekening' => $req->no_rek,
+                'nama_rek' => $req->pemilik_rekening,
+                'nama_bank' => 'Bank ' . $respon[0]['bank'], // nama bank
+                'email_pencairan' => $req->str_email,
+                'koordinat_toko' => $req->lat . ',' . $req->lng,
+                'gmt' => $respon[0]['gmt'], // gmt
+                'profile_tag' => '',
+                'comp_profile_img' => '-',
+                'kategori_usaha' => $req->str_nama_kategori,
+                'cabang_bank' => $req->cabang_bank,
+            ];
+
+            $nama_pemilik_usaha = DB::table('m_userx')->select("nama")->where('no_hp', $no_hp_new)->first();
+
+            $this->kirimNotifAdmin(["nama" => $nama_pemilik_usaha->nama, "alamat" => $req->str_addr, "nama_usaha" => $req->str_nm, "kategori" => $req->str_nama_kategori]);
+            $this->generate($respon[0]['company_id'], "misterkong_" . $respon[0]['company_id'], $respon[0]['id'], $respon[0]['nama'], $respon[0]['password'], $data_profile);
+            // return;
+        }
+
+        return response()->json($respon);
     }
 
     private function kirimNotifAdmin($data)
@@ -77,12 +139,12 @@ class MkController extends Controller
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, response()->json($payload));
         $result = curl_exec($ch);
         curl_close($ch);
     }
 
-    public function registration_pos_ph(Request $req)//waiting
+    public function registration_pos_ph(Request $req)
     {
         $data = null;
 
@@ -151,14 +213,6 @@ class MkController extends Controller
                 'gmt' => $respon[0]['gmt'], // gmt
                 'profile_tag' => '',
                 'comp_profile_img' => '-',
-//                'header1' => '-',
-//                'header2' => '-',
-//                'header3' => '-',
-//                'footer1' => '-',
-//                'footer2' => '-',
-//                'footer3' => '-',
-//                'kategori_usaha' => $req->str_nama_kategori,
-//                'cabang_bank' => $req->cabang_bank,
             ];
 
             $this->kirimNotifAdmin(["nama" => $_GET["name"], "alamat" => $_GET['str_addr'], "nama_usaha" => $_GET['str_nm'], "kategori" => $_GET['str_nama_kategori']]);
@@ -177,9 +231,9 @@ class MkController extends Controller
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             $output = curl_exec($ch);
             curl_close($ch);
-            $res = json_decode($output, true);
+//            $res = json_decode($output, true);
         }
-        echo json_encode($respon);
+        return response()->json($respon);
     }
 
     public function verify_reset_password_otp(Request $req)
@@ -195,12 +249,12 @@ class MkController extends Controller
         $update = m_api::reset_pass($data, "no_hp");
 
         if ($update) {
-            echo json_encode([
+            echo response()->json([
                 "error" => 0,
                 "pesan" => "password berhasil di reset!"
             ]);
         } else {
-            echo json_encode([
+            echo response()->json([
                 'error' => 1,
                 'pesan' => 'Gagal mengubah Password'
             ]);
@@ -240,8 +294,7 @@ class MkController extends Controller
 
         if ($statusOtp == '0') {
             $reqLagi = DB::table('misterkong_db_all_histori.h_log_kongpos_otp')->where(["no_hp" => $tujuan])->get();
-            echo json_encode(["waktu" => $reqLagi->time_limit, "status" => false]);
-            return;
+            return response()->json(["waktu" => $reqLagi->time_limit, "status" => false]);
         }
 
         // update histori otp pos
@@ -264,8 +317,7 @@ class MkController extends Controller
                 "time_limit" => $timeLimit
             ]);
 
-        $postData = ["messages" => array($message)];
-        $postDataJson = json_encode($postData);
+        $postDataJson = response()->json(["messages" => array($message)]);
         $ch = curl_init();
 
         curl_setopt($ch, CURLOPT_URL, $postUrl);
@@ -278,12 +330,10 @@ class MkController extends Controller
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $responseBody = json_decode($response);
         curl_close($ch);
 
         $data = ["otp" => $otp, "waktu" => $timeLimit, "status" => true, "simpan_history" => $simpanHistory, "update_history" => $updateHistory];
-        echo json_encode($data);
+        return response()->json($data);
     }
 
     function send_email_again(Request $req)
@@ -305,7 +355,7 @@ class MkController extends Controller
         $output = curl_exec($ch);
         curl_close($ch);
 
-        echo json_encode($output);
+        return response()->json($output);
     }
 
     function format_phone($nope)
@@ -322,20 +372,20 @@ class MkController extends Controller
 
     function generate($compid, $namadb, $comp_id_id, $nama, $pass, $data_profile)
     {
-        $dt=[
-            "info_profile"=>$data_profile,
-            "id_company_id"=>$comp_id_id,
-            "company_id"=>$compid,
-            "db_name"=>$namadb,
-            "username"=>$nama,
-            "pwd"=>$pass
+        $dt = [
+            "info_profile" => $data_profile,
+            "id_company_id" => $comp_id_id,
+            "company_id" => $compid,
+            "db_name" => $namadb,
+            "username" => $nama,
+            "pwd" => $pass
         ];
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, "https://api.pos.misterkong.com/api/generateDB");
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($dt));
-//        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, response()->json($dt));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_exec($ch);
         curl_close($ch);
     }

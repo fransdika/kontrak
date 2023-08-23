@@ -159,10 +159,16 @@ Route::post('cek_reg', [Api_all::class, 'cek_reg']);
 Route::post('pesanan', [Api_all::class, 'transaksi']);
 
 
-Route::get("bankdata",[MkController::class,"get_bank"]);
-
-
-
+//
+Route::post("mk_dir",[MkController::class,"mk_dir"]);
+Route::post("cekPhone",[MkController::class,"cekPhone"]);
+Route::get("getBank",[MkController::class,"get_bank"]);
+Route::get("getProv",[MkController::class,"get_prov"]);
+Route::get("getKat",[MkController::class,"get_category_store"]);
+Route::get("getKec/{city}",[MkController::class,"get_subdistrict"]);
+Route::get("getKab/{prov}",[MkController::class,"get_district"]);
+Route::post("newToko",[MkController::class,"open_new_store"]);
+Route::post("regPos",[MkController::class,"registration_pos_ph"]);
 
 
 
@@ -175,5 +181,3 @@ Route::post('get-buka-tutup-toko', [SolidReportController::class, 'getBukaTutupT
 Route::put('update-buka-tutup-toko', [SolidReportController::class, 'updateJadwalBukaTutupToko']);
 Route::put('update-tags', [SolidReportController::class, 'updateTags']);
 Route::post('update-gambar-company', [SolidReportController::class, 'updateGambar']);
-
-
