@@ -428,6 +428,6 @@ class m_api extends Model
                 $data1[]=$feedback;
                 return $data1;
             }
-        } //else nicknameusaha
+        }
     }
 }

@@ -194,7 +194,6 @@ class MkController extends Controller
             "nama_pemilik_rekening" => $req->pemilik_rekening
         ];
         $data[] = $data_usaha_qb;
-        //        array_push($data, $data_usaha_qb);
 
         $respon = m_api::register_ph($data);
 

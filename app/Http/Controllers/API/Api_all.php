@@ -273,26 +273,28 @@ class Api_all extends Controller
 
     public function upload_image(Request $request)
     {
-        $validasi = Validator::make($request->all(), [
-            "images" => "max:1000|mimes:jpg,jpeg,bmp,png,"
-        ]);
-        if ($validasi->passes()) {
-            $image = $request->file('images');
-            if ($request->hasFile('images')) {
-                $new_name = rand().'.'.$image->getClientOriginalExtension();
-                // $image->move(public_path('/uploads'),$new_name);
-                return response()->json($new_name);
-            } else {
-                return response()->json([
-                    "Pesan" => "Silahkan pilih gambar"
-                ], 404);
-            }
+        $file = $request->file('file');
+        $name = $file->getClientOriginalName(); 
+        $ext = $file->getClientOriginalExtension();
+
+        if (strcasecmp($ext, 'jpg') == 0 || strcasecmp($ext, 'jpeg') == 0 || strcasecmp($ext, 'bmp') == 0 || strcasecmp($ext, 'png') == 0) {
+            $file->move("../../../public_html/back_end_mp/".$request->comp_id."_config/images/",$name);
+            return response()->json([
+                'status' => 1,
+                'error' => 0,
+                'message' => 'Berhasil upload gambar',
+                'data' => [
+                    'file' => "misterkong.com/back_end_mp/".$request->comp_id."_config/images/$name"
+                ]
+            ]);
         } else {
             return response()->json([
-                "Pesan" => "Ukuran gambar maksimal 1000KB"
-            ], 404);
+                'status' => 0,
+                'error' => 500,
+                'message' => 'Format file harus berextention jpg atau jpeg atau bmp atau png',
+                'data' => []
+            ]);
         }
-
     }
     public function get_list_supplier_item(Request $request)
     {
@@ -846,30 +848,42 @@ class Api_all extends Controller
     }
 
     public function up_file_json(Request $request)
-    {
+    {       
+        if ($request->jenis == 1) {
+            $folder = 'GET';
+            $imei = "/".$request->imei;
+        } elseif ($request->jenis == 2) {
+            $folder = 'POST';
+            $imei = "/".$request->imei;
+        } elseif ($request->jenis == 3) {
+            $folder = 'DEL';
+            $imei = "";
+        }
         $file = $request->file('file');
         $filename = $file->getClientOriginalName();
-        $path = $file->move('../../../public_html/back_end_mp/'.$request->comp_id."_config/GET/".$request->imei,$filename);
-        
-        // $path = $file->move(public_path('file_json'),$filename);
-        // $path = $file->store("../../../public_html/back_end_mp/$request->comp_id/GET/$request->imei");
-        // $image->move("../../../public_html/back_end_mp/$company_id/GET/$imei",$path)
-
-        // Return a response
+        $file->move('../../../public_html/back_end_mp/'.$request->comp_id."_config/".$folder."/".$imei,$filename);
         return response()->json([
-            'message' => 'File uploaded successfully.',
-            'file' => 'misterkong.com/back_end_mp/'.$request->comp_id."_config/GET/".$request->imei."/".$filename
-        ]);
+            'status' => 1,
+            'error' => 0,
+            'message' => 'File berhasil di upload',
+            'data' => [
+                'file' => 'misterkong.com/back_end_mp/'.$request->comp_id."_config/".$folder."/".$imei."/".$filename
+            ]
+        ]);        
     }
 
     public function get_json_file_name(Request $request)
     {
         if ($request->jenis == 1) {
             $folder = 'GET';
-        } else {
+            $imei = "/".$request->imei;
+        } elseif ($request->jenis == 2) {
             $folder = 'POST';
+            $imei = "/".$request->imei;
+        } elseif ($request->jenis == 3) {
+            $folder = 'DEL';
         }
-        $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei);
+        $dt =  shell_exec("ls /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder . $imei);
         if (!empty($dt)) {
             $var = preg_split("#[\r\n]+#", trim($dt));
         } else {
@@ -1058,5 +1072,4 @@ class Api_all extends Controller
             }
         }
     }
-
 } 
