@@ -251,6 +251,110 @@ class m_api extends Model
         return $res->city_name;
     }
 
+    public static function check_ph($data)
+    {
+        if ($data['loginby'] == "phone") {
+            if (substr($data['input'], 0, 2) == "62" || substr($data['input'], 0, 3) == "+62") {
+                $data['input'] = $data['input'];
+            } elseif (substr($data['input'], 0, 1) == "0") {
+                $data['input'][0] = "X";
+                $data['input'] = str_replace("X", "62", $data['input']);
+            }
+        }
+
+        $data1 = [];
+        $cek_akun_ada = DB::table("m_userx")->select("id")->where("email",$data['input'])->orWhere("no_hp",$data['input'])->count();
+        $pesan = ($data['loginby'] == "phone") ? "Kirim Kembali OTP" : "Kirim Verifikasi via email";
+
+        if ($cek_akun_ada > 0) {
+            if ($data['loginby'] == "phone") {
+                $where_cek_status = [
+                    "no_hp" => $data['input'],
+                    "status_phone" => 1,
+                    "status" => $data['status']
+                ];
+                $data_login_pass = [
+                    "no_hp" => $data['input'],
+                    "passwd" => $data['passwd']
+                ];
+            } else {
+                $where_cek_status = [
+                    "email" => $data['input'],
+                    "status_email" => 1,
+                    "status" => $data['status'],
+                ];
+                $data_login_pass = [
+                    "email" => $data['input'],
+                    "passwd" => $data['passwd']
+                ];
+            }
+
+            $cek_akun_Status =DB::table("m_userx")->where($where_cek_status)->count();
+            if ($cek_akun_Status > 0) {
+                $cek = DB::table("m_userx")->where($data_login_pass)->count();
+                if ($cek > 0) {
+                    $ex_compid=DB::table("m_user_company")->select("compoany_id","nama_usaha","alamat")->where("kd_user",DB::table("m_userx")->select("id")->where(["email"=>$data['input'],"passwd"=>$data['passwd']])->orWhere(["no_hp"=>$data['input'],"passwd"=>$data['passwd']]))->get();
+                    $jml_data=$ex_compid->count();
+                    if ($jml_data > 0) {
+                        $company = [
+                            "error" => 0,
+                            "usaha" => $jml_data,
+                            "company" => []
+                        ];
+
+                        foreach ($ex_compid as $row) {
+                            $det = [
+                                "company_id" => $row['company_id'],
+                                "nama_usaha" => $row['nama_usaha'],
+                                "alamat" => $row['alamat']
+                            ];
+                            array_push($company['company'], $det);
+                        }
+
+                        $data1[]= $company;
+                    } else {
+                        $company = [
+                            "error" => 3,
+                            "usaha" => 0,
+                            "pesan" => "Tidak ada Data usaha"
+                        ];
+                        $data1[]=$company;
+                    }
+                    return $data1;
+                    // return $company;
+
+                } // user name tidak ada atau salah
+                else {
+                    $company = [
+                        "error" => 1,
+                        "pesan" => "No.hp atau password salah"
+                    ];
+                    $data1[]=$company;
+                    return $data1;
+                    // return $company;
+                }
+            } else {
+                $company = [
+                    "error" => 2,
+                    "pesan" => "Akun Anda belum terverifikasi, apakah anda ingin " . $pesan . "?",
+                    "loginby" => $data['loginby']
+                ];
+                $data1[]=$company;
+                return $data1;
+            } //cek status email
+
+
+        } //cek email ada
+        else {
+            $company = [
+                "error" => 1,
+                "pesan" => "User atau Password salah"
+            ];
+            $data1[]=$company;
+            return $data1;
+        }
+    }
+
     public function open_new_store($data)
     {
         $data1 = null;

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class MkController extends Controller
 {
+
     public function mk_dir(Request $req)
     {
         $comId = $req->comp_id;
@@ -68,7 +69,7 @@ class MkController extends Controller
         $data = null;
         $no_hp = $req->email;
         $no_hp_new = substr($no_hp, 0, 1) == 0 ? "62" . substr($no_hp, 1) : $no_hp;
-        $data[]=$no_hp_new;
+        $data[] = $no_hp_new;
 
         $data_usaha_qb = [
             "id" => 0,
@@ -94,7 +95,7 @@ class MkController extends Controller
             "no_rek" => $req->no_rek,
             "nama_pemilik_rekening" => $req->pemilik_rekening
         ];
-        $data[]=$data_usaha_qb;
+        $data[] = $data_usaha_qb;
 
         $respon = m_api::open_new_store($data);
 
@@ -134,13 +135,15 @@ class MkController extends Controller
         $payload = ["nama" => $data["nama"], "alamat" => $data["alamat"], "nama_usaha" => $data["nama_usaha"], "kategori" => $data["kategori"]];
         $headers = ["Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY1NDIyMTcwMCwiaWF0IjoxNjU0MjIxNzAwfQ.5kKHPyVJEodXFwGDnbQ6aJk4GA6WtPsaDiUcr8Y1oC-_yiqQCZpeVH8mYz00TSc", 'Content-type: application/json'];
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://misterkong.com/kong_api/notification/api/telegram_pos');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, response()->json($payload));
-        $result = curl_exec($ch);
+        curl_setopt_array($ch,[
+            CURLOPT_URL=> 'https://misterkong.com/kong_api/notification/api/telegram_pos',
+            CURLOPT_POST=> true,
+            CURLOPT_HTTPHEADER=> $headers,
+            CURLOPT_RETURNTRANSFER=> true,
+            CURLOPT_SSL_VERIFYPEER=> false,
+            CURLOPT_POSTFIELDS=> response()->json($payload)
+        ]);
+        curl_exec($ch);
         curl_close($ch);
     }
 
@@ -191,7 +194,7 @@ class MkController extends Controller
             "nama_pemilik_rekening" => $req->pemilik_rekening
         ];
         $data[] = $data_usaha_qb;
-//        array_push($data, $data_usaha_qb);
+        //        array_push($data, $data_usaha_qb);
 
         $respon = m_api::register_ph($data);
 
@@ -220,18 +223,19 @@ class MkController extends Controller
 
             $kirim = array(
                 "msg" => "<h3>Aktivasi Akun Misterkong-mu!</h3>
-			     <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $respon[0]['link'] . "</p>",
+                     <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $respon[0]['link'] . "</p>",
                 "dest" => $_GET['email']
             );
 
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, "https://ssid.solidtechs.com/all_api/Send_email.php");
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $kirim);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            $output = curl_exec($ch);
+            curl_setopt_array($ch, [
+                CURLOPT_URL => "https://ssid.solidtechs.com/all_api/Send_email.php",
+                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_POSTFIELDS => $kirim,
+                CURLOPT_RETURNTRANSFER => 1
+            ]);
+            curl_exec($ch);
             curl_close($ch);
-//            $res = json_decode($output, true);
         }
         return response()->json($respon);
     }
@@ -261,6 +265,21 @@ class MkController extends Controller
         }
     }
 
+    public function check_ph(Request $req)
+    {
+        $input = $req->mn;
+        $password = $req->dp;
+        $where = [
+            'input' => $input,
+            'passwd' => $password,
+            'status' => 1
+        ];
+        $res = strpos($input, "@");
+        $where['loginby'] = ($res === false) ? "phone" : "email";
+        $respon=m_api::check_ph($where);
+        return response()->json($respon);
+    }
+
     public function resend_otp_phone(Request $req)
     {
         $tujuan = trim($req->phone);
@@ -285,9 +304,9 @@ class MkController extends Controller
             "text" => "<#> KONGPOS Kode OTP anda adalah " . $otp . ", jangan pernah memberitahukan kode otp ini kepada siapapun"
         ];
 
-        $cekOtpAttemps = DB::selectOne(DB::raw("CALL misterkong_db_all_histori.get_request_otp_kongpos($tujuan)"));
+        $cekOtpAttemps = DB::selectOne("CALL misterkong_db_all_histori.get_request_otp_kongpos($tujuan)");
         $statusOtp = $cekOtpAttemps->status_otp;
-//        mysqli_next_result($this->db->conn_id);
+        //        mysqli_next_result($this->db->conn_id);
 
         $waktuRequest = date('Y-m-d H:i:s');
         $timeLimit = date('Y-m-d H:i:s', strtotime("+30 minutes", strtotime($waktuRequest)));
@@ -319,16 +338,18 @@ class MkController extends Controller
 
         $postDataJson = response()->json(["messages" => array($message)]);
         $ch = curl_init();
+        curl_setopt_array($ch,[
+            CURLOPT_URL=> $postUrl,
+            CURLOPT_HTTPHEADER=> array('Content-Type: application/json', "Accept:application/json", 'Authorization: App ' . $apikey),
+            CURLOPT_CONNECTTIMEOUT=> 2,
+            CURLOPT_RETURNTRANSFER=> 1,
+            CURLOPT_FOLLOWLOCATION=> TRUE,
+            CURLOPT_MAXREDIRS=> 2,
+            CURLOPT_POST=> 1,
+            CURLOPT_POSTFIELDS=> $postDataJson,
+            CURLOPT_SSL_VERIFYPEER=> false,
+        ]);
 
-        curl_setopt($ch, CURLOPT_URL, $postUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', "Accept:application/json", 'Authorization: App ' . $apikey));
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, 2);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postDataJson);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $response = curl_exec($ch);
         curl_close($ch);
 
@@ -343,15 +364,17 @@ class MkController extends Controller
 
         $kirim = [
             "msg" => "<h3>Aktivasi Akun Misterkong-mu!</h3>
-			    <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $link . "</p>",
+                    <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $link . "</p>",
             "dest" => $dest
         ];
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://ssid.solidtechs.com/all_api/Send_email.php");
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $kirim);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt_array($ch,[
+            CURLOPT_URL=> "https://ssid.solidtechs.com/all_api/Send_email.php",
+            CURLOPT_CUSTOMREQUEST=> "POST",
+            CURLOPT_POSTFIELDS=> $kirim,
+            CURLOPT_RETURNTRANSFER=> 1
+        ]);
         $output = curl_exec($ch);
         curl_close($ch);
 
@@ -382,12 +405,13 @@ class MkController extends Controller
         ];
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://api.pos.misterkong.com/api/generateDB");
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_POSTFIELDS, response()->json($dt));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt_array($ch,[
+            CURLOPT_URL=> "https://api.pos.misterkong.com/api/generateDB",
+            CURLOPT_CUSTOMREQUEST=> "POST",
+            CURLOPT_POSTFIELDS=> response()->json($dt),
+            CURLOPT_RETURNTRANSFER=> 1
+        ]);
         curl_exec($ch);
         curl_close($ch);
     }
-
 }
