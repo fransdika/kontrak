@@ -167,11 +167,12 @@ Route::get("getProv",[MkController::class,"get_prov"]);
 Route::get("getKat",[MkController::class,"get_category_store"]);
 Route::get("getKec/{city}",[MkController::class,"get_subdistrict"]);
 Route::get("getKab/{prov}",[MkController::class,"get_district"]);
-Route::post("newToko",[MkController::class,"open_new_store"]);
-Route::post("regPos",[MkController::class,"registration_pos_ph"]);
+Route::post("open_new_store",[MkController::class,"open_new_store"]);
+Route::post("registration_pos_ph",[MkController::class,"registration_pos_ph"]);
 Route::post("emailResend",[MkController::class,"send_email_again"]);
 Route::post("otpPassResVer",[MkController::class,"verify_reset_password_otp"]);
 Route::post("otpRePhone",[MkController::class,"resend_otp_phone"]);
+Route::post("check_ph",[MkController::class,"check_ph"]);
 
 
 
