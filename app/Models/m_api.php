@@ -161,6 +161,13 @@ class m_api extends Model
         }
         return $no_trans;
     }
+
+    public static function companyid($idorder)
+    {
+        $ar =DB::table("m_user_company")->select("company_id")->where("id",DB::table("t_penjualan")->select("user_id_toko")->where("id",$idorder)->orWhere("no_transaksi",$idorder))->get();
+        return $ar->company_id;
+    }
+
     public function get_gmt($idprov)
     {
         $q=DB::table("m_province")->select(DB::raw("IFNULL(gmt,0)as gmt"))->where(["id"=>$idprov])->first();
