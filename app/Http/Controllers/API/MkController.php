@@ -135,13 +135,13 @@ class MkController extends Controller
         $payload = ["nama" => $data["nama"], "alamat" => $data["alamat"], "nama_usaha" => $data["nama_usaha"], "kategori" => $data["kategori"]];
         $headers = ["Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY1NDIyMTcwMCwiaWF0IjoxNjU0MjIxNzAwfQ.5kKHPyVJEodXFwGDnbQ6aJk4GA6WtPsaDiUcr8Y1oC-_yiqQCZpeVH8mYz00TSc", 'Content-type: application/json'];
         $ch = curl_init();
-        curl_setopt_array($ch,[
-            CURLOPT_URL=> 'https://misterkong.com/kong_api/notification/api/telegram_pos',
-            CURLOPT_POST=> true,
-            CURLOPT_HTTPHEADER=> $headers,
-            CURLOPT_RETURNTRANSFER=> true,
-            CURLOPT_SSL_VERIFYPEER=> false,
-            CURLOPT_POSTFIELDS=> response()->json($payload)
+        curl_setopt_array($ch, [
+            CURLOPT_URL => 'https://misterkong.com/kong_api/notification/api/telegram_pos',
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_POSTFIELDS => response()->json($payload)
         ]);
         curl_exec($ch);
         curl_close($ch);
@@ -275,7 +275,7 @@ class MkController extends Controller
         ];
         $res = strpos($input, "@");
         $where['loginby'] = ($res === false) ? "phone" : "email";
-        $respon=m_api::check_ph($where);
+        $respon = m_api::check_ph($where);
         return response()->json($respon);
     }
 
@@ -337,19 +337,19 @@ class MkController extends Controller
 
         $postDataJson = response()->json(["messages" => array($message)]);
         $ch = curl_init();
-        curl_setopt_array($ch,[
-            CURLOPT_URL=> $postUrl,
-            CURLOPT_HTTPHEADER=> array('Content-Type: application/json', "Accept:application/json", 'Authorization: App ' . $apikey),
-            CURLOPT_CONNECTTIMEOUT=> 2,
-            CURLOPT_RETURNTRANSFER=> 1,
-            CURLOPT_FOLLOWLOCATION=> TRUE,
-            CURLOPT_MAXREDIRS=> 2,
-            CURLOPT_POST=> 1,
-            CURLOPT_POSTFIELDS=> $postDataJson,
-            CURLOPT_SSL_VERIFYPEER=> false,
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $postUrl,
+            CURLOPT_HTTPHEADER => array('Content-Type: application/json', "Accept:application/json", 'Authorization: App ' . $apikey),
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_FOLLOWLOCATION => TRUE,
+            CURLOPT_MAXREDIRS => 2,
+            CURLOPT_POST => 1,
+            CURLOPT_POSTFIELDS => $postDataJson,
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
-        $response = curl_exec($ch);
+        curl_exec($ch);
         curl_close($ch);
 
         $data = ["otp" => $otp, "waktu" => $timeLimit, "status" => true, "simpan_history" => $simpanHistory, "update_history" => $updateHistory];
@@ -368,11 +368,11 @@ class MkController extends Controller
         ];
 
         $ch = curl_init();
-        curl_setopt_array($ch,[
-            CURLOPT_URL=> "https://ssid.solidtechs.com/all_api/Send_email.php",
-            CURLOPT_CUSTOMREQUEST=> "POST",
-            CURLOPT_POSTFIELDS=> $kirim,
-            CURLOPT_RETURNTRANSFER=> 1
+        curl_setopt_array($ch, [
+            CURLOPT_URL => "https://ssid.solidtechs.com/all_api/Send_email.php",
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $kirim,
+            CURLOPT_RETURNTRANSFER => 1
         ]);
         $output = curl_exec($ch);
         curl_close($ch);
@@ -404,13 +404,171 @@ class MkController extends Controller
         ];
 
         $ch = curl_init();
-        curl_setopt_array($ch,[
-            CURLOPT_URL=> "https://api.pos.misterkong.com/api/generateDB",
-            CURLOPT_CUSTOMREQUEST=> "POST",
-            CURLOPT_POSTFIELDS=> response()->json($dt),
-            CURLOPT_RETURNTRANSFER=> 1
+        curl_setopt_array($ch, [
+            CURLOPT_URL => "https://api.pos.misterkong.com/api/generateDB",
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => response()->json($dt),
+            CURLOPT_RETURNTRANSFER => 1
         ]);
         curl_exec($ch);
         curl_close($ch);
+    }
+
+    public static function update_penjualan_order($compId, $no_order, $status)
+    {
+        DB::table('misterkong_' . $compId . '.t_penjualan_order')->where("no_order",$no_order)->update(["status"=>$status]);
+    }
+
+    static function http_request($url)
+    {
+        $ch = curl_init();
+        curl_setopt_array($ch,[
+                CURLOPT_URL=>$url,
+                CURLOPT_RETURNTRANSFER=>1
+            ]
+        );
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return $output;
+    }
+
+    public static function notifRider($idPesanan, $idRider)
+    {
+        $destinasi = [
+            'ios' => [
+                'to' => '/topics/ios_general',
+                'headers' => [
+                    "authorization:key=AAAAFLVl2_0:APA91bG9ce3PpSlf4cRjbbRIglt-6JsK_IcwxpXXkwC2oingJDVFSxncZ8PY3bNbfR8aZsIiq51nzQACLdhMQm1c7rTJciH_owB6mVUSM3gsrNc-ft0BxIluO6oEBN5-M1-GwNZBbADC",
+                    'Content-Type: application/json'
+                ]
+            ],
+            'android' =>  [
+                'to' => '/topics/kongPesan',
+                'headers' => [
+                    'Authorization:key=AAAAJrZwZQg:APA91bEp4BYq1kZcVwUyuh02a_s5F3txxf_CJHNbvdwsdjs6qwdHuWIiS3BKN7ETR3gtQkVZgHebKCH4C6N-QaHeJTEC5m8pMT0MDD5i6oG2bqPwbPT3XR3dY9h_zku1TtamNt9_Tn9q',
+                    'Content-Type: application/json'
+                ]
+            ],
+        ];
+
+        foreach ($destinasi as $key => $value) {
+
+            $payload = array(
+                'to' => $value['to'],
+                'priority' => 'high',
+                "mutable_content" => true,
+                'data' => [
+                    'idPesanan' => $idPesanan,
+                    'id_dr' => $idRider,
+                    'batal' => "1",
+                    'isipesan' => "pesan dibatalin sama toko",
+                    "jenis_notif" => 7
+                ],
+            );
+
+            $ch = curl_init();
+            curl_setopt_array($ch,[
+                CURLOPT_URL=> 'https://fcm.googleapis.com/fcm/send',
+                CURLOPT_POST=> true,
+                CURLOPT_HTTPHEADER=> $value['headers'],
+                CURLOPT_RETURNTRANSFER=> true,
+                CURLOPT_SSL_VERIFYPEER=> false,
+                CURLOPT_POSTFIELDS=> response()->json($payload)
+            ]);
+            curl_exec($ch);
+            curl_close($ch);
+        }
+    }
+    public static function notifPos(Request $req)
+    {
+        $jenis=$req->jenis;
+        $id_driver = $req->idDriver;
+        $idpesanan = $req->idPesanan;
+        $compId = m_api::companyid($idpesanan);
+        $noTransaksi =DB::selectOne("SELECT no_transaksi FROM t_penjualan WHERE id = '$idpesanan'");
+        switch ($jenis) {
+            case '3':
+                $body = "dibatalkan";
+                break;
+            case '4':
+                $body = "sudah diterima";
+                break;
+            case '5':
+                $body = "sudah siap";
+                break;
+            case '6':
+                $body = "Nomor PIN diinput oleh Rider";
+                self::update_penjualan_order($compId, $noTransaksi, 6);
+                break;
+            case '7':
+                $body = "Rider sudah jalan menuju customer";
+                self::update_penjualan_order($compId, $noTransaksi, 1);
+                break;
+            case '8':
+                $body = "dibatalkan oleh toko";
+
+                $cek_batal =DB::table("t_penjualan")->where(["status_barang"=>6,"id"=>$idpesanan])->count();
+                if ($cek_batal == 0) {
+                    DB::table("t_penjualan")->where("id",$idpesanan)->update(["status_barang","6"]);
+                    self::http_request("https://misterkong.com/back_end_mp/api_misterkong/saldo/UpdateSaldo.php?no_transaksi=" . $noTransaksi . "&status=6");
+                    self::notifRider($idpesanan, $id_driver);
+                }
+                break;
+            default:
+                $body = "";
+                break;
+        }
+
+
+        $data = [
+            "title" => "KONGMeal",
+            "body" => "Order dengan No. Transaksi $noTransaksi $body",
+            "jenis_notif" => $jenis,
+            'isi' => '...',
+            "comp_id" => $compId,
+            "no_transaksi" => $noTransaksi,
+            "imei" => $req->imei ?? "-",
+            "noHp" => $req->noHp ?? "-"
+        ];
+
+        $destinasi = [
+            'ios' => [
+                'to' => '/topics/ios_general',
+                'headers' => [
+                    "authorization:key=AAAAFLVl2_0:APA91bG9ce3PpSlf4cRjbbRIglt-6JsK_IcwxpXXkwC2oingJDVFSxncZ8PY3bNbfR8aZsIiq51nzQACLdhMQm1c7rTJciH_owB6mVUSM3gsrNc-ft0BxIluO6oEBN5-M1-GwNZBbADC",
+                    'Content-Type: application/json'
+                ]
+            ],
+            'android' => [
+                'to' => '/topics/kongpos',
+                'headers' => [
+                    'Authorization:key=AAAAf50odws:APA91bERBP6tLNfAWz_aeNhmXjbOOItI2aZ_bZEy1xNX47SWCr8LbrfNVQfuVJ8xYT7_mCFKRn6pBW7_qO-fG5qFNfIU-8nfWm1-M_zhezLK12dlsIeFi8ZfYeizEhPVQTdIbGj0DtUt',
+                    'Content-Type: application/json'
+                ]
+            ],
+        ];
+
+        foreach ($destinasi as $key => $value) {
+
+            $payload = [
+                'to' => $value['to'],
+                'priority' => 'high',
+                "mutable_content" => true,
+                'data' => $data
+            ];
+
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => 'https://fcm.googleapis.com/fcm/send',
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => $value['headers'],
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_POSTFIELDS => response()->json($payload),
+
+            ]);
+            curl_exec($ch);
+            curl_close($ch);
+        }
     }
 }
