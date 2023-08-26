@@ -392,8 +392,8 @@ class SinkronisasiController extends Controller
 
     public function syncDelete(Request $request)
     {
-        $company_id = $request->company_id;
-        $company_id = $request->company_id;
+        $company_id = $request->cid;
+        // $company_id = $request->company_id;
         $this->get_json_file_name($company_id, 'DEL');
         // print_r($files_name);
         // die();
@@ -417,7 +417,7 @@ class SinkronisasiController extends Controller
                     }
                     $sql .= implode(' AND ', $primary_key);
                     if ($dt_stats) {
-                        $sql_arr[] = "DELETE FROM " . $value_table . "_detail WHERE " . implode(' AND ', $primary_key);
+                        $sql_arr[] = "DELETE FROM misterkong_".$company_id."." . $value_table . "_detail WHERE " . implode(' AND ', $primary_key);
                     }
                     $sql_arr[] = $sql;
                 }
