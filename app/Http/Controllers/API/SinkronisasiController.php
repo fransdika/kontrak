@@ -405,21 +405,22 @@ class SinkronisasiController extends Controller
         $i = 0;
         $sql_arr = array();
         foreach ($keys as $key_table => $value_table) {
-            foreach ($this->json as $key_column => $value_column) {
-                // print_r($value_column);
-                $dt_stats = $value_column['detail'];
-                $sql = "DELETE FROM $value_table WHERE ";
-                $col_keys = array_keys($value_column['key']);
-                $primary_key = array();
-                foreach ($col_keys as $key_val => $value_val) {
+            foreach ($this->json as $key_column => $value) {
+                foreach ($value as $key_column => $value_column) {
+                    $dt_stats = $value_column['detail'];
+                    $sql = "DELETE FROM $value_table WHERE ";
+                    $col_keys = array_keys($value_column['key']);
+                    $primary_key = array();
+                    foreach ($col_keys as $key_val => $value_val) {
 
-                    $primary_key[] = $value_val . "='" . $value_column['key'][$value_val] . "'";
+                        $primary_key[] = $value_val . "='" . $value_column['key'][$value_val] . "'";
+                    }
+                    $sql .= implode(' AND ', $primary_key);
+                    if ($dt_stats) {
+                        $sql_arr[] = "DELETE FROM " . $value_table . "_detail WHERE " . implode(' AND ', $primary_key);
+                    }
+                    $sql_arr[] = $sql;
                 }
-                $sql .= implode(' AND ', $primary_key);
-                if ($dt_stats) {
-                    $sql_arr[] = "DELETE FROM " . $value_table . "_detail WHERE " . implode(' AND ', $primary_key);
-                }
-                $sql_arr[] = $sql;
             }
             $i++;
         }
