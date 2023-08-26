@@ -24,7 +24,7 @@ class m_api extends Model
     public static function get_bank()
     {
         $data = null;
-        $exec = DB::select("SELECT * FROM misterkong_mp.m_bank");
+        $exec = DB::select("SELECT kd_bank as `id`,nama_bank as bank FROM misterkong_mp.m_bank");
         foreach ($exec as $exe) {
             $data[] = $exe;
         }

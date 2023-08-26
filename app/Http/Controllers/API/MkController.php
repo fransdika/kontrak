@@ -349,7 +349,7 @@ class MkController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
-        $response = curl_exec($ch);
+        curl_exec($ch);
         curl_close($ch);
 
         $data = ["otp" => $otp, "waktu" => $timeLimit, "status" => true, "simpan_history" => $simpanHistory, "update_history" => $updateHistory];
