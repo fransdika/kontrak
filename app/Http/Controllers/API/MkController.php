@@ -14,12 +14,12 @@ class MkController extends Controller
     {
         $comId = $req->comp_id;
         $imei = $req->imei;
-               
+
         // ------------------------------------------------- local ---------------------------------------
         // if (!file_exists("./back_end_mp/" . $comId . "_config/POST/" . $imei)) {
         //     mkdir("./back_end_mp/" . $comId . "_config/POST/" . $imei, 0777, true);
         // }
-        
+
 
         // if (!file_exists("./back_end_mp/" . $comId . "_config/GET/" . $imei)) {
         //     mkdir("./back_end_mp/" . $comId . "_config/GET/" . $imei, 0777, true);
@@ -342,7 +342,7 @@ class MkController extends Controller
             "keterangan" => "-"
         ]);
 
-        $updateHistory = DB::table("misterkong_db_all_histori.h_kongpos_otp")
+        $updateHistory = DB::table("misterkong_db_all_histori.h_log_kongpos_otp")
             ->whereColumn([
                 ["no_hp", "=", $tujuan],
                 ["time_limit", "<", $waktuRequest]
