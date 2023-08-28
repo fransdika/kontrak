@@ -158,7 +158,7 @@ class MkController extends Controller
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_POSTFIELDS => response()->json($payload)
+            CURLOPT_POSTFIELDS => http_build_query($payload)
         ]);
         curl_exec($ch);
         curl_close($ch);
@@ -425,7 +425,7 @@ class MkController extends Controller
         curl_setopt_array($ch, [
             CURLOPT_URL => "https://api.pos.misterkong.com/api/generateDB",
             CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => response()->json($dt),
+            CURLOPT_POSTFIELDS => http_build_query($dt),
             CURLOPT_RETURNTRANSFER => 1
         ]);
         curl_exec($ch);
@@ -491,7 +491,7 @@ class MkController extends Controller
                 CURLOPT_HTTPHEADER=> $value['headers'],
                 CURLOPT_RETURNTRANSFER=> true,
                 CURLOPT_SSL_VERIFYPEER=> false,
-                CURLOPT_POSTFIELDS=> response()->json($payload)
+                CURLOPT_POSTFIELDS=> http_build_query($payload)
             ]);
             curl_exec($ch);
             curl_close($ch);
@@ -582,7 +582,7 @@ class MkController extends Controller
                 CURLOPT_HTTPHEADER => $value['headers'],
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_POSTFIELDS => response()->json($payload),
+                CURLOPT_POSTFIELDS => http_build_query($payload),
 
             ]);
             curl_exec($ch);
