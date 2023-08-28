@@ -343,7 +343,7 @@ class MkController extends Controller
         ]);
 
         $updateHistory = DB::table("misterkong_db_all_histori.h_log_kongpos_otp")
-            ->whereColumn([
+            ->where([
                 ["no_hp", "=", $tujuan],
                 ["time_limit", "<", $waktuRequest]
             ])
@@ -352,17 +352,18 @@ class MkController extends Controller
                 "time_limit" => $timeLimit
             ]);
 
-        $postDataJson = response()->json(["messages" => array($message)]);
+        $postDataJson = ["messages" => array($message)];
+//        $postDataJson = response()->json(["messages" => array($message)]);
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $postUrl,
-            CURLOPT_HTTPHEADER => array('Content-Type: application/json', "Accept:application/json", 'Authorization: App ' . $apikey),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', "Accept:application/json", 'Authorization: App ' . $apikey],
             CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_RETURNTRANSFER => 1,
             CURLOPT_FOLLOWLOCATION => TRUE,
             CURLOPT_MAXREDIRS => 2,
             CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => $postDataJson,
+            CURLOPT_POSTFIELDS => http_build_query($postDataJson),
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
