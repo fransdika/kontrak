@@ -107,11 +107,11 @@ class m_api extends Model
     }
 
     private function user_id(){
-        $ex_max_trans = DB::table("m_userx")->select(DB::raw("MAX(ks_user)as notrans"))->first();
+        $ex_max_trans = DB::selectOne("SELECT MAX(kd_user)as notrans FROM m_userx");
         $nomor = $ex_max_trans->notrans;
         $noUrut = (int) substr($nomor, -3);
 
-        if ($ex_max_trans->count() == 0) {
+        if ($nomor == 0 || is_null($nomor)) {
             $no_trans = "UAA001";
         } else {
             $noUrut++;
@@ -123,9 +123,9 @@ class m_api extends Model
 
     private static function user_id_id()
     {
-        $ex_max_trans = DB::table("m_userx")->select(DB::raw("MAX(id)as notrans"))->first();
+        $ex_max_trans = DB::selectOne("SELECT MAX(id) as notrans FROM m_userx");
         $nomor = $ex_max_trans->notrans;
-        if ($ex_max_trans->count() == 0) {
+        if ($nomor == 0 || is_null($nomor)) {
             $no_trans = 1;
         } else {
             $no_trans = $nomor + 1;
@@ -135,7 +135,7 @@ class m_api extends Model
     }
     private static function company_id()
     {
-        $ex_max_trans = DB::table("m_user_company")->select(DB::raw("company_id as notrans"))->where(["company_id","LIKE","'%".date("YmdHis")."%'"])->first();
+        $ex_max_trans = DB::table("m_user_company")->select(DB::raw("company_id as notrans"))->where(["company_id","LIKE","'%".date("YmdHis")."%'"])->get();
         $nomor = $ex_max_trans->notrans;
         $noUrut = (int) substr($nomor, -2);
 
@@ -151,10 +151,10 @@ class m_api extends Model
     }
     public function company_id_id()
     {
-        $ex_max_trans = DB::table("m_user_company")->select(DB::raw("MAX(id)as notrans"))->first();
+        $ex_max_trans = DB::selectOne("SELECT MAX(id)as notrans FROM m_user_company");
         $nomor = $ex_max_trans->notrans;
 
-        if ($ex_max_trans->count() == 0) {
+        if ($nomor == 0 || is_null($nomor)) {
             $no_trans = 1;
         } else {
             $no_trans = $nomor + 1;
@@ -300,7 +300,7 @@ class m_api extends Model
             if ($cek_akun_Status > 0) {
                 $cek = DB::table("m_userx")->where($data_login_pass)->count();
                 if ($cek > 0) {
-                    $ex_compid=DB::table("m_user_company")->select("compoany_id","nama_usaha","alamat")->where("kd_user",DB::table("m_userx")->select("id")->where(["email"=>$data['input'],"passwd"=>$data['passwd']])->orWhere(["no_hp"=>$data['input'],"passwd"=>$data['passwd']]))->get();
+                    $ex_compid=DB::table("m_user_company")->select("company_id","nama_usaha","alamat")->where("kd_user",DB::table("m_userx")->select("id")->where(["email"=>$data['input'],"passwd"=>$data['passwd']])->orWhere(["no_hp"=>$data['input'],"passwd"=>$data['passwd']]))->get();
                     $jml_data=$ex_compid->count();
                     if ($jml_data > 0) {
                         $company = [
