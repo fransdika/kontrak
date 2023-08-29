@@ -135,10 +135,9 @@ class m_api extends Model
     }
     private static function company_id()
     {
-        $ex_max_trans = DB::table("m_user_company")->select(DB::raw("company_id as notrans"))->where(["company_id","LIKE","'%".date("YmdHis")."%'"])->get();
+        $ex_max_trans = DB::table("m_user_company")->selectRaw("company_id as notrans")-> where(["company_id","LIKE","'%".date("YmdHis")."%'"])->get();
         $nomor = $ex_max_trans->notrans;
         $noUrut = (int) substr($nomor, -2);
-
 
         if ($ex_max_trans->count() == 0) {
             $no_trans = "comp" . date("YmdHis") . "01";
