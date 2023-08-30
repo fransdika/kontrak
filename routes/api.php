@@ -186,3 +186,6 @@ Route::post('get-buka-tutup-toko', [SolidReportController::class, 'getBukaTutupT
 Route::put('update-buka-tutup-toko', [SolidReportController::class, 'updateJadwalBukaTutupToko']);
 Route::put('update-tags', [SolidReportController::class, 'updateTags']);
 Route::post('update-gambar-company', [SolidReportController::class, 'updateGambar']);
+
+// baru dika
+Route::post('getStatusDb/{company_id}', [SinkronisasiController::class, 'getStatusGenerateDb']);

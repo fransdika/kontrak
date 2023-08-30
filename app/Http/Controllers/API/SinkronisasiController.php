@@ -530,7 +530,80 @@ class SinkronisasiController extends Controller
 
     // ------------------------------------------------------------------ TOTALAN STRUK ------------------------------------------------
 
+    // ---------------------------------------------- API CEK GENERATE DATABASE ----------------------------------
+    public function getStatusGenerateDb($company_id)
+    {
+        $isDbExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'misterkong_$company_id'");
+        // $isDbExists = DB::select("SELECT * FROM m_userx");
+        $status=0;
+        $progress=0;
+        $complete=0;
+        if (!empty($isDbExists)) {
+            $sql_cek_data="SELECT * FROM
+            (
+                SELECT cnt_table+cnt_view+cnt_fp+cnt_rec AS def_data FROM
+                (
+                    SELECT COUNT(table_name) AS cnt_table FROM INFORMATION_SCHEMA.TABLES
+                    WHERE table_schema='misterkong_comp2020061905541701'
+                ) data_table
+                CROSS JOIN 
+                (
+                    SELECT COUNT(*) AS cnt_view FROM INFORMATION_SCHEMA.VIEWS
+                    WHERE TABLE_SCHEMA='misterkong_comp2020061905541701'
+                ) data_view
+                CROSS JOIN
+                (
+                    SELECT COUNT(*) AS cnt_fp from information_schema.routines
+                    WHERE ROUTINE_SCHEMA='misterkong_comp2020061905541701'
+                ) data_fp
+                CROSS JOIN
+                (SELECT COUNT(*) AS cnt_rec FROM misterkong_comp2020061905541701.m_jam_buka_toko) data_rec
+            ) def_db
+            CROSS join
+            (
+                SELECT cnt_table+cnt_view+cnt_fp+cnt_rec AS new_data FROM
+                (
+                    SELECT COUNT(table_name) AS cnt_table FROM INFORMATION_SCHEMA.TABLES
+                    WHERE table_schema='misterkong_$company_id'
+                ) data_table
+                CROSS JOIN 
+                (
+                    SELECT COUNT(*) AS cnt_view FROM INFORMATION_SCHEMA.VIEWS
+                    WHERE TABLE_SCHEMA='misterkong_$company_id'
+                ) data_view
+                CROSS JOIN
+                (
+                    SELECT COUNT(*) AS cnt_fp from information_schema.routines
+                    WHERE ROUTINE_SCHEMA='misterkong_$company_id'
+                ) data_fp
+                CROSS JOIN
+                (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$company_id.".m_jam_buka_toko) data_rec
+            ) new_db
+            ";
+            $data=DB::select($sql_cek_data)[0];
+            $progress=$data->new_data;
+            $complete=$data->def_data;
+            if ($data->new_data >= $data->def_data ) {
+                $status=1;
+            }
+        }
+        $percentage=0;
+        if ($complete>0) {
+            if ($progress<$complete) {
+                $percentage=$progress/$complete *100;
+            }else{
+                $percentage=100;
+            }
+        }
 
+        $response=[
+            'status'=>$status,
+            // 'progress'=>$progress,
+            // 'complete'=> $complete,
+            'percentage'=> $percentage
+        ];
+        return response()->json($response, 200);        
+    }
 
 
 
