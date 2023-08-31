@@ -135,16 +135,16 @@ class m_api extends Model
     }
     private static function company_id()
     {
-        $ex_max_trans = DB::table("m_user_company")->selectRaw("company_id as notrans")-> where(["company_id","LIKE","'%".date("YmdHis")."%'"])->get();
-        $nomor = $ex_max_trans->notrans;
-        $noUrut = (int) substr($nomor, -2);
-
-        if ($ex_max_trans->count() == 0) {
+//        $ex_max_trans = DB::table("m_user_company")->selectRaw("company_id as notrans")->where("company_id","LIKE","'%".date("YmdHis")."%'")->get();
+//        $nomor = $ex_max_trans->notrans;
+//        $noUrut = (int) substr($nomor, -2);
+//
+//        if ($ex_max_trans->count() == 0) {
             $no_trans = "comp" . date("YmdHis") . "01";
-        } else {
-            $noUrut++;
-            $no_trans = "comp" . date("YmdHis") . sprintf("%02s", $noUrut);
-        }
+//        } else {
+//            $noUrut++;
+//            $no_trans = "comp" . date("YmdHis") . sprintf("%02s", $noUrut);
+//        }
 
         return $no_trans;
     }
@@ -254,7 +254,7 @@ class m_api extends Model
     private function get_nama_kota($kode)
     {
         $res=DB::table("m_city")->select("city_name")->where(["city_id"=>$kode])->first();
-        return $res->city_name;
+        return $res->city_name ?? "";
     }
 
     public static function check_ph($data)
