@@ -994,7 +994,7 @@ class Api_all extends Controller
         if (!empty($id)) {
             $subquery = DB::select("SELECT SCHEMA_NAME
                                         FROM INFORMATION_SCHEMA.SCHEMATA
-                                        WHERE SCHEMA_NAME = '$id'");
+                                        WHERE SCHEMA_NAME = 'misterkong_$id'");
             if (!empty($subquery)) {
                 return response()->json([
                     'status' => 1
