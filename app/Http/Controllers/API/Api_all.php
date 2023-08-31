@@ -989,7 +989,9 @@ class Api_all extends Controller
         $query = DB::select("SELECT company_id FROM m_user_company WHERE nama_usaha = ? AND no_telepon = ? AND alamat = ?",["$nama","$hp","$alamat"]);
 
         $id = $query[0]->company_id;
-
+        $status=0;
+        $progress=0;
+        $complete=0;
         if (!empty($id)) {
             $sql_cek_data="SELECT * FROM
             (
