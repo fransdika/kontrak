@@ -132,7 +132,7 @@ class Api_all extends Controller
             DB::beginTransaction();
             try {
                 DB::insert("insert into misterkong_$request->cid_tujuan.m_supplier_config (kd_supplier, supplier_user_company_id, `status`)
-                 values ('$request->kd_supplier','$request->id_cid_sumber','0')");
+                   values ('$request->kd_supplier','$request->id_cid_sumber','0')");
                 DB::update("update h_kontrak_request set kd_supplier = '$request->kd_supplier', `status` = '-1' where 
                     comp_id_sumber='$request->cid_sumber' and comp_id_tujuan='$request->cid_tujuan' and `status`='0'");
                 DB::commit();
@@ -906,7 +906,7 @@ class Api_all extends Controller
                 'error' => 200,
                 'message' => 'File tidak ada'
             ]);
-         } else {
+        } else {
             unlink("../../../public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file);
             // $cmd_command = shell_exec(unlink("rm -r /home/misterkong/public_html/back_end_mp/".$request->comp_id."_config/".$folder."/".$request->imei."/".$request->nama_file));
             return response()->json([
@@ -914,7 +914,7 @@ class Api_all extends Controller
                 'error' => 200,
                 'message' => 'Berhasil hapus file'
             ]);
-         }
+        }
     }
 
     public function deleteData(Request $request)
@@ -964,13 +964,12 @@ class Api_all extends Controller
     public function version()
     {
         $query = DB::select("SELECT * FROM g_app_version WHERE jenis = 1 ");
-
         if(!empty($query))
         {
-              return response()->json([
+            return response()->json([
                 "version" => $query[0]->app_store_version,
                 "status" => $query[0]->version_level
-              ]);
+            ]);
         }else{
             return response()->json([
                 'status' => 200,
@@ -992,24 +991,75 @@ class Api_all extends Controller
         $id = $query[0]->company_id;
 
         if (!empty($id)) {
-            $subquery = DB::select("SELECT SCHEMA_NAME
-                                        FROM INFORMATION_SCHEMA.SCHEMATA
-                                        WHERE SCHEMA_NAME = 'misterkong_$id'");
-            if (!empty($subquery)) {
-                return response()->json([
-                    'status' => 1
-                ]);
-            } else {
-                return response()->json([
-                    'status' => 0
-                ]);
+            $sql_cek_data="SELECT * FROM
+            (
+                SELECT cnt_table+cnt_view+cnt_fp+cnt_rec AS def_data FROM
+                (
+                    SELECT COUNT(table_name) AS cnt_table FROM INFORMATION_SCHEMA.TABLES
+                    WHERE table_schema='misterkong_comp2020061905541701'
+                ) data_table
+                CROSS JOIN 
+                (
+                    SELECT COUNT(*) AS cnt_view FROM INFORMATION_SCHEMA.VIEWS
+                    WHERE TABLE_SCHEMA='misterkong_comp2020061905541701'
+                ) data_view
+                CROSS JOIN
+                (
+                    SELECT COUNT(*) AS cnt_fp from information_schema.routines
+                    WHERE ROUTINE_SCHEMA='misterkong_comp2020061905541701'
+                ) data_fp
+                CROSS JOIN
+                (SELECT COUNT(*) AS cnt_rec FROM misterkong_comp2020061905541701.m_jam_buka_toko) data_rec
+            ) def_db
+            CROSS join
+            (
+                SELECT cnt_table+cnt_view+cnt_fp+cnt_rec AS new_data FROM
+                (
+                    SELECT COUNT(table_name) AS cnt_table FROM INFORMATION_SCHEMA.TABLES
+                    WHERE table_schema='misterkong_$id'
+                ) data_table
+                CROSS JOIN 
+                (
+                    SELECT COUNT(*) AS cnt_view FROM INFORMATION_SCHEMA.VIEWS
+                    WHERE TABLE_SCHEMA='misterkong_$id'
+                ) data_view
+                CROSS JOIN
+                (
+                    SELECT COUNT(*) AS cnt_fp from information_schema.routines
+                    WHERE ROUTINE_SCHEMA='misterkong_$id'
+                ) data_fp
+                CROSS JOIN
+                (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$id.".m_jam_buka_toko) data_rec
+            ) new_db
+            ";
+            $data=DB::select($sql_cek_data)[0];
+            $progress=$data->new_data;
+            $complete=$data->def_data;
+            if ($data->new_data >= $data->def_data ) {
+                $status=1;
             }
         } else {
-            return response()->json([
-                'status' => 2
-            ]);
+            // return response()->json([
+            //     'status' => 2
+            // ]);
+            $status=2;
         }
-        
+        $percentage=0;
+        if ($complete>0) {
+            if ($progress<$complete) {
+                $percentage=$progress/$complete *100;
+            }else{
+                $percentage=100;
+            }
+        }
+        $response=[
+            'status'=>$status,
+            // 'progress'=>$progress,
+            // 'complete'=> $complete,
+            'percentage'=> $percentage
+        ];
+        return response()->json($response, 200);
+
     }
 
     public function transaksi(Request $request)
@@ -1029,14 +1079,14 @@ class Api_all extends Controller
             ]);
         }else{
             $query =  DB::select("SELECT t_penjualan.no_transaksi, t_pengiriman.no_penjualan, t_pengiriman.nama_tujuan, 
-            t_driver.kode_pin, m_user_company.company_id, m_driver.nama_depan, m_driver.hp1, t_penjualan.id, m_driver.kd_driver
-            FROM t_pengiriman 
-            INNER JOIN t_penjualan ON t_pengiriman.no_resi= t_penjualan.no_transaksi
-            INNER JOIN t_driver ON t_penjualan.no_transaksi = SUBSTRING(t_driver.no_transaksi, 1,20)
-            INNER JOIN m_driver ON t_driver.kd_driver = m_driver.kd_driver
-            INNER JOIN m_user_company ON t_penjualan.user_id_toko = m_user_company.id
-            WHERE m_user_company.company_id = '$companyid' AND date(t_penjualan.tanggal) BETWEEN '$startdate' AND '$endate'
-            AND t_penjualan.status_barang = 4 ");
+                t_driver.kode_pin, m_user_company.company_id, m_driver.nama_depan, m_driver.hp1, t_penjualan.id, m_driver.kd_driver
+                FROM t_pengiriman 
+                INNER JOIN t_penjualan ON t_pengiriman.no_resi= t_penjualan.no_transaksi
+                INNER JOIN t_driver ON t_penjualan.no_transaksi = SUBSTRING(t_driver.no_transaksi, 1,20)
+                INNER JOIN m_driver ON t_driver.kd_driver = m_driver.kd_driver
+                INNER JOIN m_user_company ON t_penjualan.user_id_toko = m_user_company.id
+                WHERE m_user_company.company_id = '$companyid' AND date(t_penjualan.tanggal) BETWEEN '$startdate' AND '$endate'
+                AND t_penjualan.status_barang = 4 ");
             // echo $query;
             if (empty($query)) {
                 return response()->json([
@@ -1056,15 +1106,15 @@ class Api_all extends Controller
                     $pesanan = DB::select($sql);                    
                     $data[] = array(
                         'data'  => [
-                        'no_transaksi' => $value->no_transaksi,
-                        'pembeli'      => $value->nama_tujuan,
-                        'pesanan'      => $pesanan,
-                        'id_order'     => $value->id,
-                        'pin'          => $value->kode_pin,
-                        'noHp'         => $value->hp1,
-                        'comp_id'      => $value->company_id,
-                        'nama_driver'  => $value->nama_depan,
-                        'id_driver'    => $value->kd_driver,
+                            'no_transaksi' => $value->no_transaksi,
+                            'pembeli'      => $value->nama_tujuan,
+                            'pesanan'      => $pesanan,
+                            'id_order'     => $value->id,
+                            'pin'          => $value->kode_pin,
+                            'noHp'         => $value->hp1,
+                            'comp_id'      => $value->company_id,
+                            'nama_driver'  => $value->nama_depan,
+                            'id_driver'    => $value->kd_driver,
                         ]
                     );
                 }
