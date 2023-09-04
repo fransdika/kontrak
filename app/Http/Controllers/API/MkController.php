@@ -363,7 +363,7 @@ class MkController extends Controller
             CURLOPT_FOLLOWLOCATION => TRUE,
             CURLOPT_MAXREDIRS => 2,
             CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => http_build_query($postDataJson),
+            CURLOPT_POSTFIELDS => json_encode($postDataJson),
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
 

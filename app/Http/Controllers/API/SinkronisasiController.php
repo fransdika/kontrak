@@ -13,7 +13,7 @@ class SinkronisasiController extends Controller
     private $file_name;
     public function convert_to_json_mode2(Request $request, $company_id, $imei)
     {
-        $file_limit=2000;
+        $file_limit=100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
         $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
 
