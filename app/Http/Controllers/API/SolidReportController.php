@@ -43,7 +43,8 @@ class SolidReportController extends Controller
             $exp_tag = explode(",",$info_toko['profile_tag']);
             $dt = [
                 'tags' => $exp_tag,
-                'profile' => $info_toko['comp_profile_img'] 
+                'profile' => $info_toko['comp_profile_img'],
+                'alamat' => $info_toko['alamat']
             ];
             $response = [
                 'status' => 1,
