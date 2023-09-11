@@ -13,7 +13,7 @@ class SinkronisasiController extends Controller
     private $file_name;
     public function convert_to_json_mode2(Request $request, $company_id, $imei)
     {
-        $file_limit=2000;
+        $file_limit=100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
         $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
 
@@ -535,6 +535,13 @@ class SinkronisasiController extends Controller
     {
         $isDbExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'misterkong_$company_id'");
         // $isDbExists = DB::select("SELECT * FROM m_userx");
+        $isLastTableExists=DB::select("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA LIKE 'misterkong_$company_id' AND TABLE_TYPE LIKE 'BASE TABLE' AND TABLE_NAME = 'm_jam_buka_toko'");
+        if (!empty($isLastTableExists)) {
+            $sql_record="CROSS JOIN
+                (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$company_id.".m_jam_buka_toko) data_rec";
+        }else{
+            $sql_record="CROSS JOIN (SELECT O AS cnt_rec) data_rec";
+        }
         $status=0;
         $progress=0;
         $complete=0;
@@ -575,11 +582,11 @@ class SinkronisasiController extends Controller
                 (
                     SELECT COUNT(*) AS cnt_fp from information_schema.routines
                     WHERE ROUTINE_SCHEMA='misterkong_$company_id'
-                ) data_fp
-                CROSS JOIN
-                (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$company_id.".m_jam_buka_toko) data_rec
+                ) data_fp $sql_record 
             ) new_db
             ";
+
+
             $data=DB::select($sql_cek_data)[0];
             $progress=$data->new_data;
             $complete=$data->def_data;
