@@ -24,9 +24,9 @@ class ManagerController extends Controller
         if(substr($nohp, 0,1) == "0"){
             $hp = '62'.substr(trim($nohp), 1);
         }else{
-            $hp = $phone;
+            $hp = $nohp;
         }
-        $select = DB::table("m_userx")->join('m_user_company', 'm_user_company.kd_user', '=', 'm_userx.id')->select('m_suerx.id', 'm_user_company.kd_user', 'm_userx.nama', 'm_user_company.alamat', 'm_userx.no_hp', 'm_user_company.kd_bank', 'm_user_company.no_rek', 'm_user_company.nama_pemilik_rekening', 'm_user_company.id')->where('m_userx.no_hp', '=', $hp);
+        $select = DB::table("m_userx")->join('m_user_company', 'm_user_company.kd_user', '=', 'm_userx.id')->select('m_userx.id', 'm_user_company.kd_user', 'm_userx.nama', 'm_user_company.alamat', 'm_userx.no_hp', 'm_user_company.kd_bank', 'm_user_company.no_rek', 'm_user_company.nama_pemilik_rekening', 'm_user_company.id')->where('m_userx.no_hp', '=', $hp);
         if($select->count() > 0){
         $row = $select->get();
         foreach($row as $exe) {
