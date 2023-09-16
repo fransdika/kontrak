@@ -124,7 +124,7 @@ class SolidReportController extends Controller
         DB::beginTransaction();
         try {
             DB::update("UPDATE misterkong_$request->comp_id.g_db_config SET `value`=$status WHERE `name` = 'status_toko'");
-            DB::update("UPDATE m_jam_buka_toko SET manual_status=$status WHERE keterangan=DAYOFWEEK(NOW()) AND company_id=(SELECT id FROM m_user_company WHERE company_id=$request->comp_id)");
+            DB::update("UPDATE m_jam_buka_toko SET manual_status=$status WHERE keterangan=DAYOFWEEK(NOW()) AND company_id=(SELECT id FROM m_user_company WHERE company_id='$request->comp_id')");
             DB::commit();
             return response()->json([
                 'status' => 1,
