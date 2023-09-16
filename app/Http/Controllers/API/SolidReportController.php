@@ -129,6 +129,7 @@ class SolidReportController extends Controller
                 'status' => 1,
                 'error' => 0,
                 'message' => 'Updated Data',
+                'status_toko' => $status,
                 'data' => []
             ]);
         } catch (\Exception $e) {
@@ -137,6 +138,7 @@ class SolidReportController extends Controller
                 'status' => 0,
                 'error' => 500,
                 'message' => 'Failed Update Data',
+                'status_toko' => '',
                 'data' => []
             ]);
         }
