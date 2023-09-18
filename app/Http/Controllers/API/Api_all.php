@@ -243,6 +243,7 @@ class Api_all extends Controller
                     DB::update("update t_kontrak set tanggal_jatuh_tempo=DATE_ADD(tanggal, INTERVAL $request->periode MONTH) where id='$request->id_kontrak'");
                     DB::update("update h_kontrak_request set tanggal_bayar=CURRENT_TIMESTAMP where comp_id_sumber='$request->cid_sumber' and
                         comp_id_tujuan='$request->cid_tujuan' and `status`=-2");
+                        // status -2 untuk menunggu konfirmasi
                     DB::insert("insert into t_kontrak_pembayaran (kontrak_id, nominal) values ('$request->id_kontrak', '$request->nominal_bayar')");
                     DB::insert("insert into t_kontrak_doc (kontrak_id, path_image) values ('$request->id_kontrak', '$new_name')");
                     DB::update("update misterkong_$request->cid_sumber.m_customer_config set status=-2 where id=$request->id_customer_config");
@@ -1123,5 +1124,25 @@ class Api_all extends Controller
                 return response()->json($data);
             }
         }
+    }
+
+    public function upRandom(Request $request)
+    {
+        // $file = $request->file('file');
+        // $name = $file->getClientOriginalName(); 
+        // $file->move(public_path('/uploads'),$name);
+
+
+        $file = $request->file('file');
+        $filename = $file->getClientOriginalName();
+        $file->move(public_path('/uploads'),$filename);
+        return response()->json([
+            'status' => 1,
+            'error' => 0,
+            'message' => 'File berhasil di upload',
+            'data' => [
+               
+            ]
+        ]);  
     }
 } 

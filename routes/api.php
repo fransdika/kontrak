@@ -189,3 +189,5 @@ Route::post('update-gambar-company', [SolidReportController::class, 'updateGamba
 
 // baru dika
 Route::post('getStatusDb/{company_id}', [SinkronisasiController::class, 'getStatusGenerateDb']);
+
+Route::post('random-up', [Api_all::class, 'upRandom']);
