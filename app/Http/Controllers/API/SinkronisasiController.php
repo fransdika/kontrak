@@ -617,7 +617,7 @@ class SinkronisasiController extends Controller
         $file_limit=100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
         $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
-
+        $data=[];
         if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/data_def")) {
             mkdir("../../../public_html/back_end_mp/" . $company_id . "_config/data_def", 0777, true);
         }
@@ -629,12 +629,7 @@ class SinkronisasiController extends Controller
         foreach ($list_table as $key => $value) {
             $file_path=[];
             if (!preg_match('/t_/', $value)) {
-                // $sql_get_data="SELECT $value.* FROM $value INNER JOIN x_last_time_android_get a WHERE date_modif> a.last_success_time";
-                // echo $this->get_last_request();
-                // $this->empty_folder();
-                // echo app_path();
                 $sql_get_data = "SELECT $value.* FROM misterkong_" . $company_id . ".$value WHERE date_modif >='" . $last_request . "'";
-                // echo $sql_get_data;
                 $exe_get_data = db::select($sql_get_data);
 
                 if (count($exe_get_data)>0) {    
@@ -646,27 +641,11 @@ class SinkronisasiController extends Controller
                     foreach ($exe_get_data as $key_data_prepare => $value_data_prepare) {
                         $arr_data_prepare[] = $value_data_prepare;
                     }
-                    $data = SinkronisasiModel::convertToQuery($value,$arr_data_prepare);
-                    
-                    echo $data;
-                    echo "<br>";
-
-                    // foreach ($json_data as $key_fc => $value_fc) {
-                    //     $file_contents = json_encode($value_fc);
-                    //     file_put_contents($file_path[$key_fc], $file_contents, FILE_APPEND | LOCK_EX);
-                    //     unset($json_data);
-                    // }
-
-                    // echo "<pre>";
-                    // print_r($arr_data_prepare);
-                    // echo "</pre>";
-                    // echo "<pre>";
-                    // print_r($json_data);
-                    // echo "</pre>";   
+                    $data[] = SinkronisasiModel::convertToQuery($value,$arr_data_prepare);
                 }
             }
         }
-        return response()->json([1], 200);        
+        return response()->json($data, 200);        
     }
 
     public function resetKontrak($value='')
