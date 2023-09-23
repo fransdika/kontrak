@@ -1142,7 +1142,7 @@ class Api_all extends Controller
         }
 
         if (count($companyid) == 1) {
-            print_r($kd_user[0]);
+            // print_r($kd_user[0]);
             // status 1 : aktif, -2 banned, 0 : tutup
             if ($request->status == 1) {
                 DB::update("UPDATE m_user_company SET status = '1' WHERE company_id = '$request->company_id'");
@@ -1152,7 +1152,7 @@ class Api_all extends Controller
                 DB::beginTransaction();
                 try {
                     DB::update("UPDATE m_user_company SET status = '0' WHERE company_id = '$request->company_id'");
-                    DB::update("UPDATE m_userx SET status = 0 WHERE kd_user='$kd_user[0]'");
+                    DB::update("UPDATE m_userx SET status = 0, no_hp = '{$request->no_hp}_del' WHERE kd_user = '{$kd_user[0]}'");
                     DB::commit();
                     return response()->json([
                         "status" => 1,
@@ -1191,6 +1191,58 @@ class Api_all extends Controller
                 "Pesan" => "Berhasil hapus akun",
                 "data" => []
             ], 200);
+        }
+
+    }
+
+
+    public function aktifkanAkun(Request $request)
+    {
+        $userCompany = DB::select("SELECT * FROM m_userx WHERE no_hp = '{$request->no_hp}_del' AND `status`=0");
+        $kd_user = [];
+        
+        foreach ($userCompany as $key => $value) {
+            $kd_user[] = $value->kd_user;
+        }
+
+        // print_r($userCompany[0]->kd_user != null);
+
+        if (empty($userCompany)) {
+            // status 1 : aktif, -2 banned, 0 : tutup
+            DB::update("UPDATE m_user_company SET status = '1' WHERE company_id = '$request->company_id'");
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "Pesan" => "Berhasil aktifkan akun",
+                "data" => []
+            ], 200);
+        } else {
+            DB::beginTransaction();
+            try {
+                DB::update("UPDATE m_user_company SET status = '1' WHERE company_id = '$request->company_id'");
+                DB::update("UPDATE m_userx SET status = 1, no_hp = '$request->no_hp' WHERE kd_user = '{$userCompany[0]->kd_user}'");
+                DB::commit();
+                return response()->json([
+                    "status" => 1,
+                    "error" => 0,
+                    "Pesan" => "Berhasil aktifkan akun",
+                    "data" => []
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    "status" => 0,
+                    "error" => 404,
+                    "Pesan" => "Gagal aktifkan akun",
+                    "data" => []
+                ], 404);
+                return response()->json([
+                    "status" => 0,
+                    "error" => 500,
+                    "Pesan" => "Gagal aktifkan akun",
+                    "data" => []
+                ], 500);
+            }
         }
 
     }

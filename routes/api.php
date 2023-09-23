@@ -89,6 +89,7 @@ Route::post('login_get_cid', [AuthController::class, 'loginGetCid']);
 Route::post('login_company', [AuthController::class, 'loginCompany']);
 Route::post('login_pos',[AuthController::class, 'login_pos']);
 Route::post('hapus-akun',[Api_all::class, 'hapusAkun']);
+Route::post('aktifkan-akun',[Api_all::class, 'aktifkanAkun']);
 
 
 Route::group([
