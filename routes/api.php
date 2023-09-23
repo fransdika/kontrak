@@ -85,11 +85,11 @@ Route::get('testing', [api_testing::class, 'testing']);
 Route::post('/pos/cek_status_order', [KongPosController::class, 'status_pesanan']);
 Route::post('/pos/siap', [KongPosController::class, 'tandaisiap']);
 Route::post('/pos/cek_status', [KongPosController::class, 'getLastStatus']);
-
 Route::post('login_get_cid', [AuthController::class, 'loginGetCid']);
 Route::post('login_company', [AuthController::class, 'loginCompany']);
-
 Route::post('login_pos',[AuthController::class, 'login_pos']);
+Route::post('hapus-akun',[Api_all::class, 'hapusAkun']);
+
 
 Route::group([
 

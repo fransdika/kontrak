@@ -5,10 +5,14 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\api_m;
 use App\Models\Piutang;
-use Error;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Wapmorgan\UnifiedArchive\UnifiedArchive;
+// wapmorgan\unified-archive;
+
+
+// use App\Http\Controllers\API\RarArchive;
 
 class Api_all extends Controller
 {
@@ -303,7 +307,7 @@ class Api_all extends Controller
         if ($request->count_stats == 0) {
             return DB::select($sql);
         } else {
-            return DB::select($sql)[0];
+            return $sql;
         }
     }
 
@@ -1126,23 +1130,71 @@ class Api_all extends Controller
         }
     }
 
-    public function upRandom(Request $request)
+    public function hapusAkun(Request $request)
     {
-        // $file = $request->file('file');
-        // $name = $file->getClientOriginalName(); 
-        // $file->move(public_path('/uploads'),$name);
+        $userCompany = DB::select("SELECT company_id, m_userx.kd_user FROM m_user_company INNER JOIN m_userx ON m_user_company.kd_user = m_userx.id WHERE m_userx.no_hp = '$request->no_hp' AND m_user_company.status <> 0");
+        $companyid = [];
+        $kd_user = [];
+        
+        foreach ($userCompany as $key => $value) {
+            $companyid[] = $value->company_id;
+            $kd_user[] = $value->kd_user;
+        }
 
+        if (count($companyid) == 1) {
+            print_r($kd_user[0]);
+            // status 1 : aktif, -2 banned, 0 : tutup
+            if ($request->status == 1) {
+                DB::update("UPDATE m_user_company SET status = '1' WHERE company_id = '$request->company_id'");
+            } elseif ($request->status == -2) {
+                DB::update("UPDATE m_user_company SET status = '-2' WHERE company_id = '$request->company_id'");
+            } else {
+                DB::beginTransaction();
+                try {
+                    DB::update("UPDATE m_user_company SET status = '0' WHERE company_id = '$request->company_id'");
+                    DB::update("UPDATE m_userx SET status = 0 WHERE kd_user='$kd_user[0]'");
+                    DB::commit();
+                    return response()->json([
+                        "status" => 1,
+                        "error" => 0,
+                        "Pesan" => "Berhasil hapus akun",
+                        "data" => []
+                    ], 200);
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return response()->json([
+                        "status" => 0,
+                        "error" => 404,
+                        "Pesan" => "Gagal hapus akun",
+                        "data" => []
+                    ], 404);
+                    return response()->json([
+                        "status" => 0,
+                        "error" => 500,
+                        "Pesan" => "Gagal hapus akun",
+                        "data" => []
+                    ], 500);
+                }
+            }
+        } else {
+            // status 1 : aktif, -2 banned, 0 : tutup
+            if ($request->status == 1) {
+                $verivikasi = DB::update("UPDATE m_user_company SET status = '1' WHERE company_id = '$request->company_id'");
+            } elseif ($request->status == -2) {
+                $verivikasi = DB::update("UPDATE m_user_company SET status = '-2' WHERE company_id = '$request->company_id'");
+            } else {
+                $verivikasi = DB::update("UPDATE m_user_company SET status = '0' WHERE company_id = '$request->company_id'");
+            }
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "Pesan" => "Berhasil hapus akun",
+                "data" => []
+            ], 200);
+        }
 
-        $file = $request->file('file');
-        $filename = $file->getClientOriginalName();
-        $file->move(public_path('/uploads'),$filename);
-        return response()->json([
-            'status' => 1,
-            'error' => 0,
-            'message' => 'File berhasil di upload',
-            'data' => [
-               
-            ]
-        ]);  
     }
+
+
+    
 } 
