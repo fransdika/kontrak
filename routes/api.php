@@ -189,5 +189,10 @@ Route::post('update-gambar-company', [SolidReportController::class, 'updateGamba
 
 // baru dika
 Route::post('getStatusDb/{company_id}', [SinkronisasiController::class, 'getStatusGenerateDb']);
+Route::post('get-first-sync/{company_id}', [SinkronisasiController::class, 'getFirstSync']);
+// resetKontrak
+Route::post('reset-kontrak', [SinkronisasiController::class, 'resetKontrak']);
+
+
 
 Route::post('random-up', [Api_all::class, 'upRandom']);

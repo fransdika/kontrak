@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\SinkronisasiModel;
 
 class SinkronisasiController extends Controller
 {
@@ -538,7 +539,7 @@ class SinkronisasiController extends Controller
         $isLastTableExists=DB::select("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA LIKE 'misterkong_$company_id' AND TABLE_TYPE LIKE 'BASE TABLE' AND TABLE_NAME = 'm_jam_buka_toko'");
         if (!empty($isLastTableExists)) {
             $sql_record="CROSS JOIN
-                (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$company_id.".m_jam_buka_toko) data_rec";
+            (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$company_id.".m_jam_buka_toko) data_rec";
         }else{
             $sql_record="CROSS JOIN (SELECT O AS cnt_rec) data_rec";
         }
@@ -552,38 +553,38 @@ class SinkronisasiController extends Controller
                 (
                     SELECT COUNT(table_name) AS cnt_table FROM INFORMATION_SCHEMA.TABLES
                     WHERE table_schema='misterkong_comp2020061905541701'
-                ) data_table
+                    ) data_table
                 CROSS JOIN 
                 (
                     SELECT COUNT(*) AS cnt_view FROM INFORMATION_SCHEMA.VIEWS
                     WHERE TABLE_SCHEMA='misterkong_comp2020061905541701'
-                ) data_view
+                    ) data_view
                 CROSS JOIN
                 (
                     SELECT COUNT(*) AS cnt_fp from information_schema.routines
                     WHERE ROUTINE_SCHEMA='misterkong_comp2020061905541701'
-                ) data_fp
+                    ) data_fp
                 CROSS JOIN
                 (SELECT COUNT(*) AS cnt_rec FROM misterkong_comp2020061905541701.m_jam_buka_toko) data_rec
-            ) def_db
+                ) def_db
             CROSS join
             (
                 SELECT cnt_table+cnt_view+cnt_fp+cnt_rec AS new_data FROM
                 (
                     SELECT COUNT(table_name) AS cnt_table FROM INFORMATION_SCHEMA.TABLES
                     WHERE table_schema='misterkong_$company_id'
-                ) data_table
+                    ) data_table
                 CROSS JOIN 
                 (
                     SELECT COUNT(*) AS cnt_view FROM INFORMATION_SCHEMA.VIEWS
                     WHERE TABLE_SCHEMA='misterkong_$company_id'
-                ) data_view
+                    ) data_view
                 CROSS JOIN
                 (
                     SELECT COUNT(*) AS cnt_fp from information_schema.routines
                     WHERE ROUTINE_SCHEMA='misterkong_$company_id'
-                ) data_fp $sql_record 
-            ) new_db
+                    ) data_fp $sql_record 
+                ) new_db
             ";
 
 
@@ -612,6 +613,45 @@ class SinkronisasiController extends Controller
         return response()->json($response, 200);        
     }
 
+    function getFirstSync(Request $request, $company_id){
+        $file_limit=100000;
+        $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
+        $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
+        $data=[];
+        if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/data_def")) {
+            mkdir("../../../public_html/back_end_mp/" . $company_id . "_config/data_def", 0777, true);
+        }
 
+        $table_name_no_dt = json_decode($json_no_dt, true);
+        foreach ($table_name_no_dt as $key => $value) {
+            $list_table[] = $key;
+        }
+        foreach ($list_table as $key => $value) {
+            $file_path=[];
+            if (!preg_match('/t_/', $value)) {
+                $sql_get_data = "SELECT $value.* FROM misterkong_" . $company_id . ".$value WHERE date_modif >='" . $last_request . "'";
+                $exe_get_data = db::select($sql_get_data);
+
+                if (count($exe_get_data)>0) {    
+                    $path = "../../../public_html/back_end_mp/" . $company_id . "_config/data_def". "/" . $value . "__" . $last_request .".json"; // vps
+                    $file_json = fopen($path, "w+");
+                    fclose($file_json);
+                    file_put_contents($path, "");
+                    $arr_data_prepare = array();
+                    foreach ($exe_get_data as $key_data_prepare => $value_data_prepare) {
+                        $arr_data_prepare[] = $value_data_prepare;
+                    }
+                    $data[] = SinkronisasiModel::convertToQuery($value,$arr_data_prepare);
+                }
+            }
+        }
+        return response()->json($data, 200);        
+    }
+
+    public function resetKontrak($value='')
+    {
+        DB::select("CALL misterkong_comp2020110310070901.reset_kontrak()");
+        return response()->json([1], 200);        
+    }
 
 }
