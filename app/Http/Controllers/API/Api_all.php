@@ -1162,6 +1162,7 @@ class Api_all extends Controller
                     ], 200);
                 } catch (\Exception $e) {
                     DB::rollBack();
+                    $status_tutup_toko = DB::select("SELECT `status` FROM m_user_company WHERE company_id='$request->company_id'");
                     $payload = array(
                         'to' => '/topics/kongpos',
                         'priority' => 'high',
@@ -1191,12 +1192,14 @@ class Api_all extends Controller
                         "status" => 0,
                         "error" => 404,
                         "Pesan" => "Gagal hapus akun",
+                        "status_akun" => $status_tutup_toko[0]->status,
                         "data" => []
                     ], 404);
                     return response()->json([
                         "status" => 0,
                         "error" => 500,
                         "Pesan" => "Gagal hapus akun",
+                        "status_akun" => $status_tutup_toko[0]->status,
                         "data" => []
                     ], 500);
                 }
