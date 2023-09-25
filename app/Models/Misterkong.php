@@ -37,7 +37,7 @@ class Misterkong extends Model
                 // dd(\DB::getQueryLog());
                 if (count($cek) > 0) {
                     if ($cek[0]->jumlah_usaha_user != 1) {
-                        $ex_compid = "SELECT company_id, nama_usaha,alamat from m_user_company where kd_user=(select id from m_userx where (email='" . $data['input'] . "' and passwd='" . $data['passwd'] . "') or (no_hp='" . $data['input'] . "' and passwd='" . $data['passwd'] . "'))";
+                        $ex_compid = "SELECT company_id, nama_usaha,alamat from m_user_company where kd_user=(select id from m_userx where (email='" . $data['input'] . "' and passwd='" . $data['passwd'] . "') or (no_hp='" . $data['input'] . "' and passwd='" . $data['passwd'] . "')) AND status=1";
                         $sql = DB::select($ex_compid);
                         // print_r($row);
                         $jml_data = count($sql);
