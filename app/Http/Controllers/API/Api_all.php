@@ -373,20 +373,28 @@ class Api_all extends Controller
 
     public function get_barang(Request $request)
     {
-        $req = $request->nama;
-        $nama_explode = explode(" ",$req);
-        $b = "SELECT ROW_number() OVER(ORDER BY nama) AS `no`, m_barang.*,0 AS urut FROM misterkong_$request->company_id.m_barang m_barang WHERE nama LIKE '%".$req."%'
-        UNION 
-        SELECT ROW_number() OVER(ORDER BY nama) AS `no`, m_barang.*,0 AS urut FROM misterkong_$request->company_id.m_barang m_barang WHERE 
-        kd_barang NOT IN (SELECT kd_barang FROM m_barang WHERE nama LIKE '%".$req."%')
-        AND ( nama LIKE '%".$nama_explode[0]."%'";
-        for ($x = 1; $x < count($nama_explode); $x++) {
-            $a =" OR nama LIKE '%".$nama_explode[$x]."%'";
-            $b .= $a;
+        if (!empty($request->nama)) {
+            $req = $request->nama;
+            $nama_explode = explode(" ",$req);
+            $b = "SELECT ROW_number() OVER(ORDER BY nama) AS `no`, m_barang.*,0 AS urut FROM misterkong_$request->company_id.m_barang m_barang WHERE nama LIKE '%".$req."%'
+            UNION 
+            SELECT ROW_number() OVER(ORDER BY nama) AS `no`, m_barang.*,0 AS urut FROM misterkong_$request->company_id.m_barang m_barang WHERE 
+            kd_barang NOT IN (SELECT kd_barang FROM m_barang WHERE nama LIKE '%".$req."%')
+            AND ( nama LIKE '%".$nama_explode[0]."%'";
+            for ($x = 1; $x < count($nama_explode); $x++) {
+                $a =" OR nama LIKE '%".$nama_explode[$x]."%'";
+                $b .= $a;
+            }
+            $b.=") LIMIT $request->limit, $request->length";
+            return DB::select($b);
+        } else {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "silahkan isi nama barang",
+                "data" => []
+            ]);
         }
-        $b.=")";
-        return DB::select($b);
-        // print_r($b);
     }
 
     public function get_satuan(Request $request)
