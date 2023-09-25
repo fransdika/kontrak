@@ -1166,6 +1166,7 @@ class Api_all extends Controller
                         "status" => 1,
                         "error" => 0,
                         "Pesan" => "Berhasil hapus akun",
+                        "status_akun" => 0,
                         "data" => []
                     ], 200);
                 } catch (\Exception $e) {
@@ -1177,8 +1178,9 @@ class Api_all extends Controller
                         'data' => array(
                             "title" => 'Nonaktif',
                             "comp_id" => $request->company_id,
-                            "jenis_notif" => '10',
-
+                            "jenis_notif" => '11',
+                            "body" => '',
+                            "isi" => ''
                         ),
                     );
                     $headers = array(
@@ -1224,8 +1226,9 @@ class Api_all extends Controller
                 'data' => array(
                     "title" => 'Nonaktif',
                     "comp_id" => $request->company_id,
-                    "jenis_notif" => '10',
-
+                    "jenis_notif" => '11',
+                    "body" => '',
+                    "isi" => ''
                 ),
             );
             $headers = array(
@@ -1244,6 +1247,7 @@ class Api_all extends Controller
                 "status" => 1,
                 "error" => 0,
                 "Pesan" => "Berhasil hapus akun",
+                "status_akun" => 0,
                 "data" => []
             ], 200);
         }
@@ -1269,6 +1273,7 @@ class Api_all extends Controller
                 "status" => 1,
                 "error" => 0,
                 "Pesan" => "Berhasil aktifkan akun",
+                "status_akun" => 1,
                 "data" => []
             ], 200);
         } else {
@@ -1281,6 +1286,7 @@ class Api_all extends Controller
                     "status" => 1,
                     "error" => 0,
                     "Pesan" => "Berhasil aktifkan akun",
+                    "status_akun" => 1,
                     "data" => []
                 ], 200);
             } catch (\Exception $e) {
