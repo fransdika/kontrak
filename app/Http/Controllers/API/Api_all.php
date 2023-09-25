@@ -1162,6 +1162,30 @@ class Api_all extends Controller
                     ], 200);
                 } catch (\Exception $e) {
                     DB::rollBack();
+                    $payload = array(
+                        'to' => '/topics/kongpos',
+                        'priority' => 'high',
+                        "mutable_content" => true,
+                        'data' => array(
+                            "title" => 'Update Master',
+                            "comp_id" => $request->company_id,
+                            "jenis_notif" => '10',
+
+                        ),
+                    );
+                    $headers = array(
+                        'Authorization:key=AAAAf50odws:APA91bERBP6tLNfAWz_aeNhmXjbOOItI2aZ_bZEy1xNX47SWCr8LbrfNVQfuVJ8xYT7_mCFKRn6pBW7_qO-fG5qFNfIU-8nfWm1-M_zhezLK12dlsIeFi8ZfYeizEhPVQTdIbGj0DtUt', 'Content-Type: application/json',
+                    );
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    $result = curl_exec($ch);
+                    curl_close($ch);
+
                     return response()->json([
                         "status" => 0,
                         "error" => 404,
@@ -1185,6 +1209,29 @@ class Api_all extends Controller
             } else {
                 $verivikasi = DB::update("UPDATE m_user_company SET status = '0' WHERE company_id = '$request->company_id'");
             }
+            $payload = array(
+                'to' => '/topics/kongpos',
+                'priority' => 'high',
+                "mutable_content" => true,
+                'data' => array(
+                    "title" => 'Update Master',
+                    "comp_id" => $request->company_id,
+                    "jenis_notif" => '10',
+
+                ),
+            );
+            $headers = array(
+                'Authorization:key=AAAAf50odws:APA91bERBP6tLNfAWz_aeNhmXjbOOItI2aZ_bZEy1xNX47SWCr8LbrfNVQfuVJ8xYT7_mCFKRn6pBW7_qO-fG5qFNfIU-8nfWm1-M_zhezLK12dlsIeFi8ZfYeizEhPVQTdIbGj0DtUt', 'Content-Type: application/json',
+            );
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            $result = curl_exec($ch);
+            curl_close($ch);
             return response()->json([
                 "status" => 1,
                 "error" => 0,
@@ -1247,6 +1294,22 @@ class Api_all extends Controller
 
     }
 
-
+    public function checkStatus(Request $request)
+    {
+        $sql = DB::select("SELECT `status` FROM m_user_company WHERE company_id='$request->company_id'");
+        if ($sql[0]->status == 1) {
+            $status = 'Aktif';
+        } else {
+            $status = 'Nonaktif';
+        }
+        return response()->json([
+            "status" => 1,
+            "error" => 0,
+            "Pesan" => "Status toko : $status",
+            "data" => [
+                'status_toko' => $sql[0]->status
+            ]
+        ], 200);
+    }
     
 } 
