@@ -135,11 +135,12 @@ class SolidReportController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $status_toko_failed = DB::select("SELECT `value` AS `status` FROM misterkong_$request->comp_id.g_db_config WHERE name='status_toko'");
             return response()->json([
                 'status' => 0,
                 'error' => 500,
                 'message' => 'Failed Update Data',
-                'status_toko' => '',
+                'status_toko' => $status_toko_failed[0]->status,
                 'data' => []
             ]);
         }
