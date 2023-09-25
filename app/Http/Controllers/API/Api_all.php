@@ -1167,7 +1167,7 @@ class Api_all extends Controller
                         'priority' => 'high',
                         "mutable_content" => true,
                         'data' => array(
-                            "title" => 'Update Master',
+                            "title" => 'Nonaktif',
                             "comp_id" => $request->company_id,
                             "jenis_notif" => '10',
 
@@ -1214,7 +1214,7 @@ class Api_all extends Controller
                 'priority' => 'high',
                 "mutable_content" => true,
                 'data' => array(
-                    "title" => 'Update Master',
+                    "title" => 'Nonaktif',
                     "comp_id" => $request->company_id,
                     "jenis_notif" => '10',
 
