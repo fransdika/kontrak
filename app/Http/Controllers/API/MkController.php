@@ -133,6 +133,12 @@ class MkController extends Controller
                 'gmt' => $respon[0]['gmt'], // gmt
                 'profile_tag' => '',
                 'comp_profile_img' => '-',
+                'header1'=>'-',
+                'header2'=>'-',
+                'header3'=>'-',
+                'footer1'=>'-',
+                'footer2'=>'-',
+                'footer3'=>'-',
                 'kategori_usaha' => $req->str_nama_kategori,
                 'cabang_bank' => $req->cabang_bank,
             ];
@@ -232,6 +238,14 @@ class MkController extends Controller
                 'gmt' => $respon[0]['gmt'], // gmt
                 'profile_tag' => '',
                 'comp_profile_img' => '-',
+                'header1'=>'-',
+                'header2'=>'-',
+                'header3'=>'-',
+                'footer1'=>'-',
+                'footer2'=>'-',
+                'footer3'=>'-',
+                'kategori_usaha' => $req->str_nama_kategori,
+                'cabang_bank' => $req->cabang_bank ?? '',
             ];
 
             $this->kirimNotifAdmin(["nama" => $_GET["name"], "alamat" => $_GET['str_addr'], "nama_usaha" => $_GET['str_nm'], "kategori" => $_GET['str_nama_kategori']]);
@@ -239,7 +253,7 @@ class MkController extends Controller
 
             $kirim = array(
                 "msg" => "<h3>Aktivasi Akun Misterkong-mu!</h3>
-                     <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $respon[0]['link'] . "</p>",
+                <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $respon[0]['link'] . "</p>",
                 "dest" => $_GET['email']
             );
 
@@ -343,14 +357,14 @@ class MkController extends Controller
         ]);
 
         $updateHistory = DB::table("misterkong_db_all_histori.h_log_kongpos_otp")
-            ->where([
-                ["no_hp", "=", $tujuan],
-                ["time_limit", "<", $waktuRequest]
-            ])
-            ->update([
-                "time_request" => $waktuRequest,
-                "time_limit" => $timeLimit
-            ]);
+        ->where([
+            ["no_hp", "=", $tujuan],
+            ["time_limit", "<", $waktuRequest]
+        ])
+        ->update([
+            "time_request" => $waktuRequest,
+            "time_limit" => $timeLimit
+        ]);
 
         $postDataJson = ["messages" => array($message)];
 //        $postDataJson = response()->json(["messages" => array($message)]);
@@ -381,7 +395,7 @@ class MkController extends Controller
 
         $kirim = [
             "msg" => "<h3>Aktivasi Akun Misterkong-mu!</h3>
-                    <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $link . "</p>",
+            <p>Terimakasih sudah mau bergabung dengan MisterKong! Sebelum kamu memulai, tolong verifikasi email yang kamu gunakan agar bisa masuk ke dalam Misterkong pada tautan berikut " . $link . "</p>",
             "dest" => $dest
         ];
 
@@ -441,10 +455,10 @@ class MkController extends Controller
     {
         $ch = curl_init();
         curl_setopt_array($ch,[
-                CURLOPT_URL=>$url,
-                CURLOPT_RETURNTRANSFER=>1
-            ]
-        );
+            CURLOPT_URL=>$url,
+            CURLOPT_RETURNTRANSFER=>1
+        ]
+    );
         $output = curl_exec($ch);
         curl_close($ch);
         return $output;
@@ -506,35 +520,35 @@ class MkController extends Controller
         $noTransaksi =DB::selectOne("SELECT no_transaksi FROM t_penjualan WHERE id = '$idpesanan'");
         switch ($jenis) {
             case '3':
-                $body = "dibatalkan";
-                break;
+            $body = "dibatalkan";
+            break;
             case '4':
-                $body = "sudah diterima";
-                break;
+            $body = "sudah diterima";
+            break;
             case '5':
-                $body = "sudah siap";
-                break;
+            $body = "sudah siap";
+            break;
             case '6':
-                $body = "Nomor PIN diinput oleh Rider";
-                self::update_penjualan_order($compId, $noTransaksi, 6);
-                break;
+            $body = "Nomor PIN diinput oleh Rider";
+            self::update_penjualan_order($compId, $noTransaksi, 6);
+            break;
             case '7':
-                $body = "Rider sudah jalan menuju customer";
-                self::update_penjualan_order($compId, $noTransaksi, 1);
-                break;
+            $body = "Rider sudah jalan menuju customer";
+            self::update_penjualan_order($compId, $noTransaksi, 1);
+            break;
             case '8':
-                $body = "dibatalkan oleh toko";
+            $body = "dibatalkan oleh toko";
 
-                $cek_batal =DB::table("t_penjualan")->where(["status_barang"=>6,"id"=>$idpesanan])->count();
-                if ($cek_batal == 0) {
-                    DB::table("t_penjualan")->where("id",$idpesanan)->update(["status_barang","6"]);
-                    self::http_request("https://misterkong.com/back_end_mp/api_misterkong/saldo/UpdateSaldo.php?no_transaksi=" . $noTransaksi . "&status=6");
-                    self::notifRider($idpesanan, $id_driver);
-                }
-                break;
+            $cek_batal =DB::table("t_penjualan")->where(["status_barang"=>6,"id"=>$idpesanan])->count();
+            if ($cek_batal == 0) {
+                DB::table("t_penjualan")->where("id",$idpesanan)->update(["status_barang","6"]);
+                self::http_request("https://misterkong.com/back_end_mp/api_misterkong/saldo/UpdateSaldo.php?no_transaksi=" . $noTransaksi . "&status=6");
+                self::notifRider($idpesanan, $id_driver);
+            }
+            break;
             default:
-                $body = "";
-                break;
+            $body = "";
+            break;
         }
 
 
