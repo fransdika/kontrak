@@ -34,8 +34,8 @@ class Utilites extends Controller
             ], 200);
         } else {
             return response()->json([
-                "status" => 1,
-                "error" => 0,
+                "status" => 0,
+                "error" => 500,
                 "Pesan" => "Password anda salah",
                 "data" => []
             ], 200);
