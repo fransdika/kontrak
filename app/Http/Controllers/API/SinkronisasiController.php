@@ -613,41 +613,73 @@ class SinkronisasiController extends Controller
         return response()->json($response, 200);        
     }
 
-    function getFirstSync(Request $request, $company_id){
+     function getFirstSync(Request $request, $company_id){
         $file_limit=100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
-        $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
-        $data=[];
-        if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/data_def")) {
-            mkdir("../../../public_html/back_end_mp/" . $company_id . "_config/data_def", 0777, true);
-        }
+        $jenis=$request->jenis;
+        $data_json=[];
+        $status=2;
+        $iddle=0;
+        $file_path='';
+        if ($jenis==0) {
+            ini_set('memory_limit', '256M');
+            $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
+            $data=[];
+            if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/data_def")) {
+                mkdir("../../../public_html/back_end_mp/" . $company_id . "_config/data_def", 0777, true);
+            }
 
-        $table_name_no_dt = json_decode($json_no_dt, true);
-        foreach ($table_name_no_dt as $key => $value) {
-            $list_table[] = $key;
-        }
-        foreach ($list_table as $key => $value) {
-            $file_path=[];
-            if (!preg_match('/t_/', $value)) {
-                $sql_get_data = "SELECT $value.* FROM misterkong_" . $company_id . ".$value WHERE date_modif >='" . $last_request . "'";
-                $exe_get_data = db::select($sql_get_data);
-
-                if (count($exe_get_data)>0) {    
-                    $path = "../../../public_html/back_end_mp/" . $company_id . "_config/data_def". "/" . $value . "__" . $last_request .".json"; // vps
-                    $file_json = fopen($path, "w+");
-                    fclose($file_json);
-                    file_put_contents($path, "");
-                    $arr_data_prepare = array();
-                    foreach ($exe_get_data as $key_data_prepare => $value_data_prepare) {
-                        $arr_data_prepare[] = $value_data_prepare;
+            $table_name_no_dt = json_decode($json_no_dt, true);
+            foreach ($table_name_no_dt as $key => $value) {
+                $list_table[] = $key;
+            }
+            $path = "../../../public_html/back_end_mp/" . $company_id . "_config/data_def". "/default__".$last_request.".json"; // vps
+            $file_json = fopen($path, "w+");
+            fclose($file_json);
+            file_put_contents($path, "");
+            foreach ($list_table as $key => $value) {
+                if (!preg_match('/t_/', $value)) {
+                    $sql_get_data = "SELECT $value.* FROM misterkong_" . $company_id . ".$value WHERE date_modif >='" . $last_request . "'";
+                    $exe_get_data = db::select($sql_get_data);
+                    if (count($exe_get_data)>0) {    
+                        $arr_data_prepare = array();
+                        foreach ($exe_get_data as $key_data_prepare => $value_data_prepare) {
+                            $arr_data_prepare[] = $value_data_prepare;
+                        }
+                        $data[] = SinkronisasiModel::convertToQuery($value,$arr_data_prepare);
                     }
-                    $data[] = SinkronisasiModel::convertToQuery($value,$arr_data_prepare);
                 }
             }
+            // print_r(strlen(implode('',$data)));
+        // echo strlen(implode('',$data))/950000;
+            if (strlen(implode('',$data))/950000 > 7 ) {
+            // echo strlen(implode('',$data))/950000;
+                $file_contents = json_encode($data);
+                file_put_contents($path, $file_contents, FILE_APPEND | LOCK_EX);
+                $file_path="https://misterkong.com/back_end_mp/".$company_id."_config/data_def/default__".$last_request.".json";
+                $iddle=2;
+            
+            }else{
+                $data_json=$data;
+                $status=1;
+            }
+        }else{
+            $data_json = json_decode(file_get_contents("../../../public_html/back_end_mp/" . $company_id . "_config/data_def". "/default__".$last_request.".json"), true);
+            $status=1;
+            // print_r($data_json);
         }
-        return response()->json($data, 200);        
-    }
 
+
+        $response=[
+            "status"=>$status,
+            "error"=>200,
+            "message"=>"sukses",
+            "iddle"=> $iddle,
+            "filepath"=>$file_path,
+            "data"=>$data_json
+        ];
+        return response()->json($response, 200);
+    }
     public function resetKontrak($value='')
     {
         DB::select("CALL misterkong_comp2020110310070901.reset_kontrak()");
