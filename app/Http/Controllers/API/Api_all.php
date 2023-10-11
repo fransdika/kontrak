@@ -1338,6 +1338,5 @@ class Api_all extends Controller
                 'status_toko' => $sql[0]->status
             ]
         ], 200);
-    }
-    
+    }    
 } 

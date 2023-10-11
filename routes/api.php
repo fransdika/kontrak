@@ -11,6 +11,7 @@ use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
 use App\Http\Controllers\API\DatabaseGeneratorController;
 use App\Http\Controllers\API\SolidReportController;
+use App\Http\Controllers\API\Utilites;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,7 @@ Route::post('get_supplier_contracted', [Api_all::class, 'get_supplier_contracted
 Route::post('get_list_item_contracted', [Api_all::class, 'get_list_item_contracted']);
 Route::post('get_barang', [Api_all::class, 'get_barang']);
 Route::post('get_satuan', [Api_all::class, 'get_satuan']);
+Route::post('query-all', [Utilites::class, 'query_all_db']);
 
 // post data
 Route::post('post_request_contract', [Api_all::class, 'post_request_contract']);
