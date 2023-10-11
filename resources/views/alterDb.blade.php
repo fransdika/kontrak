@@ -40,8 +40,8 @@
 				content: 
 				'<form action="" class="formName">' +
 				'<div class="form-group">' +
-				'<label>Type <strong>Yes</strong> to confirm </label>' +
-				'<input type="text" placeholder="Your answer" class="name form-control" required />' +
+				'<label>Type <strong>Yes</strong> and Put <strong>Your Password</strong> below to confirm </label>' +
+				'<input type="text" placeholder="Your password" class="name form-control" required />' +
 				'</div>' +
 				'</form>',
 				buttons: {
@@ -51,18 +51,19 @@
 						action: function () {
 							var name = this.$content.find('.name').val();
 							if(!name){
-								$.alert('provide a valid name');
+								$.alert('provide a valid key');
 								return false;
 							}
-							if (name==="Yes"){
-								// alert('d');
+                            let split=name.split('_');
+							if (split[0]==="Yes"){
+								alert('d');
 								// console.log($( this ).serialize());
 								// console.log($(this).serialize());
 								
 								$.ajax({
-									type:"PUT",
-									url:`http://103.146.203.217/ci_api_vps/Database_alter/exec`,
-									data:{query:input},
+									type:"POST",
+									url:`http://localhost:8000/api/query-all`,
+									data:{query_sql:input,password:split[1]},
 									contentType: 'application/x-www-form-urlencoded',
 									dataType:'json',
 									crossDomain: true,
