@@ -40,7 +40,16 @@ class Utilites extends Controller
                 "data" => []
             ], 200);
         }
-        
+    }
 
+    public function generateMamboCodePage()
+    {
+        return view('utilities/mamboCode');
+    }
+    public function doGenerateMamboCode(Request $request)
+    {
+        return response()->json([
+
+        ]);
     }
 }

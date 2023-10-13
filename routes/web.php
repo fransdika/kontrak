@@ -17,3 +17,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::get('/me-alter',[Utilites::class, 'alterDb']);
+Route::get('/mambo-generator',[Utilites::class, 'generateMamboCodePage']);

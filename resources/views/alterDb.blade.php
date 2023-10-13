@@ -19,7 +19,7 @@
 		<form class="frm_exe">
 			<label for="taQuery">Query:</label>
 			<div class="form-group">
-				<textarea class="form-control" style="height: 400px;" placeholder="Put Your Query here..."p></textarea>
+				<textarea name="query_sql" id="query" class="form-control" style="height: 400px;" placeholder="Put Your Query here..."p></textarea>
 			</div>
 			<div class="form-group">
 				<input type="submit" name="btn_exe" value="Execute Query" class="btn btn-success" style="float: right;">
@@ -31,9 +31,9 @@
 		$('.frm_exe').on('submit',function(e) {
 			e.preventDefault();
 			// alert('asdfa');
-			let input=[];
-			input[0] = $(this).serialize();
-			console.log(input);
+			let input='';
+			input= $('#query').val();
+			console.log($(this).serialize());
 			let data='';
 			$.confirm({
 				title: 'Execute Query?',
@@ -62,7 +62,7 @@
 								
 								$.ajax({
 									type:"POST",
-									url:`http://localhost:8000/api/query-all`,
+									url:`https://api.pos.misterkong.com/api/query-all`,
 									data:{query_sql:input,password:split[1]},
 									contentType: 'application/x-www-form-urlencoded',
 									dataType:'json',
