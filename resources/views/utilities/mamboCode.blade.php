@@ -23,9 +23,10 @@
 	<script type="text/javascript">
 		$('#frm_generateMamboCode').on('submit',function(e){
 			e.preventDefault();	
+			
 			$.ajax({
 				type:"POST",
-				url:"http:localhost:8000/do-generate-mambo",
+				url:"${base_url}/do-generate-mambo",
 				data:{},
 				dataType:"json",
 				success:function(r){

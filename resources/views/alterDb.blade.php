@@ -55,21 +55,22 @@
 								return false;
 							}
                             let split=name.split('_');
-							if (split[0]==="Yes"){
-								alert('d');
+                            if (split[0]==="Yes"){
+								// alert('d');
 								// console.log($( this ).serialize());
 								// console.log($(this).serialize());
-								
-								$.ajax({
-									type:"POST",
-									url:`https://api.pos.misterkong.com/api/query-all`,
-									data:{query_sql:input,password:split[1]},
-									contentType: 'application/x-www-form-urlencoded',
-									dataType:'json',
-									crossDomain: true,
-									success:function(r){
-										if (r.status==1) {
-											alert('success');
+								var base_url = {!! json_encode(url('/')) !!};
+                                console.log(base_url);
+                                $.ajax({
+                                   type:"POST",
+                                   url:`${base_url}/api/query-all`,
+                                   data:{query_sql:input,password:split[1]},
+                                   contentType: 'application/x-www-form-urlencoded',
+                                   dataType:'json',
+                                   crossDomain: true,
+                                   success:function(r){
+                                      if (r.status==1) {
+                                         alert('success');
 											// window.location.reload();
 										}
 									}
