@@ -25,7 +25,7 @@
 			e.preventDefault();	
 			$.ajax({
 				type:"POST",
-				url:"",
+				url:"http:localhost:8000/do-generate-mambo",
 				data:{},
 				dataType:"json",
 				success:function(r){
