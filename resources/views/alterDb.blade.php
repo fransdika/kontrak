@@ -60,7 +60,7 @@
 								// console.log($( this ).serialize());
 								// console.log($(this).serialize());
 								var base_url = {!! json_encode(url('/')) !!};
-                                console.log(base_url);
+                                // console.log(base_url);
                                 $.ajax({
                                    type:"POST",
                                    url:`${base_url}/api/query-all`,

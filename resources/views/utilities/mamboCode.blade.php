@@ -15,19 +15,32 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.1/js/bootstrap-select.min.js"></script>
 </head>
 <body>
-	<form id="frm_generateMamboCode">
-		<input type="number" class="form-control" name="jumlah_generate">
-		<input type="submit" class="btn btn-primary btn-sm" name="" value="generate">
-	</form>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-6">
+				<form id="frm_generateMamboCode">
+					<div class="form-group">
+						<label>Toko</label>
+						<input type="text" class="form-control" name="toko" id="toko" value="Mane" readonly>
+					</div>
+					<div class="form-group">
+						<input type="number" class="form-control" name="jumlah_generate" id="jumlah" value="1000" onclick="select()">
+					</div>
+					<input type="submit" class="btn btn-primary btn-sm" name="" value="Generate" >
+				</form>
+			</div>
+		</div>
+	</div>
 
 	<script type="text/javascript">
 		$('#frm_generateMamboCode').on('submit',function(e){
 			e.preventDefault();	
-			
+			let jumlah=$('jumlah').val();
+			var base_url = {!! json_encode(url('/')) !!};
 			$.ajax({
 				type:"POST",
-				url:"${base_url}/do-generate-mambo",
-				data:{},
+				url:`${base_url}/api/do-generate-mambo`,
+				data:{company_id:'misterkong_comp2020100516254401',jumlah:jumlah},
 				dataType:"json",
 				success:function(r){
 					console.log(r)

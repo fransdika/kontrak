@@ -45,7 +45,7 @@ Route::post('get_list_item_contracted', [Api_all::class, 'get_list_item_contract
 Route::post('get_barang', [Api_all::class, 'get_barang']);
 Route::post('get_satuan', [Api_all::class, 'get_satuan']);
 Route::post('query-all', [Utilites::class, 'query_all_db']);
-Route::post('do-generate-mambo', [Api_all::class, 'doGenerateMamboCode']);
+Route::post('do-generate-mambo', [Utilites::class, 'doGenerateMamboCode']);
 
 // post data
 Route::post('post_request_contract', [Api_all::class, 'post_request_contract']);
