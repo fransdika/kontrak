@@ -657,7 +657,7 @@ class SinkronisasiController extends Controller
                 $file_contents = json_encode($data);
                 file_put_contents($path, $file_contents, FILE_APPEND | LOCK_EX);
                 $file_path="https://misterkong.com/back_end_mp/".$company_id."_config/data_def/default__".$last_request.".json";
-                $iddle=2;
+                $iddle=0.2;
             
             }else{
                 $data_json=$data;

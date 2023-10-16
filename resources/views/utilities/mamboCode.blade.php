@@ -30,8 +30,13 @@
 				</form>
 			</div>
 		</div>
+		<div class="row" style="margin-top: 10px;display: none;" id="hasil-generate">
+			<div class="col-md-12">
+				<label><strong>Generated Code</strong></label>
+				<div id="code"></div>
+			</div>
+		</div>
 	</div>
-
 	<script type="text/javascript">
 		$('#frm_generateMamboCode').on('submit',function(e){
 			e.preventDefault();	
@@ -43,10 +48,21 @@
 				data:{company_id:'misterkong_comp2020100516254401',jumlah:jumlah},
 				dataType:"json",
 				success:function(r){
-					console.log(r)
-				}
+					data=r.data;
+					html_data=``;
+					Object.keys(obj).forEach(function(key) {
+						console.log(obj[key]);
+					});
+					// for (var i = 0; i < data.length; i++) {
+					// 	html_data+=data[i].toString();
+					// }
+					// console.log(data);
+					// $('#code').html(data)
+					// $('#hasil-generate').css('display','block');
+						// console.log(r)
+					}
 
-			});
+				});
 		})
 	</script>
 </body>
