@@ -202,3 +202,13 @@ Route::post('reset-kontrak', [SinkronisasiController::class, 'resetKontrak']);
 
 Route::post('random-up', [Api_all::class, 'upRandom']);
 
+
+//back office
+Route::post('produk/show', [BackOfficeController::class, 'master_produk']);
+Route::any('/produk', [BackOfficeController::class, 'cudProduk']);
+Route::any('/kategori', [BackOfficeController::class, 'cudKategori']);
+Route::get('/kategori/show', [BackOfficeController::class, 'show_categories']);
+Route::any('/merk', [BackOfficeController::class, 'cudMerk']);
+Route::get('merk/show', [BackOfficeController::class, 'show_merk']);
+Route::any('/satuan', [BackOfficeController::class, 'cudSatuan']);
+Route::get('/satuan/show', [BackOfficeController::class, 'show_satuan']);
