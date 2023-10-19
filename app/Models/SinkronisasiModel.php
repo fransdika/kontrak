@@ -24,6 +24,11 @@ class SinkronisasiModel extends Model
         $sql="INSERT INTO $table($col) VALUES";
         $values=[];
         foreach ($data as $key_data => $value_data) {
+            foreach($value_data as $key_last => $value_last){
+                if(preg_match("/'/",$value_last)){
+                    $value_data->$key_last=str_replace("'","''",$value_last);
+                }
+            }
             $row_data=implode("','", (array)$value_data);
             $values[]="('$row_data')";
         }
