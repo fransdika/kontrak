@@ -198,7 +198,8 @@ Route::post('get-first-sync/{company_id}', [SinkronisasiController::class, 'getF
 // resetKontrak
 Route::post('reset-kontrak', [SinkronisasiController::class, 'resetKontrak']);
 
-
-
 Route::post('random-up', [Api_all::class, 'upRandom']);
 
+
+// produk like saribuana
+Route::post('produk/show', [Api_all::class, 'showProduct']);
