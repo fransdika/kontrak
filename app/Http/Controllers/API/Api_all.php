@@ -1339,4 +1339,32 @@ class Api_all extends Controller
             ]
         ], 200);
     }    
+
+    public function showProduct(Request $request)
+    {
+        if (!empty($request->order_col) && !empty($request->order_type)) {
+            $query_order = " ORDER BY $request->order_col $request->order_type";
+        } else {
+            $query_order = "";
+        }
+
+        if (!(empty($request->search))) {
+            $query_search = " WHERE nama LIKE '%".$request->search."%' OR kategori LIKE '%".$request->search."%'";
+        } else {
+            $query_search = "";
+        }
+
+        $sql = DB::select("SELECT * FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga FROM misterkong_$request->company_id.m_barang m_barang
+        INNER JOIN misterkong_$request->company_id.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
+        INNER JOIN misterkong_$request->company_id.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
+        INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
+        LEFT JOIN misterkong_$request->company_id.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a $query_search $query_order LIMIT $request->limit, $request->length");
+        
+        return response()->json([
+            "status" => 1,
+            "error" => 0,
+            "Pesan" => "",
+            "data" => $sql
+        ], 200);
+    }
 } 
