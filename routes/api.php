@@ -202,4 +202,5 @@ Route::post('random-up', [Api_all::class, 'upRandom']);
 
 
 // Adopsi saribuana
-Route::post('produk/show', [Api_all::class, 'showProduct']);
+Route::get('produk/show', [Api_all::class, 'showProduct']);
+Route::any('produk', [Api_all::class, 'cudProduct']);

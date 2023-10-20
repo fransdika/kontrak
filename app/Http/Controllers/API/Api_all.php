@@ -1360,11 +1360,36 @@ class Api_all extends Controller
         INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
         LEFT JOIN misterkong_$request->company_id.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a $query_search $query_order LIMIT $request->limit, $request->length");
         
+        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga FROM misterkong_comp2020110310015601.m_barang m_barang
+        INNER JOIN misterkong_comp2020110310015601.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
+        INNER JOIN misterkong_comp2020110310015601.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
+        INNER JOIN misterkong_comp2020110310015601.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
+        LEFT JOIN misterkong_comp2020110310015601.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a");
+        return response()->json([
+            "status" => 1,
+            "error" => 0,
+            "pesan" => "",
+            "jumlah_record" => $sql2[0]->jumlah_record,
+            "data" => $sql
+        ], 200);
+    }
+
+
+    public function cudProduct(Request $request)
+    {
+        $m_barang = DB::select("SELECT kd_barang, kd_kategori, kd_merk, ukuran, nama, keterangan, `status`, tag FROM misterkong_$request->company_id.m_barang WHERE kd_barang='$request->kd_barang'");
+        $mbs = DB::select("SELECT kd_barang, kd_satuan, jumlah, harga_jual, `status`, margin FROM misterkong_$request->company_id.m_barang_satuan WHERE kd_barang='$request->kd_barang'");
+        $mbg = DB::select("SELECT kd_barang, nomor, keterangan, gambar FROM misterkong_$request->company_id.m_barang_gambar WHERE kd_barang='089686022070'");
+
+        $data = [];
+        $data['m_barang'] = $m_barang;
+        $data['m_barang_satuan'] = $mbs;
+        $data['m_barang_gambar'] = $mbg;
         return response()->json([
             "status" => 1,
             "error" => 0,
             "Pesan" => "",
-            "data" => $sql
+            "data" => $data
         ], 200);
     }
 } 
