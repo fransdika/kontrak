@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Wapmorgan\UnifiedArchive\UnifiedArchive;
 use App\Models\CRUDModel;
-
+use Facade\FlareClient\Http\Response;
 
 // wapmorgan\unified-archive;
 
@@ -1364,10 +1364,10 @@ class Api_all extends Controller
         LEFT JOIN misterkong_$request->company_id.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a $query_search $query_order LIMIT $request->limit, $request->length");
         
         $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga FROM misterkong_comp2020110310015601.m_barang m_barang
-        INNER JOIN misterkong_comp2020110310015601.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
-        INNER JOIN misterkong_comp2020110310015601.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
-        INNER JOIN misterkong_comp2020110310015601.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
-        LEFT JOIN misterkong_comp2020110310015601.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a");
+        INNER JOIN misterkong_$request->company_id.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
+        INNER JOIN misterkong_$request->company_id.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
+        INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
+        LEFT JOIN misterkong_$request->company_id.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a");
         return response()->json([
             "status" => 1,
             "error" => 0,
@@ -1500,7 +1500,7 @@ class Api_all extends Controller
 			$crud_type='select_put';
             $m_barang = DB::select("SELECT kd_barang, kd_kategori, kd_merk, ukuran, nama, keterangan, `status`, tag FROM misterkong_$request->company_id.m_barang WHERE kd_barang='$request->kd_barang'");
             $mbs = DB::select("SELECT kd_barang, kd_satuan, jumlah, harga_jual, `status`, margin FROM misterkong_$request->company_id.m_barang_satuan WHERE kd_barang='$request->kd_barang'");
-            $mbg = DB::select("SELECT kd_barang, nomor, keterangan, gambar FROM misterkong_$request->company_id.m_barang_gambar WHERE kd_barang='089686022070'");
+            $mbg = DB::select("SELECT kd_barang, nomor, keterangan, gambar FROM misterkong_$request->company_id.m_barang_gambar WHERE kd_barang='$request->kd_barang'");
             $data = [];
             $data['m_barang'] = $m_barang[0];
             $data['m_barang_satuan'] = $mbs;
@@ -1513,4 +1513,93 @@ class Api_all extends Controller
             ], 200);
 		}
     }
+
+    public function crudResponses($status,$crud_type,$data=[])
+	{
+		$msg_arr=[
+			[
+				'insert'=>'oops, terjadi kesalahan, data gagal disimpan',
+				'update'=>'oops, terjadi kesalahan, perubahan gagal disimpan',
+				'delete'=>'data gagal dihapus',
+				'select'=>'data tidak tersedia',
+				'err_notfound' => '404 Page Not Found'
+			],
+			[
+				'insert'=>'Data Berhasil disimpan',
+				'update'=>'Perubahan Berhasil disimpan',
+				'delete'=>'Data Berhasil dihapus',
+				'select'=>count($data)." data ditemukan",
+				'select_put'=>"1 data ditemukan",
+			]
+		];
+		if ($crud_type=='err_notfound') {
+			$error=404;
+		}else{
+			if ($status==1) {
+				$error=200;
+			}else{
+				$error=500;
+			}
+		}
+		$response=[
+			'status' => $status,
+			'error' => $error,
+			'message' => $msg_arr[$status][$crud_type],
+			'data' => (!empty($data))?$data:[]
+		];
+		return $response;
+	}
+
+    public function cudKategori(Request $request)
+	{
+		$type='';
+		$exe='';
+		$kategori = DB::select("SELECT * FROM misterkong_$request->company_id.m_kategori ORDER BY kd_kategori DESC LIMIT 1");
+		$kd_kategori = CRUDModel::generate_kode('KAA',$kategori[0]->kd_kategori);
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save['m_kategori'][]=[
+				'kd_kategori'=>$kd_kategori,
+				'nama'=>$request->nama,
+				'keterangan'=>$request->keterangan,
+				'status'=>$request->status
+			];
+			
+			
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				unset($data_save['m_kategori'][0]['kd_kategori']);
+				$exe=DB::table('m_kategori')->insert($data_save);
+                DB::table('m_kategori')->where('kd_kategori',$request->kd_kategori)->update($value_update_key);
+			}else{
+				$crud_type='insert';
+				$exe=CRUDModel::doBulkInsertTable($data_save);
+			}
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
+			}
+		}elseif ($request->isMethod('GET') && !empty($request->key)) {
+			$crud_type='select_put';
+			$key=['kd_kategori'=>$request->key];
+			$data_edit=CRUDModel::getWhere('v_kategori',$key)[0];
+			$data_edit->gambar=CRUDModel::getWhere('m_kategori_gambar',$key);
+			return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit));
+		}elseif ($request->isMethod('DELETE')) {
+			$crud_type='delete';
+			$key=['kd_kategori'=>$request->kd_kategori];
+			$exe=CRUDModel::doDeleteSingle('m_kategori',$key);
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type));
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type));
+			}
+		}else{
+			return response()->json($this->crudResponses(0,'err_notfound'),404);
+		}
+		
+	}
+
+
+    
 } 
