@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Wapmorgan\UnifiedArchive\UnifiedArchive;
+use App\Models\CRUDModel;
+
+
 // wapmorgan\unified-archive;
 
 
@@ -1354,7 +1357,7 @@ class Api_all extends Controller
             $query_search = "";
         }
 
-        $sql = DB::select("SELECT * FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga FROM misterkong_$request->company_id.m_barang m_barang
+        $sql = DB::select("SELECT * FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga, m_satuan.kd_satuan, m_satuan.nama AS satuan FROM misterkong_$request->company_id.m_barang m_barang
         INNER JOIN misterkong_$request->company_id.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
         INNER JOIN misterkong_$request->company_id.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
         INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
@@ -1374,22 +1377,120 @@ class Api_all extends Controller
         ], 200);
     }
 
+    public function upload(Request $request)
+    {
+        $file = $request->file('file');
+        $name = $file->getClientOriginalName(); 
+        $ext = $file->getClientOriginalExtension();
+
+        if (strcasecmp($ext, 'jpg') == 0 || strcasecmp($ext, 'jpeg') == 0 || strcasecmp($ext, 'bmp') == 0 || strcasecmp($ext, 'png') == 0) {
+            $file->move("../../../public_html/back_end_mp/".$request->comp_id."_config/images/",$name);
+            return response()->json([
+                'status' => 1,
+                'error' => 0,
+                'message' => 'Berhasil upload gambar',
+                'data' => [
+                    'path' => $name
+                ]
+            ]);
+        } else {
+            return response()->json([
+                'status' => 0,
+                'error' => 500,
+                'message' => 'Format file harus berextention jpg atau jpeg atau bmp atau png',
+                'data' => []
+            ]);
+        }
+    }
 
     public function cudProduct(Request $request)
     {
-        $m_barang = DB::select("SELECT kd_barang, kd_kategori, kd_merk, ukuran, nama, keterangan, `status`, tag FROM misterkong_$request->company_id.m_barang WHERE kd_barang='$request->kd_barang'");
-        $mbs = DB::select("SELECT kd_barang, kd_satuan, jumlah, harga_jual, `status`, margin FROM misterkong_$request->company_id.m_barang_satuan WHERE kd_barang='$request->kd_barang'");
-        $mbg = DB::select("SELECT kd_barang, nomor, keterangan, gambar FROM misterkong_$request->company_id.m_barang_gambar WHERE kd_barang='089686022070'");
+        $type='';
+		$exe='';
+		
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save['m_barang'][]=[
+				'kd_barang'=>$request->kd_barang,
+				'kd_merk'=>$request->kd_merk,
+				'kd_jenis_bahan'=>$request->kd_jenis_bahan,
+				'kd_model'=>$request->kd_model,
+				'kd_kategori'=>$request->kd_kategori,
+				'kd_warna'=>$request->kd_warna,
+				'nama'=>$request->nama,
+				'status'=>$request->status,
+				'keterangan'=>$request->keterangan,
+				'ukuran'=>$request->ukuran,
+				'status_pinjam'=>$request->status_pinjam,
+				'pabrik'=>$request->pabrik,
+				'tanggal_daftar'=>$request->tanggal_daftar,
+				'tag' => $request->tag
+			];
 
-        $data = [];
-        $data['m_barang'] = $m_barang;
-        $data['m_barang_satuan'] = $mbs;
-        $data['m_barang_gambar'] = $mbg;
-        return response()->json([
-            "status" => 1,
-            "error" => 0,
-            "Pesan" => "",
-            "data" => $data
-        ], 200);
+			foreach ($request->mbs as $key_mbs => $value_mbs) {
+				$data_save['m_barang_satuan'][]=[
+					'kd_barang'=>$request->kd_barang,
+					'kd_satuan'=>$value_mbs['kd_satuan'],
+					'jumlah'=>$value_mbs['jumlah'],
+					'harga_jual'=>$value_mbs['harga'],
+					'status'=>$value_mbs['status'],
+					'margin'=>$value_mbs['margin']
+				];
+			}
+			
+			$last_number=CRUDModel::getLastNumber('m_barang_gambar','nomor',['kd_barang'=>$request->kd_barang]);
+			foreach ($request->img as $key_gambar => $value_gambar) {
+				$data_save['m_barang_gambar'][]=[
+					'kd_barang'=>$request->kd_barang,
+					'nomor'=>$last_number+1,
+					'gambar'=>$value_gambar['gambar'],
+					'keterangan'=>'-',
+					'ismain'=>1,
+					'spesifikasi'=>'-',
+					'deskripsi'=>'-',
+				];
+				$last_number++;
+			}
+			// if (!empty($request->type) && $request->type=="edit") {
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				$key['m_barang'][]=['kd_barang'=>$request->kd_barang];
+				$key['m_barang_en'][]=['kd_barang'=>$request->kd_barang];
+				foreach ($request->mbs as $key_satuan => $value_satuan) {
+					$key['m_barang_satuan'][]=['kd_barang'=>$request->kd_barang,'kd_satuan'=>$value_satuan['kd_satuan']];
+				}
+				foreach ($request->img as $key_img => $value_img) {
+					$key['m_barang_gambar'][]=['kd_barang'=>$request->kd_barang];
+				}
+				$exe=CRUDModel::doBulkUpdateTable($data_save,$key,['m_barang_gambar','m_barang_satuan','m_barang_en'],'m_barang');
+				if ($exe) {
+					return response()->json($this->crudResponses(1,$crud_type),200);
+				}else{
+					return response()->json($this->crudResponses(0,$crud_type),500);
+				}
+			}else{
+				$crud_type='insert';
+				$exe=CRUDModel::doBulkInsertTable($data_save);
+				if ($exe) {
+					return response()->json($this->crudResponses(1,$crud_type),200);
+				}else{
+					return response()->json($this->crudResponses(0,$crud_type),500);
+				}
+			}
+		}elseif ($request->isMethod('GET')) {
+			$crud_type='select_put';
+            $m_barang = DB::select("SELECT kd_barang, kd_kategori, kd_merk, ukuran, nama, keterangan, `status`, tag FROM misterkong_$request->company_id.m_barang WHERE kd_barang='$request->kd_barang'");
+            $mbs = DB::select("SELECT kd_barang, kd_satuan, jumlah, harga_jual, `status`, margin FROM misterkong_$request->company_id.m_barang_satuan WHERE kd_barang='$request->kd_barang'");
+            $mbg = DB::select("SELECT kd_barang, nomor, keterangan, gambar FROM misterkong_$request->company_id.m_barang_gambar WHERE kd_barang='089686022070'");
+            $data = [];
+            $data['m_barang'] = $m_barang[0];
+            $data['m_barang_satuan'] = $mbs;
+            $data['m_barang_gambar'] = $mbg;
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "",
+                "data" => $data
+            ], 200);
+		}
     }
 } 

@@ -203,4 +203,11 @@ Route::post('random-up', [Api_all::class, 'upRandom']);
 
 // Adopsi saribuana
 Route::get('produk/show', [Api_all::class, 'showProduct']);
-Route::any('produk', [Api_all::class, 'cudProduct']);
+Route::post('upload-produk', [Api_all::class, 'upload']);
+Route::any('/produk', [Api_all::class, 'cudProduct']);
+Route::any('/kategori', [Api_all::class, 'cudKategori']);
+Route::get('/kategori/show', [Api_all::class, 'show_categories']);
+Route::any('/merk', [Api_all::class, 'cudMerk']);
+Route::get('merk/show', [Api_all::class, 'show_merk']);
+Route::any('/satuan', [Api_all::class, 'cudSatuan']);
+Route::get('/satuan/show', [Api_all::class, 'show_satuan']);
