@@ -1409,7 +1409,7 @@ class Api_all extends Controller
 		$exe='';
 		
 		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
-			$data_save['m_barang'][]=[
+			$data_save[`misterkong_$request->company_id.m_barang`][]=[
 				'kd_barang'=>$request->kd_barang,
 				'kd_merk'=>$request->kd_merk,
 				'kd_jenis_bahan'=>$request->kd_jenis_bahan,
@@ -1427,7 +1427,7 @@ class Api_all extends Controller
 			];
 
 			foreach ($request->mbs as $key_mbs => $value_mbs) {
-				$data_save['m_barang_satuan'][]=[
+				$data_save[`misterkong_$request->company_id.m_barang_satuan`][]=[
 					'kd_barang'=>$request->kd_barang,
 					'kd_satuan'=>$value_mbs['kd_satuan'],
 					'jumlah'=>$value_mbs['jumlah'],
@@ -1437,43 +1437,63 @@ class Api_all extends Controller
 				];
 			}
 			
-			$last_number=CRUDModel::getLastNumber('m_barang_gambar','nomor',['kd_barang'=>$request->kd_barang]);
+			// $last_number=CRUDModel::getLastNumber('m_barang_gambar','nomor',['kd_barang'=>$request->kd_barang]);
 			foreach ($request->img as $key_gambar => $value_gambar) {
-				$data_save['m_barang_gambar'][]=[
+				$data_save[`misterkong_$request->company_id.m_barang_gambar`][]=[
 					'kd_barang'=>$request->kd_barang,
-					'nomor'=>$last_number+1,
+					'nomor'=>$value_gambar['nomor'],
 					'gambar'=>$value_gambar['gambar'],
 					'keterangan'=>'-',
 					'ismain'=>1,
 					'spesifikasi'=>'-',
 					'deskripsi'=>'-',
 				];
-				$last_number++;
+				// $last_number++;
 			}
 			// if (!empty($request->type) && $request->type=="edit") {
 			if ($request->isMethod('PUT')) {
 				$crud_type='update';
-				$key['m_barang'][]=['kd_barang'=>$request->kd_barang];
-				$key['m_barang_en'][]=['kd_barang'=>$request->kd_barang];
+				$key[`misterkong_$request->company_id.m_barang`][]=['kd_barang'=>$request->kd_barang];
+				// $key['m_barang_en'][]=['kd_barang'=>$request->kd_barang];
 				foreach ($request->mbs as $key_satuan => $value_satuan) {
-					$key['m_barang_satuan'][]=['kd_barang'=>$request->kd_barang,'kd_satuan'=>$value_satuan['kd_satuan']];
+					$key[`misterkong_$request->company_id.m_barang_satuan`][]=['kd_barang'=>$request->kd_barang,'kd_satuan'=>$value_satuan['kd_satuan']];
 				}
 				foreach ($request->img as $key_img => $value_img) {
-					$key['m_barang_gambar'][]=['kd_barang'=>$request->kd_barang];
+					$key[`misterkong_$request->company_id.m_barang_gambar`][]=['kd_barang'=>$request->kd_barang];
 				}
-				$exe=CRUDModel::doBulkUpdateTable($data_save,$key,['m_barang_gambar','m_barang_satuan','m_barang_en'],'m_barang');
+				$exe=CRUDModel::doBulkUpdateTable($data_save,$key,[`misterkong_$request->company_id.m_barang_gambar`,`misterkong_$request->company_id.m_barang_satuan`],`misterkong_$request->company_id.m_barang`);
 				if ($exe) {
-					return response()->json($this->crudResponses(1,$crud_type),200);
+                    return response()->json([
+                        "status" => 1,
+                        "error" => 0,
+                        "pesan" => "",
+                        "data" => []
+                    ], 200);
 				}else{
-					return response()->json($this->crudResponses(0,$crud_type),500);
+                    return response()->json([
+                        "status" => 0,
+                        "error" => 500,
+                        "pesan" => "ada kesalahan saat edit data",
+                        "data" => []
+                    ], 200);
 				}
 			}else{
 				$crud_type='insert';
 				$exe=CRUDModel::doBulkInsertTable($data_save);
 				if ($exe) {
-					return response()->json($this->crudResponses(1,$crud_type),200);
+                    return response()->json([
+                        "status" => 1,
+                        "error" => 0,
+                        "pesan" => "",
+                        "data" => []
+                    ], 200);
 				}else{
-					return response()->json($this->crudResponses(0,$crud_type),500);
+                    return response()->json([
+                        "status" => 0,
+                        "error" => 500,
+                        "pesan" => "ada kesalahan saat edit data",
+                        "data" => []
+                    ], 200);
 				}
 			}
 		}elseif ($request->isMethod('GET')) {
