@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 use Wapmorgan\UnifiedArchive\UnifiedArchive;
 use App\Models\CRUDModel;
 use Facade\FlareClient\Http\Response;
+use Carbon\Carbon;
+use PhpParser\Builder\Function_;
 
 // wapmorgan\unified-archive;
 
@@ -1522,7 +1524,7 @@ class Api_all extends Controller
 				'update'=>'oops, terjadi kesalahan, perubahan gagal disimpan',
 				'delete'=>'data gagal dihapus',
 				'select'=>'data tidak tersedia',
-				'err_notfound' => '404 Page Not Found'
+				'err_notfound' => 'Data Not Found'
 			],
 			[
 				'insert'=>'Data Berhasil disimpan',
@@ -1548,16 +1550,32 @@ class Api_all extends Controller
 			'data' => (!empty($data))?$data:[]
 		];
 		return $response;
-	}
+	}   
+
+    public function unique_code($param_code)
+    {
+        $currentDate = Carbon::now()->toDateString();
+        $currentTime = Carbon::now()->format('H:i');
+
+        // Parse the date and time
+        $dateTime = Carbon::parse("$currentDate $currentTime");
+
+        // Format the DateTime object as per your desired format
+        $formattedDateTime = $dateTime->format('ymdHi');
+
+        // Remove any separators from the formatted string
+        $code = $param_code . str_replace(['-', ':'], '', $formattedDateTime);
+        return $code;
+    }
 
     public function cudKategori(Request $request)
 	{
 		$type='';
 		$exe='';
-		$kategori = DB::select("SELECT * FROM misterkong_$request->company_id.m_kategori ORDER BY kd_kategori DESC LIMIT 1");
-		$kd_kategori = CRUDModel::generate_kode('KAA',$kategori[0]->kd_kategori);
+
+        $kd_kategori = $this->unique_code('MKAA');
 		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
-			$data_save['m_kategori'][]=[
+			$data_save=[
 				'kd_kategori'=>$kd_kategori,
 				'nama'=>$request->nama,
 				'keterangan'=>$request->keterangan,
@@ -1567,28 +1585,30 @@ class Api_all extends Controller
 			
 			if ($request->isMethod('PUT')) {
 				$crud_type='update';
-				unset($data_save['m_kategori'][0]['kd_kategori']);
+				unset($data_save['kd_kategori']);
 				// $exe=DB::table('m_kategori')->insert($data_save);
-                $exe = DB::table('m_kategori')->where('kd_kategori',$request->kd_kategori)->update($data_save);
+                $exe = DB::table('misterkong_'.$request->company_id.'.m_kategori')->where('kd_kategori',$request->kd_kategori)->update($data_save);
 			}else{
 				$crud_type='insert';
-				$exe=DB::table('m_kategori')->insert($data_save);
+				$exe=DB::table('misterkong_'.$request->company_id.'.m_kategori')->insert($data_save);
 			}
 			if ($exe) {
 				return response()->json($this->crudResponses(1,$crud_type),200);
 			}else{
 				return response()->json($this->crudResponses(0,$crud_type),500);
 			}
-		}elseif ($request->isMethod('GET') && !empty($request->key)) {
+		}elseif ($request->isMethod('GET') && !empty($request->kd_kategori)) {
 			$crud_type='select_put';
-			$key=['kd_kategori'=>$request->key];
-			$data_edit=CRUDModel::getWhere('v_kategori',$key)[0];
-			$data_edit->gambar=CRUDModel::getWhere('m_kategori_gambar',$key);
-			return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit));
+			$key=['kd_kategori'=>$request->kd_kategori];
+			$data_edit=DB::select("SELECT kd_kategori, nama, keterangan, `status` FROM misterkong_$request->company_id.m_kategori WHERE kd_kategori='$request->kd_kategori'");
+            if (!empty($data_edit)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit[0]));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
 		}elseif ($request->isMethod('DELETE')) {
 			$crud_type='delete';
-			$key=['kd_kategori'=>$request->kd_kategori];
-			$exe=CRUDModel::doDeleteSingle('m_kategori',$key);
+			$exe=DB::table('misterkong_'.$request->company_id.'.m_kategori')->where('kd_kategori',$request->kd_kategori)->delete();
 			if ($exe) {
 				return response()->json($this->crudResponses(1,$crud_type));
 			}else{
@@ -1600,6 +1620,226 @@ class Api_all extends Controller
 		
 	}
 
+    public function cudMerk(Request $request)
+	{
+		$type='';
+		$exe='';
 
+        $kd_merk = $this->unique_code('MMAA');
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save=[
+				'kd_merk'=>$kd_merk,
+				'nama'=>$request->nama,
+				'keterangan'=>$request->keterangan,
+				'status'=>$request->status
+			];
+			
+			
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				unset($data_save['kd_merk']);
+				// $exe=DB::table('m_merk')->insert($data_save);
+                $exe = DB::table('misterkong_'.$request->company_id.'.m_merk')->where('kd_merk',$request->kd_merk)->update($data_save);
+			}else{
+				$crud_type='insert';
+				$exe=DB::table('misterkong_'.$request->company_id.'.m_merk')->insert($data_save);
+			}
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
+			}
+		}elseif ($request->isMethod('GET') && !empty($request->kd_merk)) {
+			$crud_type='select_put';
+			$key=['kd_merk'=>$request->kd_merk];
+			$data_edit=DB::select("SELECT kd_merk, nama, keterangan, `status` FROM misterkong_$request->company_id.m_merk WHERE kd_merk='$request->kd_merk'");
+            if (!empty($data_edit)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit[0]));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
+		}elseif ($request->isMethod('DELETE')) {
+			$crud_type='delete';
+			$exe=DB::table('misterkong_'.$request->company_id.'.m_merk')->where('kd_merk',$request->kd_merk)->delete();
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type));
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type));
+			}
+		}else{
+			return response()->json($this->crudResponses(0,'err_notfound'),404);
+		}
+		
+	}
+
+    public function cudSatuan(Request $request)
+	{
+		$type='';
+		$exe='';
+		$kd_satuan = $this->unique_code('MSAA');
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save=[
+				'kd_satuan'=>$kd_satuan,
+				'nama'=>$request->nama,
+				'keterangan'=>$request->keterangan,
+				'status'=>$request->status
+			];
+			
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				unset($data_save['kd_satuan']);
+				// $exe=DB::table('m_satuan')->insert($data_save);
+                $exe = DB::table('misterkong_'.$request->company_id.'.m_satuan')->where('kd_satuan',$request->kd_satuan)->update($data_save);
+			}else{
+				$crud_type='insert';
+				$exe=DB::table('misterkong_'.$request->company_id.'.m_satuan')->insert($data_save);
+			}
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
+			}
+		}elseif ($request->isMethod('GET') && !empty($request->kd_satuan)) {
+			$crud_type='select_put';
+			$key=['kd_satuan'=>$request->kd_satuan];
+			$data_edit=DB::select("SELECT kd_satuan, nama, keterangan, `status` FROM misterkong_$request->company_id.m_satuan WHERE kd_satuan='$request->kd_satuan'");
+            if (!empty($data_edit)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit[0]));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
+		}elseif ($request->isMethod('DELETE')) {
+			$crud_type='delete';
+			$exe=DB::table('misterkong_'.$request->company_id.'.m_satuan')->where('kd_satuan',$request->kd_satuan)->delete();
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type));
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type));
+			}
+		}else{
+			return response()->json($this->crudResponses(0,'err_notfound'),404);
+		}
+		
+	}
+
+    public function show_kategori(Request $request)
+    {
+        if (!empty($request->search)) {
+            $sql_search = " WHERE nama LIKE '%$request->search%'";
+        } else {
+            $sql_search = "";
+        }
+
+        if (!empty($request->order_col) && !empty($request->order_type)) {
+            $sql_order = " ORDER BY $request->order_col $request->order_type";
+        } else {
+            $sql_order = "";
+        }
+
+        if ($request->limit > -1 && !(empty($request->length))) {
+            $sql_limit = " LIMIT $request->limit, $request->length";
+        } else {
+            $sql_limit = "";
+        }
+        $sql = DB::select("SELECT kd_kategori, nama, `status`, keterangan FROM misterkong_$request->company_id.m_kategori $sql_search $sql_order $sql_limit");
+        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$request->company_id.m_kategori");
+        if (empty($sql)) {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "data tidak ditemukan",
+                "jumlah_record" => $sql2[0]->jumlah_record,
+                "data" => $sql
+            ], 200);
+        } else {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "data ditemukan",
+                "jumlah_record" => $sql2[0]->jumlah_record,
+                "data" => $sql
+            ], 200);
+        }
+    }
+
+    public function show_merk(Request $request)
+    {
+        if (!empty($request->search)) {
+            $sql_search = " WHERE nama LIKE '%$request->search%'";
+        } else {
+            $sql_search = "";
+        }
+
+        if (!empty($request->order_col) && !empty($request->order_type)) {
+            $sql_order = " ORDER BY $request->order_col $request->order_type";
+        } else {
+            $sql_order = "";
+        }
+
+        if ($request->limit > -1 && !(empty($request->length))) {
+            $sql_limit = " LIMIT $request->limit, $request->length";
+        } else {
+            $sql_limit = "";
+        }
+        $sql = DB::select("SELECT kd_merk, nama, `status`, keterangan FROM misterkong_$request->company_id.m_merk $sql_search $sql_order $sql_limit");
+        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$request->company_id.m_merk");
+        if (empty($sql)) {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "data tidak ditemukan",
+                "jumlah_record" => $sql2[0]->jumlah_record,
+                "data" => $sql
+            ], 200);
+        } else {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "data ditemukan",
+                "jumlah_record" => $sql2[0]->jumlah_record,
+                "data" => $sql
+            ], 200);
+        }
+    }
+
+    public function show_satuan(Request $request)
+    {
+        if (!empty($request->search)) {
+            $sql_search = " WHERE nama LIKE '%$request->search%'";
+        } else {
+            $sql_search = "";
+        }
+
+        if (!empty($request->order_col) && !empty($request->order_type)) {
+            $sql_order = " ORDER BY $request->order_col $request->order_type";
+        } else {
+            $sql_order = "";
+        }
+
+        if ($request->limit > -1 && !(empty($request->length))) {
+            $sql_limit = " LIMIT $request->limit, $request->length";
+        } else {
+            $sql_limit = "";
+        }
+        $sql = DB::select("SELECT kd_satuan, nama, `status`, keterangan FROM misterkong_$request->company_id.m_satuan $sql_search $sql_order $sql_limit");
+        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$request->company_id.m_satuan");
+        if (empty($sql)) {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "data tidak ditemukan",
+                "jumlah_record" => $sql2[0]->jumlah_record,
+                "data" => $sql
+            ], 200);
+        } else {
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "pesan" => "data ditemukan",
+                "jumlah_record" => $sql2[0]->jumlah_record,
+                "data" => $sql
+            ], 200);
+        }
+    }
     
 } 

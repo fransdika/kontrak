@@ -93,4 +93,19 @@ class CRUDModel extends Model
 			return 0;
 		}
 	}
+
+    public function generate_kode($kd,$old)
+    {
+        $no = $kd;
+        // $dt = date("ymd");
+        // if (empty($user)) {
+        //     $ang = 1;
+        // } else {
+            $ang = substr($old, 3);
+            $nomor = intval($ang) + 1;
+        // }
+        $urut = sprintf("%03d", $nomor);
+        $no_baru = $no . $urut;
+        return $no_baru;
+    }
 }
