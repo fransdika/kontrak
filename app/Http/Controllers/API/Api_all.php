@@ -1411,7 +1411,7 @@ class Api_all extends Controller
 		$exe='';
 		
 		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
-			$data_save[`misterkong_$request->company_id.m_barang`][]=[
+			$data_save['misterkong_'.$request->company_id.'.m_barang'][]=[
 				'kd_barang'=>$request->kd_barang,
 				'kd_merk'=>$request->kd_merk,
 				'kd_jenis_bahan'=>$request->kd_jenis_bahan,
@@ -1429,7 +1429,7 @@ class Api_all extends Controller
 			];
 
 			foreach ($request->mbs as $key_mbs => $value_mbs) {
-				$data_save[`misterkong_$request->company_id.m_barang_satuan`][]=[
+				$data_save['misterkong_'.$request->company_id.'.m_barang_satuan'][]=[
 					'kd_barang'=>$request->kd_barang,
 					'kd_satuan'=>$value_mbs['kd_satuan'],
 					'jumlah'=>$value_mbs['jumlah'],
@@ -1441,7 +1441,7 @@ class Api_all extends Controller
 			
 			// $last_number=CRUDModel::getLastNumber('m_barang_gambar','nomor',['kd_barang'=>$request->kd_barang]);
 			foreach ($request->img as $key_gambar => $value_gambar) {
-				$data_save[`misterkong_$request->company_id.m_barang_gambar`][]=[
+				$data_save['misterkong_'.$request->company_id.'.m_barang_gambar'][]=[
 					'kd_barang'=>$request->kd_barang,
 					'nomor'=>$value_gambar['nomor'],
 					'gambar'=>$value_gambar['gambar'],
@@ -1455,15 +1455,15 @@ class Api_all extends Controller
 			// if (!empty($request->type) && $request->type=="edit") {
 			if ($request->isMethod('PUT')) {
 				$crud_type='update';
-				$key[`misterkong_$request->company_id.m_barang`][]=['kd_barang'=>$request->kd_barang];
+				$key['misterkong_'.$request->company_id.'.m_barang'][]=['kd_barang'=>$request->kd_barang];
 				// $key['m_barang_en'][]=['kd_barang'=>$request->kd_barang];
 				foreach ($request->mbs as $key_satuan => $value_satuan) {
-					$key[`misterkong_$request->company_id.m_barang_satuan`][]=['kd_barang'=>$request->kd_barang,'kd_satuan'=>$value_satuan['kd_satuan']];
+					$key['misterkong_'.$request->company_id.'.m_barang_satuan'][]=['kd_barang'=>$request->kd_barang,'kd_satuan'=>$value_satuan['kd_satuan']];
 				}
 				foreach ($request->img as $key_img => $value_img) {
-					$key[`misterkong_$request->company_id.m_barang_gambar`][]=['kd_barang'=>$request->kd_barang];
+					$key['misterkong_'.$request->company_id.'.m_barang_gambar'][]=['kd_barang'=>$request->kd_barang];
 				}
-				$exe=CRUDModel::doBulkUpdateTable($data_save,$key,[`misterkong_$request->company_id.m_barang_gambar`,`misterkong_$request->company_id.m_barang_satuan`],`misterkong_$request->company_id.m_barang`);
+				$exe=CRUDModel::doBulkUpdateTable($data_save,$key,['misterkong_'.$request->company_id.'.m_barang_gambar','misterkong_'.$request->company_id.'.m_barang_satuan'],'misterkong_'.$request->company_id.'.m_barang');
 				if ($exe) {
                     return response()->json([
                         "status" => 1,
