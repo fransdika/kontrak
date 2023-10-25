@@ -1359,6 +1359,7 @@ class Api_all extends Controller
             $query_search = "";
         }
 
+        $crud_type='select';
         $sql = DB::select("SELECT * FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga, m_satuan.kd_satuan, m_satuan.nama AS satuan FROM misterkong_$request->company_id.m_barang m_barang
         INNER JOIN misterkong_$request->company_id.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
         INNER JOIN misterkong_$request->company_id.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
@@ -1370,13 +1371,12 @@ class Api_all extends Controller
         INNER JOIN misterkong_$request->company_id.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
         INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
         LEFT JOIN misterkong_$request->company_id.m_barang_gambar m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a");
-        return response()->json([
-            "status" => 1,
-            "error" => 0,
-            "pesan" => "",
-            "jumlah_record" => $sql2[0]->jumlah_record,
-            "data" => $sql
-        ], 200);
+
+        if ($sql && $sql2) {
+            return response()->json($this->crudResponses(1,$crud_type,$sql,$sql2[0]->jumlah_record));
+        }else{
+            return response()->json($this->crudResponses(0,$crud_type));
+        }
     }
 
     public function upload(Request $request)
@@ -1439,7 +1439,6 @@ class Api_all extends Controller
 				];
 			}
 			
-			// $last_number=CRUDModel::getLastNumber('m_barang_gambar','nomor',['kd_barang'=>$request->kd_barang]);
 			foreach ($request->img as $key_gambar => $value_gambar) {
 				$data_save['misterkong_'.$request->company_id.'.m_barang_gambar'][]=[
 					'kd_barang'=>$request->kd_barang,
@@ -1450,13 +1449,10 @@ class Api_all extends Controller
 					'spesifikasi'=>'-',
 					'deskripsi'=>'-',
 				];
-				// $last_number++;
 			}
-			// if (!empty($request->type) && $request->type=="edit") {
 			if ($request->isMethod('PUT')) {
 				$crud_type='update';
 				$key['misterkong_'.$request->company_id.'.m_barang'][]=['kd_barang'=>$request->kd_barang];
-				// $key['m_barang_en'][]=['kd_barang'=>$request->kd_barang];
 				foreach ($request->mbs as $key_satuan => $value_satuan) {
 					$key['misterkong_'.$request->company_id.'.m_barang_satuan'][]=['kd_barang'=>$request->kd_barang,'kd_satuan'=>$value_satuan['kd_satuan']];
 				}
@@ -1464,39 +1460,15 @@ class Api_all extends Controller
 					$key['misterkong_'.$request->company_id.'.m_barang_gambar'][]=['kd_barang'=>$request->kd_barang];
 				}
 				$exe=CRUDModel::doBulkUpdateTable($data_save,$key,['misterkong_'.$request->company_id.'.m_barang_gambar','misterkong_'.$request->company_id.'.m_barang_satuan'],'misterkong_'.$request->company_id.'.m_barang');
-				if ($exe) {
-                    return response()->json([
-                        "status" => 1,
-                        "error" => 0,
-                        "pesan" => "",
-                        "data" => []
-                    ], 200);
-				}else{
-                    return response()->json([
-                        "status" => 0,
-                        "error" => 500,
-                        "pesan" => "ada kesalahan saat edit data",
-                        "data" => []
-                    ], 200);
-				}
 			}else{
 				$crud_type='insert';
 				$exe=CRUDModel::doBulkInsertTable($data_save);
-				if ($exe) {
-                    return response()->json([
-                        "status" => 1,
-                        "error" => 0,
-                        "pesan" => "",
-                        "data" => []
-                    ], 200);
-				}else{
-                    return response()->json([
-                        "status" => 0,
-                        "error" => 500,
-                        "pesan" => "ada kesalahan saat edit data",
-                        "data" => []
-                    ], 200);
-				}
+			}
+
+            if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
 			}
 		}elseif ($request->isMethod('GET')) {
 			$crud_type='select_put';
@@ -1507,16 +1479,15 @@ class Api_all extends Controller
             $data['m_barang'] = $m_barang[0];
             $data['m_barang_satuan'] = $mbs;
             $data['m_barang_gambar'] = $mbg;
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "",
-                "data" => $data
-            ], 200);
+            if (!empty($data)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
 		}
     }
 
-    public function crudResponses($status,$crud_type,$data=[])
+    public function crudResponses($status,$crud_type,$data=[],$jumlah_record=[])
 	{
 		$msg_arr=[
 			[
@@ -1530,8 +1501,8 @@ class Api_all extends Controller
 				'insert'=>'Data Berhasil disimpan',
 				'update'=>'Perubahan Berhasil disimpan',
 				'delete'=>'Data Berhasil dihapus',
-				'select'=>count($data)." data ditemukan",
-				'select_put'=>"1 data ditemukan",
+				'select'=> count($data)." Data ditemukan",
+				'select_put'=> "Data ditemukan"
 			]
 		];
 		if ($crud_type=='err_notfound') {
@@ -1543,12 +1514,24 @@ class Api_all extends Controller
 				$error=500;
 			}
 		}
-		$response=[
-			'status' => $status,
-			'error' => $error,
-			'message' => $msg_arr[$status][$crud_type],
-			'data' => (!empty($data))?$data:[]
-		];
+
+        if ($crud_type=='insert' || $crud_type=='select_put' || $crud_type=='delete' || $crud_type=='update') {
+            $response=[
+                'status' => $status,
+                'error' => $error,
+                'message' => $msg_arr[$status][$crud_type],
+                'data' => (!empty($data))?$data:[]
+            ];
+        } else {
+            $response=[
+                'status' => $status,
+                'error' => $error,
+                'message' => $msg_arr[$status][$crud_type],
+                'jumlah_record' => (!empty($jumlah_record))?$jumlah_record:[],
+                'data' => (!empty($data))?$data:[]
+            ];
+        }
+		
 		return $response;
 	}   
 
@@ -1722,124 +1705,216 @@ class Api_all extends Controller
 		
 	}
 
-    public function show_kategori(Request $request)
+    public function show_master($search = '', $order_col = '', $order_type = '', $limit = '', $length = '', $company_id, $tbl_master, $kode)
     {
-        if (!empty($request->search)) {
-            $sql_search = " WHERE nama LIKE '%$request->search%'";
+        $crud_type='select';
+        if (!empty($search)) {
+            $sql_search = " WHERE nama LIKE '%$search%'";
         } else {
             $sql_search = "";
         }
 
-        if (!empty($request->order_col) && !empty($request->order_type)) {
-            $sql_order = " ORDER BY $request->order_col $request->order_type";
+        if (!empty($order_col) && !empty($order_type)) {
+            $sql_order = " ORDER BY $order_col $order_type";
         } else {
             $sql_order = "";
         }
 
-        if ($request->limit > -1 && !(empty($request->length))) {
-            $sql_limit = " LIMIT $request->limit, $request->length";
+        if ($limit > -1 && !(empty($length))) {
+            $sql_limit = " LIMIT $limit, $length";
         } else {
             $sql_limit = "";
         }
-        $sql = DB::select("SELECT kd_kategori, nama, `status`, keterangan FROM misterkong_$request->company_id.m_kategori $sql_search $sql_order $sql_limit");
-        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$request->company_id.m_kategori");
-        if (empty($sql)) {
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "data tidak ditemukan",
-                "jumlah_record" => $sql2[0]->jumlah_record,
-                "data" => $sql
-            ], 200);
-        } else {
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "data ditemukan",
-                "jumlah_record" => $sql2[0]->jumlah_record,
-                "data" => $sql
-            ], 200);
-        }
+        $sql = DB::select("SELECT $kode, nama, `status`, keterangan FROM misterkong_$company_id.$tbl_master $sql_search $sql_order $sql_limit");
+        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$company_id.$tbl_master");
+        
+        if ($sql && $sql2) {
+			return response()->json($this->crudResponses(1,$crud_type,$sql,$sql2[0]->jumlah_record));
+		}else{
+			return response()->json($this->crudResponses(0,$crud_type));
+		}
+    }
+
+    public function show_kategori(Request $request)
+    {
+        $dt = $this->show_master($request->search, $request->order_col, $request->order_type, $request->limit, $request->length, $request->company_id, 'm_kategori', 'kd_kategori');
+        return $dt;
     }
 
     public function show_merk(Request $request)
     {
-        if (!empty($request->search)) {
-            $sql_search = " WHERE nama LIKE '%$request->search%'";
-        } else {
-            $sql_search = "";
-        }
-
-        if (!empty($request->order_col) && !empty($request->order_type)) {
-            $sql_order = " ORDER BY $request->order_col $request->order_type";
-        } else {
-            $sql_order = "";
-        }
-
-        if ($request->limit > -1 && !(empty($request->length))) {
-            $sql_limit = " LIMIT $request->limit, $request->length";
-        } else {
-            $sql_limit = "";
-        }
-        $sql = DB::select("SELECT kd_merk, nama, `status`, keterangan FROM misterkong_$request->company_id.m_merk $sql_search $sql_order $sql_limit");
-        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$request->company_id.m_merk");
-        if (empty($sql)) {
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "data tidak ditemukan",
-                "jumlah_record" => $sql2[0]->jumlah_record,
-                "data" => $sql
-            ], 200);
-        } else {
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "data ditemukan",
-                "jumlah_record" => $sql2[0]->jumlah_record,
-                "data" => $sql
-            ], 200);
-        }
+        $dt = $this->show_master($request->search, $request->order_col, $request->order_type, $request->limit, $request->length, $request->company_id, 'm_merk', 'kd_merk');
+        return $dt;
     }
 
     public function show_satuan(Request $request)
     {
-        if (!empty($request->search)) {
-            $sql_search = " WHERE nama LIKE '%$request->search%'";
-        } else {
-            $sql_search = "";
-        }
-
-        if (!empty($request->order_col) && !empty($request->order_type)) {
-            $sql_order = " ORDER BY $request->order_col $request->order_type";
-        } else {
-            $sql_order = "";
-        }
-
-        if ($request->limit > -1 && !(empty($request->length))) {
-            $sql_limit = " LIMIT $request->limit, $request->length";
-        } else {
-            $sql_limit = "";
-        }
-        $sql = DB::select("SELECT kd_satuan, nama, `status`, keterangan FROM misterkong_$request->company_id.m_satuan $sql_search $sql_order $sql_limit");
-        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM misterkong_$request->company_id.m_satuan");
-        if (empty($sql)) {
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "data tidak ditemukan",
-                "jumlah_record" => $sql2[0]->jumlah_record,
-                "data" => $sql
-            ], 200);
-        } else {
-            return response()->json([
-                "status" => 1,
-                "error" => 0,
-                "pesan" => "data ditemukan",
-                "jumlah_record" => $sql2[0]->jumlah_record,
-                "data" => $sql
-            ], 200);
-        }
+        $dt = $this->show_master($request->search, $request->order_col, $request->order_type, $request->limit, $request->length, $request->company_id, 'm_satuan', 'kd_satuan');
+        return $dt;
     }
+
+    public function show_model(Request $request)
+    {
+        $dt = $this->show_master($request->search, $request->order_col, $request->order_type, $request->limit, $request->length, $request->company_id, 'm_model', 'kd_model');
+        return $dt;
+    }
+
+    public function show_warna(Request $request)
+    {
+        $dt = $this->show_master($request->search, $request->order_col, $request->order_type, $request->limit, $request->length, $request->company_id, 'm_warna', 'kd_warna');
+        return $dt;
+    }
+
+    public function show_jenis_bahan(Request $request)
+    {
+        $dt = $this->show_master($request->search, $request->order_col, $request->order_type, $request->limit, $request->length, $request->company_id, 'm_jenis_bahan', 'kd_jenis_bahan');
+        return $dt;
+    }
+
+    public function cudModel(Request $request)
+	{
+		$type='';
+		$exe='';
+		$kd_model = $this->unique_code('MMAA');
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save=[
+				'kd_model'=>$kd_model,
+				'nama'=>$request->nama,
+				'keterangan'=>$request->keterangan,
+				'status'=>$request->status
+			];
+			
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				unset($data_save['kd_model']);
+				// $exe=DB::table('m_model')->insert($data_save);
+                $exe = DB::table('misterkong_'.$request->company_id.'.m_model')->where('kd_model',$request->kd_model)->update($data_save);
+			}else{
+				$crud_type='insert';
+				$exe=DB::table('misterkong_'.$request->company_id.'.m_model')->insert($data_save);
+			}
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
+			}
+		}elseif ($request->isMethod('GET') && !empty($request->kd_model)) {
+			$crud_type='select_put';
+			$key=['kd_model'=>$request->kd_model];
+			$data_edit=DB::select("SELECT kd_model, nama, keterangan, `status` FROM misterkong_$request->company_id.m_model WHERE kd_model='$request->kd_model'");
+            if (!empty($data_edit)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit[0]));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
+		}elseif ($request->isMethod('DELETE')) {
+			$crud_type='delete';
+			$exe=DB::table('misterkong_'.$request->company_id.'.m_model')->where('kd_model',$request->kd_model)->delete();
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type));
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type));
+			}
+		}else{
+			return response()->json($this->crudResponses(0,'err_notfound'),404);
+		}
+	}
     
+    public function cudWarna(Request $request)
+	{
+		$type='';
+		$exe='';
+		$kd_warna = $this->unique_code('MWAA');
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save=[
+				'kd_warna'=>$kd_warna,
+				'nama'=>$request->nama,
+				'keterangan'=>$request->keterangan,
+				'status'=>$request->status
+			];
+			
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				unset($data_save['kd_warna']);
+				// $exe=DB::table('m_warna')->insert($data_save);
+                $exe = DB::table('misterkong_'.$request->company_id.'.m_warna')->where('kd_warna',$request->kd_warna)->update($data_save);
+			}else{
+				$crud_type='insert';
+				$exe=DB::table('misterkong_'.$request->company_id.'.m_warna')->insert($data_save);
+			}
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
+			}
+		}elseif ($request->isMethod('GET') && !empty($request->kd_warna)) {
+			$crud_type='select_put';
+			$key=['kd_warna'=>$request->kd_warna];
+			$data_edit=DB::select("SELECT kd_warna, nama, keterangan, `status` FROM misterkong_$request->company_id.m_warna WHERE kd_warna='$request->kd_warna'");
+            if (!empty($data_edit)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit[0]));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
+		}elseif ($request->isMethod('DELETE')) {
+			$crud_type='delete';
+			$exe=DB::table('misterkong_'.$request->company_id.'.m_warna')->where('kd_warna',$request->kd_warna)->delete();
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type));
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type));
+			}
+		}else{
+			return response()->json($this->crudResponses(0,'err_notfound'),404);
+		}
+	}
+
+    public function cudJenisBahan(Request $request)
+	{
+		$type='';
+		$exe='';
+		$kd_jenis_bahan = $this->unique_code('MJAA');
+		if ($request->isMethod('POST') || $request->isMethod('PUT')) {
+			$data_save=[
+				'kd_jenis_bahan'=>$kd_jenis_bahan,
+				'nama'=>$request->nama,
+				'keterangan'=>$request->keterangan,
+				'status'=>$request->status
+			];
+			
+			if ($request->isMethod('PUT')) {
+				$crud_type='update';
+				unset($data_save['kd_jenis_bahan']);
+				// $exe=DB::table('m_jenis_bahan')->insert($data_save);
+                $exe = DB::table('misterkong_'.$request->company_id.'.m_jenis_bahan')->where('kd_jenis_bahan',$request->kd_jenis_bahan)->update($data_save);
+			}else{
+				$crud_type='insert';
+				$exe=DB::table('misterkong_'.$request->company_id.'.m_jenis_bahan')->insert($data_save);
+			}
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type),200);
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type),500);
+			}
+		}elseif ($request->isMethod('GET') && !empty($request->kd_jenis_bahan)) {
+			$crud_type='select_put';
+			$key=['kd_jenis_bahan'=>$request->kd_jenis_bahan];
+			$data_edit=DB::select("SELECT kd_jenis_bahan, nama, keterangan, `status` FROM misterkong_$request->company_id.m_jenis_bahan WHERE kd_jenis_bahan='$request->kd_jenis_bahan'");
+            if (!empty($data_edit)) {
+                return response()->json($this->crudResponses(1,$crud_type,(array)$data_edit[0]));
+            } else {
+                return response()->json($this->crudResponses(0,'err_notfound'),404);
+            }
+		}elseif ($request->isMethod('DELETE')) {
+			$crud_type='delete';
+			$exe=DB::table('misterkong_'.$request->company_id.'.m_jenis_bahan')->where('kd_jenis_bahan',$request->kd_jenis_bahan)->delete();
+			if ($exe) {
+				return response()->json($this->crudResponses(1,$crud_type));
+			}else{
+				return response()->json($this->crudResponses(0,$crud_type));
+			}
+		}else{
+			return response()->json($this->crudResponses(0,'err_notfound'),404);
+		}
+	}
 } 

@@ -211,3 +211,11 @@ Route::any('/merk', [Api_all::class, 'cudMerk']);
 Route::get('merk/show', [Api_all::class, 'show_merk']);
 Route::any('/satuan', [Api_all::class, 'cudSatuan']);
 Route::get('satuan/show', [Api_all::class, 'show_satuan']);
+Route::any('/model', [Api_all::class, 'cudModel']);
+Route::get('model/show', [Api_all::class, 'show_model']);
+Route::any('/warna', [Api_all::class, 'cudWarna']);
+Route::get('warna/show', [Api_all::class, 'show_warna']);
+Route::any('/jenis_bahan', [Api_all::class, 'cudJenisBahan']);
+Route::get('jenis_bahan/show', [Api_all::class, 'show_jenis_bahan']);
+
+
