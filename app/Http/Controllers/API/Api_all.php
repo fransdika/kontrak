@@ -1386,7 +1386,7 @@ class Api_all extends Controller
         $ext = $file->getClientOriginalExtension();
 
         if (strcasecmp($ext, 'jpg') == 0 || strcasecmp($ext, 'jpeg') == 0 || strcasecmp($ext, 'bmp') == 0 || strcasecmp($ext, 'png') == 0) {
-            $file->move("../../../public_html/back_end_mp/".$request->comp_id."_config/images/",$name);
+            $file->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
             return response()->json([
                 'status' => 1,
                 'error' => 0,
