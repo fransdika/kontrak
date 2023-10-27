@@ -657,7 +657,7 @@ class SinkronisasiController extends Controller
                 $file_contents = json_encode($data);
                 file_put_contents($path, $file_contents, FILE_APPEND | LOCK_EX);
                 $file_path="https://misterkong.com/back_end_mp/".$company_id."_config/data_def/default__".$last_request.".json";
-                $iddle=0.2;
+                $iddle=1;
             
             }else{
                 $data_json=$data;
@@ -685,5 +685,55 @@ class SinkronisasiController extends Controller
         DB::select("CALL misterkong_comp2020110310070901.reset_kontrak()");
         return response()->json([1], 200);        
     }
+    public function updateProfile(Request $request)
+    {
 
+        if (!empty($request->data)) {
+            $data_explode=explode(';;;', $request->data);
+            $company_id=$data_explode[0];
+
+            $data_explode2=explode(';;', $data_explode[1]);
+
+            foreach ($data_explode2 as $key => $value) {
+                $data_update[]=explode(';', $value);
+            }
+
+            for ($i=0; $i <count($data_update) ; $i++) { 
+                foreach ($data_update[$i] as $key => $value) {
+                    $data_rec_update=explode('__', $value);
+                    $update_data[$data_rec_update[0]][]=$data_rec_update[1];
+                }
+            }
+            for ($i=0; $i <count($update_data['key']) ; $i++) { 
+                $sql[]="UPDATE misterkong_".$company_id.".g_db_config SET value='".$update_data['val'][$i]."' WHERE name='".$update_data['key'][$i]."'";
+            }
+            // echo "<pre>";
+            // print_r($sql);
+            // echo "</pre>";
+            // die();
+            if (SinkronisasiModel::updateProfile($sql)) {
+                $response['status'] = 1;
+                $response['error'] = false;
+                $response['message'] = 'Perubahan data berhasil';    
+                $response['query']=implode(';', $sql);
+            }else{
+                $response['status'] = 0;
+                $response['error'] = true;
+                $response['message'] = 'Perubahan data gagal dilakukan';
+            }
+            
+            // echo "<pre>";
+            // print_r($sql);
+            // echo "</pre>";
+            //$response=$this->hm->get_company_profile()->result_array();
+            // $this->response($response);
+            // $response=array('1');
+        } else {
+            $response['status'] = 0;
+            $response['error'] = true;
+            $response['message'] = 'Cannot Access Database, Unknown company id';
+
+        }
+        return response()->json($response, 200);
+    }
 }

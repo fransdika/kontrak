@@ -40,4 +40,22 @@ class SinkronisasiModel extends Model
 
         return $sql;
     }
+    public function updateProfile($query)
+    {
+        DB::beginTransaction();
+        try {
+            if (!empty($query)) {
+                foreach ($query as $key => $value) {
+                    DB::select($value);
+                }
+                DB::commit();
+                return 1;
+            }
+            
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+            DB::rollback();
+            return 0;
+        }
+    }
 }

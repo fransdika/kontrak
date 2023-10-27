@@ -154,6 +154,7 @@ Route::any('generateDB', [DatabaseGeneratorController::class, 'executeSql']);
 //route perubahan dari Api_2
 Route::get('getCompanyProfile/{company_id}', [SinkronisasiController::class, 'getCompanyProfile']);
 Route::any('totalanStruk/{company_id}', [SinkronisasiController::class, 'totalanStruk']);
+Route::any('updateProfile', [SinkronisasiController::class, 'updateProfile']);
 
 
 // testing testing
