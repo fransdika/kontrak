@@ -7,6 +7,9 @@ use App\Models\LaporanModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Models\ExportModel;
 
 class LaporanController extends Controller
 {
@@ -224,4 +227,23 @@ class LaporanController extends Controller
 			return DB::select($sql);
 		}
 	}
+	function exportExcel($sql)
+    {
+        $sql =$sql;
+        // $export= new ExportModel();
+        $rs=ExportModel::exportExcel($sql);
+
+
+        // Set the headers for the Excel file download
+        $headers = [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="Rekap Order Per-customer.xlsx"',
+        ];
+        // Stream the Excel file to the browser
+        return response()->streamDownload(function () use ($rs) {
+            $rs->save('php://output');
+        }, 'Rekap Order Per-customer.xlsx', $headers);
+        // $export->exportExcel($sql);
+        
+    }
 }

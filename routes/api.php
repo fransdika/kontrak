@@ -10,6 +10,7 @@ use App\Http\Controllers\API\MkController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\API\SinkronisasiController;
 use App\Http\Controllers\API\DatabaseGeneratorController;
+use App\Http\Controllers\API\ExportController;
 use App\Http\Controllers\API\SolidReportController;
 use App\Http\Controllers\API\Utilites;
 use Illuminate\Http\Request;
@@ -219,4 +220,5 @@ Route::get('warna/show', [Api_all::class, 'show_warna']);
 Route::any('/jenis_bahan', [Api_all::class, 'cudJenisBahan']);
 Route::get('jenis_bahan/show', [Api_all::class, 'show_jenis_bahan']);
 
-
+//export
+Route::get('export/{jenis_laporan}', [ExportController::class, 'exportExcel']);
