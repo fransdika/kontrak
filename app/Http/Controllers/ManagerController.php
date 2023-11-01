@@ -98,15 +98,30 @@ class ManagerController extends Controller
 
 
     }
+    //diubah karena terpaksa karena split menggunakan koma
     public function array_converter($array)
     {
-        $Y = [];
+        
+         $Y = [];
         if(!empty($array)){
             $update = str_replace($array[0], '', $array);
             $exe = explode(',', substr($update, 0, -1));
-            foreach($exe as $data) {
-                $x = explode('=', $data);
-                $Y[trim($x[0])] = $x[1];
+            foreach($exe as $key => $data) {
+                $x[] = explode('=', $data);
+            }
+            $pengurang=1;
+            foreach($x as $key_x => $value_x){
+                if(count($value_x)<2){
+                    $x[$key_x-$pengurang][1] = $x[$key_x-$pengurang][1].",".$value_x[0];
+                    unset($x[$key_x]);
+                    $pengurang++;
+                }else{
+                    $pengurang=1;
+                }
+                
+            }   
+            foreach($x as $key_x => $value_x){
+                $Y[trim($value_x[0])] = $value_x[1];
             }
         }
         return $Y;
