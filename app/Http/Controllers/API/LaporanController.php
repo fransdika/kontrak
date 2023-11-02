@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Models\ExportModel;
+use PhpParser\Node\Expr\Empty_;
 
 class LaporanController extends Controller
 {
@@ -19,170 +20,186 @@ class LaporanController extends Controller
 	}
 	public function getLaporanPenjualan(Request $request)
 	{
-		$company_id=$request->company_id;
-		$awal=$request->awal;
-		$akhir=$request->akhir;
-		$jenis=$request->jenis;
-		$search=$request->search;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanPenjualan($company_id,$awal,$akhir,$jenis,$search,$order_col,$order_type,$limit,$length,$count_stats);	
+		$company_id = $request->company_id;
+		$awal = $request->awal;
+		$akhir = $request->akhir;
+		$jenis = $request->jenis;
+		$search = $request->search;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
+		$data = LaporanModel::GetLaporanPenjualan($company_id, $awal, $akhir, $jenis, $search, $order_col, $order_type, $limit, $length, $count_stats);
 		return response()->json($data, 200);
 	}
 	public function getLaporanPembelian(Request $request)
 	{
-		$company_id=$request->company_id;
-		$awal=$request->awal;
-		$akhir=$request->akhir;
-		$jenis=$request->jenis;
-		$search=$request->search;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanPembelian($company_id,$awal,$akhir,$jenis,$search,$order_col,$order_type,$limit,$length,$count_stats);	
+		$company_id = $request->company_id;
+		$awal = $request->awal;
+		$akhir = $request->akhir;
+		$jenis = $request->jenis;
+		$search = $request->search;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
+		$data = LaporanModel::GetLaporanPembelian($company_id, $awal, $akhir, $jenis, $search, $order_col, $order_type, $limit, $length, $count_stats);
 		return response()->json($data, 200);
 	}
 	public function getLaporanHutang(Request $request)
 	{
-		$company_id=$request->company_id;
-		$kd_supplier=$request->kd_supplier;
-		$periode=$request->periode;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
+		$company_id = $request->company_id;
+		$kd_supplier = $request->kd_supplier;
+		$periode = $request->periode;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
 		// echo $order_type;
-		$data = LaporanModel::GetLaporanHutang($company_id,$kd_supplier,$periode,$order_col,$order_type,$limit,$length,$count_stats);	
+		$data = LaporanModel::GetLaporanHutang($company_id, $kd_supplier, $periode, $order_col, $order_type, $limit, $length, $count_stats);
 		return response()->json($data, 200);
 	}
 
 	public function getLaporanPiutang(Request $request)
 	{
-		$company_id=$request->company_id;
-		$kd_customer=$request->kd_customer;
-		$periode=$request->periode;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanPiutang($company_id,$kd_customer,$periode,$order_col,$order_type,$limit,$length,$count_stats);
+		$company_id = $request->company_id;
+		$kd_customer = $request->kd_customer;
+		$periode = $request->periode;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
+		$data = LaporanModel::GetLaporanPiutang($company_id, $kd_customer, $periode, $order_col, $order_type, $limit, $length, $count_stats);
 		return response()->json($data, 200);
 	}
 
 	public function getLaporanStok(Request $request)
 	{
-		$company_id=$request->company_id;
-		$kd_barang=$request->kd_barang;
-		$kd_divisi=$request->kd_divisi;
-		$periode=$request->periode;
-		$jenis=$request->jenis;
-		$search=$request->search;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanStok($company_id,$kd_barang,$kd_divisi,$periode,$jenis,$search,$order_col,$order_type,$limit,$length,$count_stats);
+		$company_id = $request->company_id;
+		$kd_barang = $request->kd_barang;
+		$kd_divisi = $request->kd_divisi;
+		$periode = $request->periode;
+		$jenis = $request->jenis;
+		$search = $request->search;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
+		$data = LaporanModel::GetLaporanStok($company_id, $kd_barang, $kd_divisi, $periode, $jenis, $search, $order_col, $order_type, $limit, $length, $count_stats);
 		return response()->json($data, 200);
 	}
 
 	public function getLaporanBiaya(Request $request)
 	{
-		$company_id=$request->company_id;
-		$awal=$request->awal;
-		$akhir=$request->akhir;
-		$jenis=$request->jenis;
-		$search=$request->search;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanBiaya($company_id,$awal,$akhir,$jenis,$search,$order_col,$order_type,$limit,$length,$count_stats);	
-		return response()->json($data, 200);		
+		$company_id = $request->company_id;
+		$awal = $request->awal;
+		$akhir = $request->akhir;
+		$jenis = $request->jenis;
+		$search = $request->search;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
+		$data = LaporanModel::GetLaporanBiaya($company_id, $awal, $akhir, $jenis, $search, $order_col, $order_type, $limit, $length, $count_stats);
+		return response()->json($data, 200);
 	}
 
 	public function getLaporanPendapatan(Request $request)
 	{
-		$company_id=$request->company_id;
-		$awal=$request->awal;
-		$akhir=$request->akhir;
-		$jenis=$request->jenis;
-		$search=$request->search;
-		$order_col=$request->order_col;
-		$order_type=$request->order_type;
-		$limit=$request->limit;
-		$length=$request->length;
-		$count_stats=$request->count_stats;
-		$data = LaporanModel::GetLaporanPendapatan($company_id,$awal,$akhir,$jenis,$search,$order_col,$order_type,$limit,$length,$count_stats);	
-		return response()->json($data, 200);		
+		$company_id = $request->company_id;
+		$awal = $request->awal;
+		$akhir = $request->akhir;
+		$jenis = $request->jenis;
+		$search = $request->search;
+		$order_col = $request->order_col;
+		$order_type = $request->order_type;
+		$limit = $request->limit;
+		$length = $request->length;
+		$count_stats = $request->count_stats;
+		$data = LaporanModel::GetLaporanPendapatan($company_id, $awal, $akhir, $jenis, $search, $order_col, $order_type, $limit, $length, $count_stats);
+		return response()->json($data, 200);
 	}
 
 	public function getPenjualanOrder(Request $request)
 	{
-		$sql="CALL p_report_penjualan_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		if ($request->count_stats>0) {
-			return DB::select($sql)[0];
-		}else{
-			return DB::select($sql);
-		}
+		$sql = "CALL p_report_penjualan_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+
+		// if ($request->export == 1) {
+		// 	$this->exportExcel($sql);
+		// } else {
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
+		// }
 	}
 
 	public function getPenjualanRetur(Request $request)
 	{
-		$sql="CALL p_report_penjualan_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		if ($request->count_stats>0) {
-			return DB::select($sql)[0];
-		}else{
-			return DB::select($sql);
+		$sql = "CALL p_report_penjualan_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		// if ($request->count_stats > 0) {
+		// 	return DB::select($sql)[0];
+		// } else {
+		// 	return DB::select($sql);
+		// }
+
+		if (!empty($request->export) && $request->export == 1) {
+			$this->exportExcel($sql);
+		} else {
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
 		}
 	}
 
 	public function getPembelianOrder(Request $request)
 	{
-		$sql="CALL p_report_pembelian_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		if ($request->count_stats>0) {
+		$sql = "CALL p_report_pembelian_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if ($request->count_stats > 0) {
 			return DB::select($sql)[0];
-		}else{
+		} else {
 			return DB::select($sql);
 		}
 	}
 
 	public function getPembelianRetur(Request $request)
 	{
-		$sql="CALL p_report_pembelian_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		if ($request->count_stats>0) {
+		$sql = "CALL p_report_pembelian_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if ($request->count_stats > 0) {
 			return DB::select($sql)[0];
-		}else{
+		} else {
+
 			return DB::select($sql);
 		}
 	}
 
 	public function getPenjualanNewBorn(Request $request)
 	{
-		$sql=DB::select("CALL p_report_penjualanNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit,$request->length)");
+		$sql = DB::select("CALL p_report_penjualanNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit,$request->length)");
 		return response()->json($sql);
 	}
 
 	public function getPembelianNewBorn(Request $request)
 	{
-		$sql=DB::select("CALL p_report_pembelianNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type',$request->limit,$request->length)");
+		$sql = DB::select("CALL p_report_pembelianNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type',$request->limit,$request->length)");
 		return response()->json($sql);
 	}
 
 	public function produk(Request $request)
 	{
 		if ($request->jenis != 2) {
-			$sql=DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, $request->count_stats)");
+			$sql = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, $request->count_stats)");
 		} else {
-			$sql = LaporanModel::getKartuStok($request->company_id,$request->awal,$request->akhir, $request->limit, $request->length, $request->count_stats,$request->kd_barang);
+			$sql = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, $request->count_stats, $request->kd_barang);
 		}
 		try {
 			return response()->json($sql);
@@ -199,7 +216,6 @@ class LaporanController extends Controller
 				'message' => 'Gagal'
 			], 500);
 		}
-
 	}
 
 	public function mutasi_kas(Request $request)
@@ -211,39 +227,39 @@ class LaporanController extends Controller
 	public function getLaporanBiayaNewBorn(Request $request)
 	{
 		$sql = "CALL p_biayaOperasionalNewBorn('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
-		if ($request->count_stats>0) {
-			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id","$request->awal","$request->akhir","$request->search","$request->order_col","$request->order_type",$request->limit,$request->length,$request->count_stats])[0];
-		}else{
-			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id","$request->awal","$request->akhir","$request->search","$request->order_col","$request->order_type",$request->limit,$request->length,$request->count_stats]);
+		if ($request->count_stats > 0) {
+			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id", "$request->awal", "$request->akhir", "$request->search", "$request->order_col", "$request->order_type", $request->limit, $request->length, $request->count_stats])[0];
+		} else {
+			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id", "$request->awal", "$request->akhir", "$request->search", "$request->order_col", "$request->order_type", $request->limit, $request->length, $request->count_stats]);
 		}
 	}
 
 	public function getLaporanPendapatanNewBorn(Request $request)
 	{
 		$sql = "CALL p_pendapatanNewBorn('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
-		if ($request->count_stats>0) {
+		if ($request->count_stats > 0) {
 			return DB::select($sql)[0];
-		}else{
+		} else {
 			return DB::select($sql);
 		}
 	}
 	function exportExcel($sql)
-    {
-        $sql =$sql;
-        // $export= new ExportModel();
-        $rs=ExportModel::exportExcel($sql);
+	{
+		$sql = $sql;
+		// $export= new ExportModel();
+		$rs = ExportModel::exportExcel($sql);
 
 
-        // Set the headers for the Excel file download
-        $headers = [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="Rekap Order Per-customer.xlsx"',
-        ];
-        // Stream the Excel file to the browser
-        return response()->streamDownload(function () use ($rs) {
-            $rs->save('php://output');
-        }, 'Rekap Order Per-customer.xlsx', $headers);
-        // $export->exportExcel($sql);
-        
-    }
+		// Set the headers for the Excel file download
+		$headers = [
+			'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			'Content-Disposition' => 'attachment; filename="Rekap Order Per-customer.xlsx"',
+		];
+		// Stream the Excel file to the browser
+		return response()->streamDownload(function () use ($rs) {
+			$rs->save('php://output');
+		}, 'Rekap Order Per-customer.xlsx', $headers);
+		// $export->exportExcel($sql);
+
+	}
 }

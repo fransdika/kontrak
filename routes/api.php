@@ -66,7 +66,7 @@ Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapat
 Route::post('submit_validate', [Api_all::class, 'submit_validate']);
 
 Route::post('laporan/penjualan_order', [LaporanController::class, 'getPenjualanOrder']);
-Route::post('laporan/penjualan_retur', [LaporanController::class, 'getPenjualanRetur']);
+Route::any('laporan/penjualan_retur', [LaporanController::class, 'getPenjualanRetur']);
 Route::post('laporan/pembelian_order', [LaporanController::class, 'getPembelianOrder']);
 Route::post('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
 Route::post('laporan/penjualan-newBorn', [LaporanController::class, 'getPenjualanNewBorn']);
