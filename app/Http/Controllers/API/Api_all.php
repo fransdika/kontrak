@@ -1381,28 +1381,56 @@ class Api_all extends Controller
 
     public function upload(Request $request)
     {
-        $file = $request->file('file');
-        $name = $file->getClientOriginalName(); 
-        $ext = $file->getClientOriginalExtension();
 
-        if (strcasecmp($ext, 'jpg') == 0 || strcasecmp($ext, 'jpeg') == 0 || strcasecmp($ext, 'bmp') == 0 || strcasecmp($ext, 'png') == 0) {
-            $file->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
-            return response()->json([
-                'status' => 1,
-                'error' => 0,
-                'message' => 'Berhasil upload gambar',
-                'data' => [
-                    'path' => $name
-                ]
-            ]);
-        } else {
-            return response()->json([
-                'status' => 0,
-                'error' => 500,
-                'message' => 'Format file harus berextention jpg atau jpeg atau bmp atau png',
-                'data' => []
-            ]);
-        }
+        $file = $request->file('file');
+        // $name = $file->getClientOriginalName(); 
+        // $ext = $file->getClientOriginalExtension();
+
+        $req = $request->file('file');
+        // if ($folder != '') {
+			foreach ($req as $key => $value) {
+                // $path[] = $value->store('up');
+                $path[] = $file->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$value->getClientOriginalName());
+			}
+			return [
+				'status' => 1,
+				'error' => 200,
+				'message' => "Berhasil simpan gambar",
+				'data' => [
+					"path" => $path
+				]
+			];
+		// } else {
+		// 	return [
+		// 		'status' => 0,
+		// 		'error' => 500,
+		// 		'message' => "Gagal simpan gambar",
+		// 		'data' => []
+		// 	];
+		// }
+
+        // $file = $request->file('file');
+        // $name = $file->getClientOriginalName(); 
+        // $ext = $file->getClientOriginalExtension();
+
+        // if (strcasecmp($ext, 'jpg') == 0 || strcasecmp($ext, 'jpeg') == 0 || strcasecmp($ext, 'bmp') == 0 || strcasecmp($ext, 'png') == 0) {
+        //     $file->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
+        //     return response()->json([
+        //         'status' => 1,
+        //         'error' => 0,
+        //         'message' => 'Berhasil upload gambar',
+        //         'data' => [
+        //             'path' => $name
+        //         ]
+        //     ]);
+        // } else {
+        //     return response()->json([
+        //         'status' => 0,
+        //         'error' => 500,
+        //         'message' => 'Format file harus berextention jpg atau jpeg atau bmp atau png',
+        //         'data' => []
+        //     ]);
+        // }
     }
 
     public function cudProduct(Request $request)
