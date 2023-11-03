@@ -1386,11 +1386,13 @@ class Api_all extends Controller
         // $name = $file->getClientOriginalName(); 
         // $ext = $file->getClientOriginalExtension();
 
-        $req = $request->file('file');
+        // $req = $request->file('file');
         // if ($folder != '') {
-			foreach ($req as $key => $value) {
+			foreach ($file as $key => $value) {
+                $name = $value->getClientOriginalName();
                 // $path[] = $value->store('up');
-                $path[] = $file->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$value->getClientOriginalName());
+                $path[] = $value->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
+                // $path[] = $value->move(public_path('/uploads'),$name);
 			}
 			return [
 				'status' => 1,
