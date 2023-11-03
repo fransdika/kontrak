@@ -1390,7 +1390,7 @@ class Api_all extends Controller
                 $destinationPath = "../../../public_html/back_end_mp/" . $request->company_id . "_config/images/";
                 $value->move($destinationPath, $name);
                 $filePath = $destinationPath . $name;
-                $path[] = $filePath;
+                $path[] = $name;
                 // $path[] = $value->store('up');
                 // $path[] = $value->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
                 // $path[] = $value->move(public_path('/uploads'),$name);
