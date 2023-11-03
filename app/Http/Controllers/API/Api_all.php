@@ -1382,16 +1382,17 @@ class Api_all extends Controller
     public function upload(Request $request)
     {
 
-        $file = $request->file('file');
-        // $name = $file->getClientOriginalName(); 
-        // $ext = $file->getClientOriginalExtension();
-
-        // $req = $request->file('file');
-        // if ($folder != '') {
+            $file = $request->file('file');
+        
+            $path = [];
 			foreach ($file as $key => $value) {
                 $name = $value->getClientOriginalName();
+                $destinationPath = "../../../public_html/back_end_mp/" . $request->company_id . "_config/images/";
+                $value->move($destinationPath, $name);
+                $filePath = $destinationPath . $name;
+                $path[] = $filePath;
                 // $path[] = $value->store('up');
-                $path[] = $value->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
+                // $path[] = $value->move("../../../public_html/back_end_mp/".$request->company_id."_config/images/",$name);
                 // $path[] = $value->move(public_path('/uploads'),$name);
 			}
 			return [
