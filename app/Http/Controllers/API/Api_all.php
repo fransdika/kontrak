@@ -1503,7 +1503,7 @@ class Api_all extends Controller
 			}
 		}elseif ($request->isMethod('GET')) {
 			$crud_type='select_put';
-            $m_barang = DB::select("SELECT kd_barang, kd_kategori, kd_merk, ukuran, nama, keterangan, `status`, tag FROM misterkong_$request->company_id.m_barang WHERE kd_barang='$request->kd_barang'");
+            $m_barang = DB::select("SELECT kd_barang, kd_kategori, kd_jenis_bahan, kd_model, kd_merk, kd_warna, ukuran, nama, keterangan, `status`, status_pinjam, pabrik, tag FROM misterkong_$request->company_id.m_barang WHERE kd_barang='$request->kd_barang'");
             $mbs = DB::select("SELECT kd_barang, kd_satuan, jumlah, harga_jual, `status`, margin FROM misterkong_$request->company_id.m_barang_satuan WHERE kd_barang='$request->kd_barang'");
             $mbg = DB::select("SELECT kd_barang, nomor, keterangan, gambar FROM misterkong_$request->company_id.m_barang_gambar WHERE kd_barang='$request->kd_barang'");
             $data = [];
