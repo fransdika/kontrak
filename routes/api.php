@@ -58,23 +58,24 @@ Route::post('upload-image', [Api_all::class, 'upload_image']);
 Route::post('postBarangSatuan', [Api_all::class, 'postBarangSatuan']);
 Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
 Route::post('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
-Route::post('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
-Route::post('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
+Route::any('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
+Route::any('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
 Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
 Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
 Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
 Route::post('submit_validate', [Api_all::class, 'submit_validate']);
 
-Route::post('laporan/penjualan_order', [LaporanController::class, 'getPenjualanOrder']);
+Route::any('laporan/penjualan_order', [LaporanController::class, 'getPenjualanOrder']);
 Route::any('laporan/penjualan_retur', [LaporanController::class, 'getPenjualanRetur']);
-Route::post('laporan/pembelian_order', [LaporanController::class, 'getPembelianOrder']);
-Route::post('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
+Route::any('laporan/pembelian_order', [LaporanController::class, 'getPembelianOrder']);
+Route::any('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
 Route::any('laporan/penjualan-newBorn', [LaporanController::class, 'getPenjualanNewBorn']);
-Route::post('laporan/pembelian-newBorn', [LaporanController::class, 'getPembelianNewBorn']);
+Route::any('laporan/pembelian-newBorn', [LaporanController::class, 'getPembelianNewBorn']);
 Route::post('laporan/produk', [LaporanController::class, 'produk']);
 Route::post('laporan/mutasi-kas', [LaporanController::class, 'mutasi_kas']);
-Route::post('laporan/biaya-newBorn', [LaporanController::class, 'getLaporanBiayaNewBorn']);
-Route::post('laporan/pendapatan-newBorn', [LaporanController::class, 'getLaporanPendapatanNewBorn']);
+Route::any('laporan/biaya-newBorn', [LaporanController::class, 'getLaporanBiayaNewBorn']);
+Route::any('laporan/pendapatan-newBorn', [LaporanController::class, 'getLaporanPendapatanNewBorn']);
+
 
 
 // data table

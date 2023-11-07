@@ -11,6 +11,8 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Models\ExportModel;
 use PhpParser\Node\Expr\Empty_;
+// use PhpOffice\PhpSpreadsheet\Spreadsheet;
+// use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class LaporanController extends Controller
 {
@@ -50,31 +52,81 @@ class LaporanController extends Controller
 	}
 	public function getLaporanHutang(Request $request)
 	{
-		$company_id = $request->company_id;
-		$kd_supplier = $request->kd_supplier;
-		$periode = $request->periode;
-		$order_col = $request->order_col;
-		$order_type = $request->order_type;
-		$limit = $request->limit;
-		$length = $request->length;
-		$count_stats = $request->count_stats;
-		// echo $order_type;
-		$data = LaporanModel::GetLaporanHutang($company_id, $kd_supplier, $periode, $order_col, $order_type, $limit, $length, $count_stats);
-		return response()->json($data, 200);
+		$sql="CALL p_report_getHutangAktifPerperiode('$request->company_id', '$request->kd_supplier','$request->periode','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if (!empty($request->export) && $request->export == 1) {
+			// $this->exportExcel($sql);
+			$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->{'No Transaksi'},
+							$dt->{'Kode Supplier'},
+							$dt->Tanggal,
+							$dt->Supplier,
+							$dt->{'Total Pembelian'},
+							$dt->{'Total Cicilan'},
+						  	$dt->{'Sisa Hutang'}
+						];
+					});
+
+			return $this->exportExcelHana($header,$sqlData,'Laporan Hutang');
+		} else {
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
+		}
+		// $company_id = $request->company_id;
+		// $kd_supplier = $request->kd_supplier;
+		// $periode = $request->periode;
+		// $order_col = $request->order_col;
+		// $order_type = $request->order_type;
+		// $limit = $request->limit;
+		// $length = $request->length;
+		// $count_stats = $request->count_stats;
+		// // echo $order_type;
+		// $data = LaporanModel::GetLaporanHutang($company_id, $kd_supplier, $periode, $order_col, $order_type, $limit, $length, $count_stats);
+		// return response()->json($data, 200);
 	}
 
 	public function getLaporanPiutang(Request $request)
 	{
-		$company_id = $request->company_id;
-		$kd_customer = $request->kd_customer;
-		$periode = $request->periode;
-		$order_col = $request->order_col;
-		$order_type = $request->order_type;
-		$limit = $request->limit;
-		$length = $request->length;
-		$count_stats = $request->count_stats;
-		$data = LaporanModel::GetLaporanPiutang($company_id, $kd_customer, $periode, $order_col, $order_type, $limit, $length, $count_stats);
-		return response()->json($data, 200);
+		$sql="CALL p_report_getPiutangAktifPerperiode('$request->company_id', '$request->kd_customer','$request->periode','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
+		if (!empty($request->export) && $request->export == 1) {
+			// $this->exportExcel($sql);
+			$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->{'No Transaksi'},
+							$dt->{'Kode Customer'},
+							$dt->Tanggal,
+							$dt->Customer,
+							$dt->{'Total Penjualan'},
+							$dt->{'Total Cicilan'},
+						  	$dt->{'Sisa Piutang'}
+						];
+					});
+
+			return $this->exportExcelHana($header,$sqlData,'Laporan Piutang');
+		} else {
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
+		}
+		// $company_id = $request->company_id;
+		// $kd_customer = $request->kd_customer;
+		// $periode = $request->periode;
+		// $order_col = $request->order_col;
+		// $order_type = $request->order_type;
+		// $limit = $request->limit;
+		// $length = $request->length;
+		// $count_stats = $request->count_stats;
+		// $data = LaporanModel::GetLaporanPiutang($company_id, $kd_customer, $periode, $order_col, $order_type, $limit, $length, $count_stats);
+		// return response()->json($data, 200);
 	}
 
 	public function getLaporanStok(Request $request)
@@ -130,28 +182,49 @@ class LaporanController extends Controller
 	{
 		$sql = "CALL p_report_penjualan_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
 
-		// if ($request->export == 1) {
-		// 	$this->exportExcel($sql);
-		// } else {
+		if (!empty($request->export) && $request->export == 1) {
+			// $this->exportExcel($sql);
+			$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->{'No. Transaksi'},
+							$dt->Tanggal,
+							$dt->Divisi,
+							$dt->Customer,
+							$dt->{'Jumlah Item'},
+						  	$dt->Total
+						];
+					});
+
+			return $this->exportExcelHana($header,$sqlData,'Laporan Penjualan Order');
+		} else {
 			if ($request->count_stats > 0) {
 				return DB::select($sql)[0];
 			} else {
 				return DB::select($sql);
 			}
-		// }
+		}
 	}
 
 	public function getPenjualanRetur(Request $request)
 	{
 		$sql = "CALL p_report_penjualan_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		// if ($request->count_stats > 0) {
-		// 	return DB::select($sql)[0];
-		// } else {
-		// 	return DB::select($sql);
-		// }
-
 		if (!empty($request->export) && $request->export == 1) {
-			$this->exportExcel($sql);
+			$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->{'No. Transaksi'},
+							$dt->Tanggal,
+							$dt->Divisi,
+							$dt->Customer,
+							$dt->{'Jumlah Item'},
+						  	$dt->Total
+						];
+					});
+
+			return $this->exportExcelHana($header,$sqlData,'Laporan Penjualan Retur');
 		} else {
 			if ($request->count_stats > 0) {
 				return DB::select($sql)[0];
@@ -164,21 +237,55 @@ class LaporanController extends Controller
 	public function getPembelianOrder(Request $request)
 	{
 		$sql = "CALL p_report_pembelian_order('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		if ($request->count_stats > 0) {
-			return DB::select($sql)[0];
+		if (!empty($request->export) && $request->export == 1) {
+			// $this->exportExcel($sql);
+			$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->{'No. Transaksi'},
+							$dt->Tanggal,
+							$dt->Divisi,
+							$dt->Supplier,
+							$dt->{'Jumlah Item'},
+						  	$dt->Total
+						];
+					});
+
+			return $this->exportExcelHana($header,$sqlData,'Laporan Pembelian Order');
 		} else {
-			return DB::select($sql);
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
 		}
 	}
 
 	public function getPembelianRetur(Request $request)
 	{
 		$sql = "CALL p_report_pembelian_retur('$request->company_id','$request->awal','$request->akhir',$request->jenis,'$request->search','$request->order_col','$request->order_type',$request->limit,$request->length,$request->count_stats)";
-		if ($request->count_stats > 0) {
-			return DB::select($sql)[0];
-		} else {
+		if (!empty($request->export) && $request->export == 1) {
+			$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->{'No. Transaksi'},
+							$dt->Tanggal,
+							$dt->Divisi,
+							$dt->Supplier,
+							$dt->{'Jumlah Item'},
+						  	$dt->Total
+						];
+					});
 
-			return DB::select($sql);
+			return $this->exportExcelHana($header,$sqlData,'Laporan Pembelian Retur');
+		} else {
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
 		}
 	}
 
@@ -186,7 +293,21 @@ class LaporanController extends Controller
 	{
 		$sql = "CALL p_report_penjualanNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit,$request->length)";
 		if (!empty($request->export) && $request->export == 1) {
-			$this->exportExcel($sql);
+			        // Get data to export from the database
+					$body = DB::select($sql);
+					$header = array_keys((array) $body[0]);
+					$sqlData = collect($body)->map(function ($dt) {
+						return [
+							$dt->tanggal,
+							$dt->jumlah,
+							$dt->jumlah_tunai,
+							$dt->jumlah_kredit,
+							$dt->total_tunai,
+						  	$dt->total_kredit
+						];
+					});
+
+					return $this->exportExcelHana($header,$sqlData,'Laporan Penjualan');
 		} else {
 			$select = DB::select($sql);
 			return response()->json($select);
@@ -195,8 +316,28 @@ class LaporanController extends Controller
 
 	public function getPembelianNewBorn(Request $request)
 	{
-		$sql = DB::select("CALL p_report_pembelianNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type',$request->limit,$request->length)");
-		return response()->json($sql);
+		$sql = "CALL p_report_pembelianNewBorn('$request->company_id','$request->awal','$request->akhir',$request->jenis, '$request->search', '$request->order_col', '$request->order_type',$request->limit,$request->length)";
+		// return response()->json($sql);
+		if (!empty($request->export) && $request->export == 1) {
+			// Get data to export from the database
+			$body = DB::select($sql);
+			$header = array_keys((array) $body[0]);
+			$sqlData = collect($body)->map(function ($dt) {
+				return [
+					$dt->tanggal,
+					$dt->jumlah,
+					$dt->jumlah_tunai,
+					$dt->jumlah_kredit,
+					$dt->total_tunai,
+					$dt->total_kredit
+				];
+			});
+
+			return $this->exportExcelHana($header,$sqlData,'Laporan Pembelian');
+		} else {
+			$select = DB::select($sql);
+			return response()->json($select);
+		}
 	}
 
 	public function produk(Request $request)
@@ -232,20 +373,52 @@ class LaporanController extends Controller
 	public function getLaporanBiayaNewBorn(Request $request)
 	{
 		$sql = "CALL p_biayaOperasionalNewBorn('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
-		if ($request->count_stats > 0) {
-			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id", "$request->awal", "$request->akhir", "$request->search", "$request->order_col", "$request->order_type", $request->limit, $request->length, $request->count_stats])[0];
+		if (!empty($request->export) && $request->export == 1) {
+			// Get data to export from the database
+			$body = DB::select($sql);
+			$header = array_keys((array) $body[0]);
+			$sqlData = collect($body)->map(function ($dt) {
+				return [
+					$dt->tanggal,
+					$dt->nama_biaya,
+					$dt->nominal,
+					$dt->keterangan
+				];
+			});
+			return $this->exportExcelHana($header,$sqlData,'Laporan Biaya Operasional');
 		} else {
-			return DB::select("CALL p_biayaOperasionalNewBorn(?,?,?,?,?,?,?,?,?)", ["$request->company_id", "$request->awal", "$request->akhir", "$request->search", "$request->order_col", "$request->order_type", $request->limit, $request->length, $request->count_stats]);
+			// $select = DB::select($sql);
+			// return response()->json($select);
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
 		}
 	}
 
 	public function getLaporanPendapatanNewBorn(Request $request)
 	{
 		$sql = "CALL p_pendapatanNewBorn('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
-		if ($request->count_stats > 0) {
-			return DB::select($sql)[0];
+		if (!empty($request->export) && $request->export == 1) {
+			// Get data to export from the database
+			$body = DB::select($sql);
+			$header = array_keys((array) $body[0]);
+			$sqlData = collect($body)->map(function ($dt) {
+				return [
+					$dt->tanggal,
+					$dt->nama_pendapatan,
+					$dt->nominal,
+					$dt->keterangan
+				];
+			});
+			return $this->exportExcelHana($header,$sqlData,'Laporan Pendapatan');
 		} else {
-			return DB::select($sql);
+			if ($request->count_stats > 0) {
+				return DB::select($sql)[0];
+			} else {
+				return DB::select($sql);
+			}
 		}
 	}
 	function exportExcel($sql)
@@ -266,5 +439,35 @@ class LaporanController extends Controller
 		}, 'Rekap Order Per-customer.xlsx', $headers);
 		// $export->exportExcel($sql);
 
+	}
+
+	function exportExcelHana($header,$sqlData,$judul)
+	{
+		// Create a new instance of the Spreadsheet class
+		$spreadsheet = new Spreadsheet();
+					
+		// Add data to the first worksheet
+		$worksheet1 = $spreadsheet->getActiveSheet();
+		$worksheet1->setTitle('Users');
+		$worksheet1->setCellValue('A1', $judul); // Add title to the worksheet
+		$worksheet1->mergeCells('A1:C1'); // Merge cells for title
+		// $worksheet1->mergeCells('G1:G11'); // Merge cells for title
+
+		$worksheet1->fromArray([$header], null, 'A2');
+		$worksheet1->fromArray($sqlData->toArray(), null, 'A3');
+
+		// Create a new instance of the Xlsx writer class
+		$writer = new Xlsx($spreadsheet);
+
+		// Set the headers for the Excel file download
+		$headers = [
+			'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			'Content-Disposition' => "attachment; filename='$judul.xlsx'",
+		];
+
+		// Stream the Excel file to the browser
+		return response()->streamDownload(function () use ($writer) {
+			$writer->save('php://output');
+		},  "$judul.xlsx", $headers);
 	}
 }
