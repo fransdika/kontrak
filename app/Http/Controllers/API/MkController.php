@@ -281,17 +281,17 @@ class MkController extends Controller
         ];
 
         $update = m_api::reset_pass($data, "no_hp");
-
+        
         if ($update) {
             echo response()->json([
                 "error" => 0,
                 "pesan" => "password berhasil di reset!"
-            ]);
+            ],200)->getContent();
         } else {
             echo response()->json([
                 'error' => 1,
                 'pesan' => 'Gagal mengubah Password'
-            ]);
+            ],200)->getContent();
         }
     }
 

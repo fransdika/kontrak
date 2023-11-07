@@ -98,9 +98,21 @@ class m_api extends Model
     {
         $updateUserx = DB::table("m_userx")->where([$param=>$data[$param]])->update($data);
         // select db from user
-        $companyId=DB::table("m_user_company")->select("company_id")->where(["kd_user","IN",DB::table("m_userx")->where([$param=>$data[$param]])])->get();
+        $list_user=DB::table("m_userx")->where([$param=>$data[$param]])->get();
+        foreach($list_user as $key_users => $val_users){
+            $kd_users[]=$val_users->id;
+        }
+    
+        // echo "<pre>";
+        // print_r($kd_users);
+        // // print_r($param);
+        // echo "</pre>";
+        // die();
+        
+        $companyId=DB::table("m_user_company")->select("company_id")->whereIn("kd_user",$kd_users)->get();
+        
         foreach ($companyId as $id) {
-            DB::table("misterkong_".$id->company_id.".m_userx")->update(["passweb"=>$data["passwd"],["kd_user"=>"UAA000"]]);
+            DB::table("misterkong_".$id->company_id.".m_userx")->where(["kd_user"=>"UAA000"])->update(["passweb"=>$data["passwd"]]);
         }
 
         return (bool)$updateUserx;
@@ -135,16 +147,17 @@ class m_api extends Model
     }
     private static function company_id()
     {
-//        $ex_max_trans = DB::table("m_user_company")->selectRaw("company_id as notrans")->where("company_id","LIKE","'%".date("YmdHis")."%'")->get();
-//        $nomor = $ex_max_trans->notrans;
-//        $noUrut = (int) substr($nomor, -2);
-//
-//        if ($ex_max_trans->count() == 0) {
+//         $ex_max_trans = DB::table("m_user_company")->selectRaw("company_id as notrans")-> where("company_id","LIKE","'%".date("YmdHis")."%'")->get();
+        
+//         $nomor = $ex_max_trans->notrans;
+//         $noUrut = (int) substr($nomor, -2);
+
+        // if ($ex_max_trans->count() == 0) {
             $no_trans = "comp" . date("YmdHis") . "01";
-//        } else {
-//            $noUrut++;
-//            $no_trans = "comp" . date("YmdHis") . sprintf("%02s", $noUrut);
-//        }
+        // } else {
+        //     $noUrut++;
+        //     $no_trans = "comp" . date("YmdHis") . sprintf("%02s", $noUrut);
+        // }
 
         return $no_trans;
     }
@@ -236,7 +249,7 @@ class m_api extends Model
                     $feedback = [];
                     $det = [
                         "error" => 1,
-                        "pesan" => "Tidak Berhasil!"
+                        "pesan" => "Tidak Berhasil!".$er->getMessage()
                     ];
                     $feedback[]=$det;
                     return $feedback;
@@ -254,7 +267,7 @@ class m_api extends Model
     private function get_nama_kota($kode)
     {
         $res=DB::table("m_city")->select("city_name")->where(["city_id"=>$kode])->first();
-        return $res->city_name ?? "";
+        return $res->city_name ?? '';
     }
 
     public static function check_ph($data)
