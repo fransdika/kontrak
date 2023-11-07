@@ -37,16 +37,25 @@ class Misterkong extends Model
                 // dd(\DB::getQueryLog());
                 if (count($cek) > 0) {
                     if ($cek[0]->jumlah_usaha_user != 1) {
-                        $ex_compid = "SELECT company_id, nama_usaha,alamat from m_user_company where kd_user=(select id from m_userx where (email='" . $data['input'] . "' and passwd='" . $data['passwd'] . "') or (no_hp='" . $data['input'] . "' and passwd='" . $data['passwd'] . "')) AND status=1";
+                        $ex_compid = "SELECT company_id, nama_usaha,alamat from m_user_company where kd_user=(select id from m_userx where (email='" . $data['input'] . "' and passwd='" . $data['passwd'] . "') or (no_hp='" . $data['input'] . "' and passwd='" . $data['passwd'] . "')) AND status=1
+                            UNION ALL
+                            SELECT company_id, nama_usaha,alamat FROM
+                            (
+                            SELECT id_company_id FROM m_user_manager_company WHERE 
+                            id_user_manager IN
+                            (SELECT id FROM m_user_manager where user_id=(select id from m_userx where (email='" . $data['input'] . "' and passwd='" . $data['passwd'] . "') or (no_hp='" . $data['input'] . "' and passwd='" . $data['passwd'] . "')) )
+                            ) comp_manager
+                            INNER JOIN m_user_company ON comp_manager.id_company_id=m_user_company.id WHERE m_user_company.status=1 
+                            ";
                         $sql = DB::select($ex_compid);
-                        // print_r($row);
                         $jml_data = count($sql);
                         if($jml_data > 0){
                             $company = ["error" => 0, "usaha" => $jml_data, "company" => []];
                             foreach ($sql as $value) {
-                               $det = ["company_id" => $value->company_id,
-                                        "nama_usaha" => $value->nama_usaha,
-                                        "alamat" => $value->alamat];
+                            $det = [
+                                "company_id" => $value->company_id,
+                                "nama_usaha" => $value->nama_usaha,
+                                "alamat" => $value->alamat];
                                 array_push($company['company'], $det);
                             }
                             array_push($data1, $company);
@@ -67,8 +76,8 @@ class Misterkong extends Model
                     }
                 }else {
                     $company = ["error" => 3, "pesan" => "Tidak ada Data usaha"];
-					array_push($data1, $company);
-					return $data1;
+                    array_push($data1, $company);
+                    return $data1;
                 }
             }else {
                 $company = ["error" => 2, "pesan" => "Akun Anda belum terverifikasi, apakah anda ingin " . $pesan . "?", "loginby" => $data['loginby']];
@@ -78,7 +87,7 @@ class Misterkong extends Model
         }else {
             $company = ["error" => 1, "pesan" => "User atau Password salah"];
             array_push($data1, $company);
-			return $data1;
+            return $data1;
         }
     }
 

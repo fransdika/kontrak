@@ -58,125 +58,134 @@ class ManagerController extends Controller
             }else {
                 $insertss = ['kd_group' => 1, 'nama' => $data_user['nama'], 'passwd' => $data_user['passweb'], 'keterangan' => '-', 'no_hp' => $hp, 'status_phone' => 1, 'email' => $email, 'status_email' => 0, 'status' => 1];
             }
-            $insert = DB::table('m_userx')->updateOrInsert(['no_hp' => $hp], $insertss);
-            $user_id = DB::getPdo()->lastInsertId();
-            if($insert == TRUE){
+            // $insert = DB::table('m_userx')->updateOrInsert(['no_hp' => $hp], $insertss);
+            // $user_id = DB::getPdo()->lastInsertId();
+            // if($insert){
+            $getUser_id=DB::table('m_userx')->where(['no_hp'=>$hp])->first();
+            if(empty($getUser_id)){
+                $insert = DB::table('m_userx')->insert($insertss);
+            }
+            $user_id=$getUser_id->id;
+            
+            
                 //tambah baru 29/09/2023
-                $get_id_cid=DB::table('m_user_company')->where('company_id', '=', $company_id)->get();
-                if (count($get_id_cid)) {
-                    $id_cid=$get_id_cid[0]->id;
-                    $id_refferal=$get_id_cid[0]->kd_user;
+            $get_id_cid=DB::table('m_user_company')->where('company_id', '=', $company_id)->get();
+            if (count($get_id_cid)) {
+                $id_cid=$get_id_cid[0]->id;
+                $id_refferal=$get_id_cid[0]->kd_user;
+            }else{
+                $id_cid=1;
+                $id_refferal=0;
+            }
 
-                }else{
-                    $id_cid=1;
-                    $id_refferal=0;
-                }
+            $data_manager = ['user_id_referal'=>$id_refferal,'user_id' => $user_id, 'nama_pengguna'=> $data_pegawai['nama'], 'alamat' => $data_pegawai['alamat'], 'no_hp' => $hp, 'kd_bank' => '-', 'no_rek' => '-', 'nama_pemilik_rekening' => '-', 'no_aktif' => $hp, 'jenis' => $jenis, 'status' => 1];
+            
 
-                $data_manager = ['user_id_referal'=>$id_refferal,'user_id' => $user_id, 'nama_pengguna'=> $data_pegawai['nama'], 'alamat' => $data_pegawai['alamat'], 'no_hp' => $hp, 'kd_bank' => '-', 'no_rek' => '-', 'nama_pemilik_rekening' => '-', 'no_aktif' => $hp, 'jenis' => $jenis, 'status' => 1];
-                
-
-                DB::beginTransaction();
-                try {
-                    $manager = DB::table('m_user_manager')->updateOrInsert(['no_hp' => $hp], $data_manager);
-                    $productId = DB::getPdo()->lastInsertId();
-                    foreach($select as $exe) {
+            DB::beginTransaction();
+            try {
+                $manager = DB::table('m_user_manager')->updateOrInsert(['no_hp' => $hp], $data_manager);
+                $getManagerId=DB::table('m_user_manager')->where(['no_hp'=>$hp])->first();
+                $productId=$getManagerId->id;
+                    // $productId = DB::getPdo()->lastInsertId();
+                foreach($select as $exe) {
                         //salah
                         // $data_company = ['id_company_id' => $productId, 'id_user_manager' => 1, 'status' => 1, 'keterangan' => '-'];
                         // revisi 29-09-2023
-                        $data_company = ['id_company_id' => $id_cid, 'id_user_manager' => $productId, 'status' => 1, 'keterangan' => '-'];
+                    $data_company = ['id_company_id' => $id_cid, 'id_user_manager' => $productId, 'status' => 1, 'keterangan' => '-'];
 
-                    }
-                    $company = DB::table('m_user_manager_company')->updateOrInsert(['id_user_manager' => $productId], $data_company);
-
-                    DB::commit();
-                } catch (\Exception $e) {
-                    DB::rollback();
                 }
+                    // echo $productId.' '.$id_cid;
+                $company = DB::table('m_user_manager_company')->updateOrInsert(['id_user_manager' => $productId,'id_company_id' => $id_cid], $data_company);
+
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollback();
             }
+            // }
             return response()->json(['Sucess'=>'TRUE', 'User_baru' => 'TRUE']);
         }
 
 
     }
-    //diubah karena terpaksa karena split menggunakan koma
+//diubah karena terpaksa karena split menggunakan koma
     public function array_converter($array)
     {
         
-         $Y = [];
-        if(!empty($array)){
-            $update = str_replace($array[0], '', $array);
-            $exe = explode(',', substr($update, 0, -1));
-            foreach($exe as $key => $data) {
-                $x[] = explode('=', $data);
-            }
-            $pengurang=1;
-            foreach($x as $key_x => $value_x){
-                if(count($value_x)<2){
-                    $x[$key_x-$pengurang][1] = $x[$key_x-$pengurang][1].",".$value_x[0];
-                    unset($x[$key_x]);
-                    $pengurang++;
-                }else{
-                    $pengurang=1;
-                }
-                
-            }   
-            foreach($x as $key_x => $value_x){
-                $Y[trim($value_x[0])] = $value_x[1];
-            }
+       $Y = [];
+       if(!empty($array)){
+        $update = str_replace($array[0], '', $array);
+        $exe = explode(',', substr($update, 0, -1));
+        foreach($exe as $key => $data) {
+            $x[] = explode('=', $data);
         }
-        return $Y;
+        $pengurang=1;
+        foreach($x as $key_x => $value_x){
+            if(count($value_x)<2){
+                $x[$key_x-$pengurang][1] = $x[$key_x-$pengurang][1].",".$value_x[0];
+                unset($x[$key_x]);
+                $pengurang++;
+            }else{
+                $pengurang=1;
+            }
+            
+        }   
+        foreach($x as $key_x => $value_x){
+            $Y[trim($value_x[0])] = $value_x[1];
+        }
     }
+    return $Y;
+}
 
-    public function login(Request $request)
-    {
-        $data = [];
-        $input = $request->mn;
-        $password = $request->dp;
-        $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
-        $res = strpos($input, '@');
-        $where['loginby'] = ($res == false) ? "phone" : "email";
-        $model = new Misterkong();
+public function login(Request $request)
+{
+    $data = [];
+    $input = $request->mn;
+    $password = $request->dp;
+    $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
+    $res = strpos($input, '@');
+    $where['loginby'] = ($res == false) ? "phone" : "email";
+    $model = new Misterkong();
     // dd(\DB::getQueryLog());
-        $respon = $model->login($where);
+    $respon = $model->login($where);
     // dd(\DB::getQueryLog());
 
 
     //hana punya
-        $authC = new AuthController;
-        $auth_response = $authC->login_pos($request)->getData();
-        if (!empty($auth_response->access_token)) {
-            $respon[0]['token']=$auth_response->access_token;
-        }
-        return response()->json($respon);
-
+    $authC = new AuthController;
+    $auth_response = $authC->login_pos($request)->getData();
+    if (!empty($auth_response->access_token)) {
+        $respon[0]['token']=$auth_response->access_token;
     }
+    return response()->json($respon);
 
-    public function pencarian(Request $request)
-    {
-        $company_id = $request->company_id;
-        $phone = $request->no_hp;
-        if(substr($phone, 0,1) == "0"){
-            $hp = '62'.substr(trim($phone), 1);
-        }else{
-            $hp = $phone;
-        }
-        $array = [];
-        $array = [$hp, $company_id];
+}
+
+public function pencarian(Request $request)
+{
+    $company_id = $request->company_id;
+    $phone = $request->no_hp;
+    if(substr($phone, 0,1) == "0"){
+        $hp = '62'.substr(trim($phone), 1);
+    }else{
+        $hp = $phone;
+    }
+    $array = [];
+    $array = [$hp, $company_id];
     // DB::enableQueryLog();
-        $prosedures = DB::select('call checkUserByPhone(?,?)', $array);
+    $prosedures = DB::select('call checkUserByPhone(?,?)', $array);
     // dd(\DB::getQueryLog());
-        foreach($prosedures as $exe) {
-            $data = $exe->result;
-        }
-        if (!empty($data)) {
-            if($data == 2){
-                return response()->json(['Sucess'=>'TRUE', 'message' => 'Telah Digunakan', 'result' => $data, 'data' => $prosedures]);
-            }else{
-                return response()->json(['Sucess'=>'TRUE', 'message' => 'Sudah Terdaftar', 'result' => $data, 'data' => $prosedures]);
-            }
-        }else{
-            return response()->json(['Sucess'=>'TRUE', 'message' => 'blum terdaftar', 'result' => 0, 'data' => []]);
-        }
-
+    foreach($prosedures as $exe) {
+        $data = $exe->result;
     }
+    if (!empty($data)) {
+        if($data == 2){
+            return response()->json(['Sucess'=>'TRUE', 'message' => 'Telah Digunakan', 'result' => $data, 'data' => $prosedures]);
+        }else{
+            return response()->json(['Sucess'=>'TRUE', 'message' => 'Sudah Terdaftar', 'result' => $data, 'data' => $prosedures]);
+        }
+    }else{
+        return response()->json(['Sucess'=>'TRUE', 'message' => 'blum terdaftar', 'result' => 0, 'data' => []]);
+    }
+
+}
 }
