@@ -12,6 +12,7 @@ use App\Http\Controllers\API\SinkronisasiController;
 use App\Http\Controllers\API\DatabaseGeneratorController;
 use App\Http\Controllers\API\ExportController;
 use App\Http\Controllers\API\SolidReportController;
+use App\Http\Controllers\API\MapperController;
 use App\Http\Controllers\API\Utilites;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -223,3 +224,9 @@ Route::get('jenis_bahan/show', [Api_all::class, 'show_jenis_bahan']);
 
 //export
 Route::get('export/{jenis_laporan}', [ExportController::class, 'exportExcel']);
+
+//kongmapper
+Route::get('mapper/kontrak/{other_cid}', [MapperController::class, 'getDataKontrakMapper']);
+Route::get('mapper/master/tarif', [MapperController::class, 'getTarifMapper']);
+Route::put('mapper/bayar/do-update', [MapperController::class, 'updatePembayaran']);
+
