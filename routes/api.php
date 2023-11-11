@@ -57,13 +57,13 @@ Route::post('post_do_payment', [Api_all::class, 'post_do_payment']);
 Route::post('prepare_order', [Api_all::class, 'procedure_prepare_kontrak']);
 Route::post('upload-image', [Api_all::class, 'upload_image']);
 Route::post('postBarangSatuan', [Api_all::class, 'postBarangSatuan']);
-Route::post('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
-Route::post('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
+Route::any('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan']);
+Route::any('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
 Route::any('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
 Route::any('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
 Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
-Route::post('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
-Route::post('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
+Route::any('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
+Route::any('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
 Route::post('submit_validate', [Api_all::class, 'submit_validate']);
 
 Route::any('laporan/penjualan_order', [LaporanController::class, 'getPenjualanOrder']);
