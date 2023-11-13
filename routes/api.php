@@ -76,6 +76,7 @@ Route::post('laporan/produk', [LaporanController::class, 'produk']);
 Route::post('laporan/mutasi-kas', [LaporanController::class, 'mutasi_kas']);
 Route::any('laporan/biaya-newBorn', [LaporanController::class, 'getLaporanBiayaNewBorn']);
 Route::any('laporan/pendapatan-newBorn', [LaporanController::class, 'getLaporanPendapatanNewBorn']);
+Route::get('laporan/get-fmi-smi-stock', [LaporanController::class, 'getFmiSmiStock']);
 
 
 

@@ -402,4 +402,17 @@ class LaporanController extends Controller
 			$writer->save('php://output');
 		},  "$judul.xlsx", $headers);
     }
+
+	public function getFmiSmiStock(Request $request)
+	{
+		// $sql = "CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
+		$result1 = DB::select("CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,0)");
+		$result2 = DB::select("CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,1)");
+		return response()->json([
+			'error' => 0,
+            'message' => 'Data Found',
+            'jumlah_record' => $result2[0]->jumlah_record,
+            'data' => $result1
+		]);
+	}
 }
