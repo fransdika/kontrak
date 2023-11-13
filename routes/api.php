@@ -228,5 +228,5 @@ Route::get('export/{jenis_laporan}', [ExportController::class, 'exportExcel']);
 //kongmapper
 Route::get('mapper/kontrak/{other_cid}', [MapperController::class, 'getDataKontrakMapper']);
 Route::get('mapper/master/tarif', [MapperController::class, 'getTarifMapper']);
-Route::put('mapper/bayar/do-update', [MapperController::class, 'updatePembayaran']);
+Route::post('mapper/bayar/do-update', [MapperController::class, 'updatePembayaran']);
 
