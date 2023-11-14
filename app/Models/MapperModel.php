@@ -9,7 +9,7 @@ class MapperModel extends Model
 {
     use HasFactory;
     function getKontrakUser($other_cid){
-        $sql="CALL misterkong_mapper.getListKontrakMapper($other_cid)";
+        $sql="CALL misterkong_mapper.getListKontrakMapper('$other_cid')";
         $data=DB::select($sql);
         return $data;
     }
