@@ -78,12 +78,30 @@ class MapperController extends Controller
         	$response=[
                 'status'=>0,
                 'error' =>500,
-                'message'=>'wrong company id
-                ',
+                'message'=>'wrong company id',
                 'data'=>[]
             ];
             return response()->json($response,500);
         }   
     }
-
+    public function cekMapperFeature($company_id)
+    {
+        if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/POST/mapper/update__mapper.json")) {
+            $response=[
+                'status'=>0,
+                'error' =>200,
+                'message'=>'tidak menggunakan fitur mapper',
+                'data'=>[]
+            ];
+        }else{
+            $data_json = json_decode(file_get_contents("../../../public_html/back_end_mp/" . $company_id . "_config/POST/mapper/update__mapper.json"), true);
+            $response=[
+                'status'=>1,
+                'error' =>200,
+                'message'=>'terdapat update pada fitur mapper',
+                'data'=>$data_json
+            ];
+        }
+        return response()->json($response,200);
+    }
 }

@@ -230,4 +230,5 @@ Route::get('export/{jenis_laporan}', [ExportController::class, 'exportExcel']);
 Route::get('mapper/kontrak/{other_cid}', [MapperController::class, 'getDataKontrakMapper']);
 Route::get('mapper/master/tarif', [MapperController::class, 'getTarifMapper']);
 Route::post('mapper/bayar/do-update', [MapperController::class, 'updatePembayaran']);
+Route::any('cek-update-mapper/{company_id}', [MapperController::class, 'cekMapperFeature']);
 
