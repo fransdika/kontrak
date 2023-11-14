@@ -407,7 +407,7 @@ class LaporanController extends Controller
 	{
 		// $sql = "CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,$request->count_stats)";
 		$result1 = DB::select("CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,0)");
-		$result2 = DB::select("CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,1)");
+		$result2 = DB::select("CALL p_fmi_smi_stock('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type',0,10,1)");
 		return response()->json([
 			'error' => 0,
             'message' => 'Data Found',
