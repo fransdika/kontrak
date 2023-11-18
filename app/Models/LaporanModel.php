@@ -87,7 +87,7 @@ class LaporanModel extends Model
 		// }
 
 		if ($count_stats == 1) {
-			$select_final = "COUNT(*) AS jumlah_data";
+			$select_final = "COUNT(*) AS jumlah_record";
 		} else {
 			$select_final = "m_barang.nama AS nama_barang,
 							 m_barang.kd_barang,

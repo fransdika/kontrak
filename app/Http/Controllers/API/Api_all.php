@@ -803,6 +803,26 @@ class Api_all extends Controller
         }
     }
 
+    // public function mutasiStockBackOffice(Request $request)
+    // {
+    //     $sql = "CALL misterkong_$request->comp_id.p_mon_report_mutasi_stok('".$request->awal."','".$request->akhir."')";
+    //     try {
+    //         return DB::select($sql);
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'status' => 0,
+    //             'error' => $e->getMessage(),
+    //             'message' => 'Gagal'
+    //         ], 404);
+    //         return response()->json([
+    //             'status' => 0,
+    //             'error' => $e->getMessage(),
+    //             'message' => 'Gagal'
+    //         ], 500);
+    //     }
+    // }
+
     public function upload_file(Request $request)
     {
 
