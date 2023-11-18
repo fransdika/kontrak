@@ -133,9 +133,8 @@ Route::post('delete_hutang', [Api_all::class, 'delete_hutang']);
 Route::post('status_toko', [Api_all::class, 'status_buka_tutup_toko']);
 
 Route::post('laba_rugi', [Api_all::class, 'laba_rugi']);
-Route::post('mutasi_stok', [Api_all::class, 'mutasi_stok']);
-Route::post('kartu_stok', [Api_all::class, 'kartu_stok']);
-
+Route::any('mutasi_stok', [Api_all::class, 'mutasi_stok']);
+Route::any('kartu_stok', [Api_all::class, 'kartu_stok']);
 
 // backend POS
 Route::post('upload-barang', [Api_all::class, 'upload_file']);
