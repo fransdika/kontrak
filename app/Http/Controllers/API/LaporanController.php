@@ -247,11 +247,15 @@ class LaporanController extends Controller
 			} else {
 				$query1 = DB::select($sql);
 			 	$query2 = DB::select($sql2);
+				$jumlah_record=0;
+				if(!empty($query2)){
+					$jumlah_record=$query2[0]->jumlah_record;
+				}
 				return response()->json([
 					'status' => 1,
 					'error' => 0,
 					'message' => count($query1) . ' Data ditemukan',
-					'jumlah_record' => !empty($query2) ? $query2[0]->jumlah_record : 0,
+					'jumlah_record' => $jumlah_record,
 					'data' => $query1
 				]);
 			}
