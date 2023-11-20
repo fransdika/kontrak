@@ -72,7 +72,7 @@ Route::any('laporan/pembelian_order', [LaporanController::class, 'getPembelianOr
 Route::any('laporan/pembelian_retur', [LaporanController::class, 'getPembelianRetur']);
 Route::any('laporan/penjualan-newBorn', [LaporanController::class, 'getPenjualanNewBorn']);
 Route::any('laporan/pembelian-newBorn', [LaporanController::class, 'getPembelianNewBorn']);
-Route::post('laporan/produk', [LaporanController::class, 'produk']);
+Route::any('laporan/produk', [LaporanController::class, 'produk']);
 Route::post('laporan/mutasi-kas', [LaporanController::class, 'mutasi_kas']);
 Route::any('laporan/biaya-newBorn', [LaporanController::class, 'getLaporanBiayaNewBorn']);
 Route::any('laporan/pendapatan-newBorn', [LaporanController::class, 'getLaporanPendapatanNewBorn']);
