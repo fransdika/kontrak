@@ -89,7 +89,7 @@ class LaporanController extends Controller
 		$limit = $request->limit;
 		$length = $request->length;
 		$count_stats = $request->count_stats;
-		$sql="p_report_getStokAkhirFilter('$company_id', '$kd_barang', '$kd_divisi', '$periode', $jenis, '$search', '$order_col', '$order_type', $limit, $length, $count_stats)";
+		$sql="CALL p_report_getStokAkhirFilter('$company_id', '$kd_barang', '$kd_divisi', '$periode', $jenis, '$search', '$order_col', '$order_type', $limit, $length, $count_stats)";
 		if (!empty($request->export) && $request->export == 1) {
 			return $this->exportExcel($sql,'Laporan Inventori');
 		} else {
