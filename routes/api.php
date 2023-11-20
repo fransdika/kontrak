@@ -61,7 +61,7 @@ Route::any('laporan/penjualan', [LaporanController::class, 'getLaporanPenjualan'
 Route::any('laporan/pembelian', [LaporanController::class, 'getLaporanPembelian']);
 Route::any('laporan/hutang', [LaporanController::class, 'getLaporanHutang']);
 Route::any('laporan/piutang', [LaporanController::class, 'getLaporanPiutang']);
-Route::post('laporan/stok', [LaporanController::class, 'getLaporanStok']);
+Route::any('laporan/stok', [LaporanController::class, 'getLaporanStok']);
 Route::any('laporan/biaya', [LaporanController::class, 'getLaporanBiaya']);
 Route::any('laporan/pendapatan', [LaporanController::class, 'getLaporanPendapatan']);
 Route::post('submit_validate', [Api_all::class, 'submit_validate']);
