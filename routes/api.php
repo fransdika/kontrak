@@ -195,6 +195,8 @@ Route::post('get-buka-tutup-toko', [SolidReportController::class, 'getBukaTutupT
 Route::put('update-buka-tutup-toko', [SolidReportController::class, 'updateJadwalBukaTutupToko']);
 Route::put('update-tags', [SolidReportController::class, 'updateTags']);
 Route::post('update-gambar-company', [SolidReportController::class, 'updateGambar']);
+Route::post('opname/get-item/{company_id}', [SolidReportController::class, 'loadMasterOpname']);
+Route::post('opname/simpan', [SolidReportController::class, 'doOpname']);
 
 // baru dika
 Route::post('getStatusDb/{company_id}', [SinkronisasiController::class, 'getStatusGenerateDb']);
