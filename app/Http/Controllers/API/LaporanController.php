@@ -89,8 +89,16 @@ class LaporanController extends Controller
 		$limit = $request->limit;
 		$length = $request->length;
 		$count_stats = $request->count_stats;
-		$data = LaporanModel::GetLaporanStok($company_id, $kd_barang, $kd_divisi, $periode, $jenis, $search, $order_col, $order_type, $limit, $length, $count_stats);
-		return response()->json($data, 200);
+		$sql="p_report_getStokAkhirFilter('$company_id', '$kd_barang', '$kd_divisi', '$periode', $jenis, '$search', '$order_col', '$order_type', $limit, $length, $count_stats)";
+		if (!empty($request->export) && $request->export == 1) {
+			return $this->exportExcel($sql,'Laporan Inventori');
+		} else {
+			if ($request->count_stats>0) {
+				return DB::select($sql)[0];
+			}else{
+				return DB::select($sql);
+			}
+		}
 	}
 
 	public function getLaporanBiaya(Request $request)
