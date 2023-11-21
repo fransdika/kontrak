@@ -250,18 +250,43 @@ class SolidReportController extends Controller
     {
         // $company_id=$request->company_id;
 
-        $filter='';
-        $filter_jenis='';
-        $filter_warna='';
-        $filter_merk='';
-        $filter_model='';
-        $filter_kategori='';
+        $filter=[];
+        $filter_fix='';
+        $filter_final='';
         if (!empty($request->kd_merk)) {
-            $
+            $filter[]="kd_merk = '".$request->kd_merk."'";
         }
-        $sql="SELECT * FROM $company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN $company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
-        WHERE kd_divisi='$request->kd_divisi' filter";
-        $data=
+        if (!empty($request->kd_jenis_bahan)) {
+            $filter[]="kd_jenis_bahan = '".$request->kd_jenis_bahan."'";
+        }
+        if (!empty($request->kd_kategori)) {
+            $filter[]="kd_kategori = '".$request->kd_kategori."'";
+        }
+        if (!empty($request->kd_model)) {
+            $filter[]="kd_model = '".$request->kd_model."'";
+        }
+        if (!empty($request->kd_warna)) {
+            $filter[]="kd_warna = '".$request->kd_warna."'";
+        }
+        $filter_fix=implode(" OR ", $filter);
+
+        if (!empty($filter_fix)) {
+            $filter_final="AND ($filter_fix)";
+        }
+
+        $sql="SELECT m_barang.kd_barang, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
+        INNER JOIN (
+            SELECT kd_barang, GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan
+            ,GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah) AS varian_satuan
+            FROM misterkong_$company_id .m_barang_satuan GROUP BY kd_barang
+            ) mbs
+        ON m_barang.kd_barang=mbs.kd_barang
+        INNER JOIN (SELECT kd_barang, GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah ASC LIMIT 1) satuan_terkecil FROM misterkong_$company_id .m_barang_satuan m_barang_satuan GROUP BY kd_barang) mbs_terkecil
+        ON m_barang.kd_barang=mbs_terkecil.kd_barang
+        WHERE kd_divisi='$request->kd_divisi' $filter_final";
+        // echo $sql;
+        // die();
+        $data=DB::select($sql);
 
         // $data=DB::table($company_id.'.mon_g_stok_barang_per_divisi_vd vd')
         // ->join('m_barang brg', 'vd.kd_barang', '=', 'brg.kd_barang')
@@ -277,6 +302,7 @@ class SolidReportController extends Controller
             'status' => 1,
             'error' => 200,
             'message' => 'berhasil',
+            'jumlah_record' => count($data),
             'data' => $data
         ]);
 
@@ -285,26 +311,64 @@ class SolidReportController extends Controller
     public function doOpname(Request $request)
     {
         $qty=0;
-        $status=0;
+        $status_opname=0;
         $company_id=$request->company_id;
+        $imei=$request->imei;
+    
+        $stok_akhir=DB::table("misterkong_$company_id.mon_g_stok_barang_per_divisi_vd")->select('kd_barang','stok','kd_divisi')->where(['kd_divisi'=>$request->kd_divisi])->get();
+        $stok_sistem=[];
+        // echo"<pre>";
+        // print_r($stok_akhir);
+        // echo"</pre>";
+        foreach ($stok_akhir as $key_stok => $value_stok) {
+            $stok_sistem[$value_stok->kd_barang]=$value_stok->stok;
+        } 
+        // print_r($stok_sistem);
+        $err_kd_barang=[];
         foreach ($request->data as $key_save => $value_save) {
-            $data_save[]=[
-                "no_transaksi" =>"",
-                "kd_divisi" =>$value_save->kd_divisi,
-                "kd_barang" =>$value_save->kd_barang,
-                "kd_satuan" =>$value_save->kd_satuan,
-                "tanggal" =>$request->tanggal,
-                "qty" =>$qty,
-                "keterangan" =>"POS Opname",
-                "kd_user" =>$request->kd_user,
-                "status" =>$status,
-                "tanggal_server" =>date('Y-m-d H:i:s'),
-                "harga" =>0,
-            ];
+            $no_transaksi="OS".substr($company_id, -4).substr($imei, -4).date('ymd').sprintf("%04d", $key_save+1);
+            // print_r($value_save);
+            $qty=$value_save['qty'];
+            $kd_barang=$value_save['kd_barang'];
+            if(!empty($stok_sistem[$kd_barang])){
+                $stok_sistem_cal=$stok_sistem[$kd_barang];
+                $qty_opname=floatval($qty)-floatval($stok_sistem_cal);
+                if ($qty_opname>0) {
+                    $status_opname=2;
+                    $qty_opname=abs($qty_opname);
+                }else{
+                    $status_opname=3;
+                    $qty_opname*=-1;
+                }
+                // echo $stok_sistem_cal."=>".$qty;
+                $data_save[]=[
+                    "no_transaksi" =>$no_transaksi,
+                    "kd_divisi" =>$request->kd_divisi,
+                    "kd_barang" =>$value_save['kd_barang'],
+                    "kd_satuan" =>$value_save['kd_satuan'],
+                    "tanggal" =>$request['tanggal'],
+                    "qty" =>$qty_opname,
+                    "keterangan" =>"POS Opname",
+                    "kd_user" =>$request['kd_user'],
+                    "status" =>$status_opname,
+                    "tanggal_server" =>date('Y-m-d H:i:s'),
+                    "harga" =>0,
+                ];
+            }else{
+                $err_kd_barang[]=$kd_barang;
+            }
         }
+        // echo "<pre>";
+        // print_r($data_save);
+        // echo "</pre>";
+        // die();
+        
+        if(empty($err_kd_barang)){
         DB::beginTransaction();
         try {
-            $exe=DB::table('t_opname_stok')->insert($data_save);
+            foreach($data_save as $ey_save=> $value_save){
+            $exe=DB::table("misterkong_$company_id.t_opname_stok")->insert($value_save);
+            }
             DB::commit();
             return response()->json([
                 'status' => 1,
@@ -321,6 +385,13 @@ class SolidReportController extends Controller
                 'data' => []
             ]);
         }
-        
+        }else{
+            return response()->json([
+                'status' => 0,
+                'error' => 500,
+                'message' => 'gagal, kode '.implode($err_kd_barang)." tidak ditemukan",
+                'data' => ['kd_barang'=> $err_kd_barang]
+            ]);
+        }
     }
 }
