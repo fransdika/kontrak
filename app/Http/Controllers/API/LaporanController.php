@@ -239,52 +239,16 @@ class LaporanController extends Controller
 
 	public function produk(Request $request)
 	{
-		// if ($request->jenis != 2) {
-		// 	$sql = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 0)");
-			$sql2 = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 1)");
-			// if (!empty($request->export) && $request->export == 1) {
-			// 	return $this->exportExcel($sql,'Laporan Produk');
-			// } else {
-			// 	$query1 = DB::select($sql);
-			//  	$query2 = DB::select($sql2);
-			// 	$jumlah_record=0;
-			// 	if(!empty($query2)){
-			// 		$jumlah_record=$query2[0]->jumlah_record;
-			// 	}
-			// 	return response()->json([
-			// 		'status' => 1,
-			// 		'error' => 0,
-			// 		'message' => count($query1) . ' Data ditemukan',
-			// 		'jumlah_record' => $jumlah_record,
-			// 		'data' => $query1
-			// 	]);
-			// }
-		// } else {
-		// 	$sql = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 0, $request->kd_barang);
-		// 	$sql2 = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 1, $request->kd_barang);
-			// if (!empty($request->export) && $request->export == 1) {
-			// 	return $this->exportExcel($sql,'Laporan Produk');
-			// } else {
-			// 	$query1 = DB::select($sql);
-			//  	$query2 = DB::select($sql2);
-			// 	return response()->json([
-			// 		'status' => 1,
-			// 		'error' => 0,
-			// 		'message' => count($query1) . ' Data ditemukan',
-			// 		'jumlah_record' => !empty($query2) ? $query2[0]->jumlah_record : 0,
-			// 		'data' => $query1
-			// 	]);
-			// }
-		// }
+		if ($request->jenis != 2) {
+			$sql = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 0)");
+			// $sql2 = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 1)");
+		} else {
+			$sql = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 0, $request->kd_barang);
+			// $sql2 = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 1, $request->kd_barang);
+		}
 
-		// return response()->json([
-		// 	'status' => 1,
-		// 	'error' => 0,
-		// 	'message' => count($sql) . ' Data ditemukan',
-		// 	'jumlah_record' => $sql2[0]->jumlah_record,
-		// 	'data' => $sql
-		// ]);
-		return response()->json($sql2);
+		return response()->json($sql);
+		// return response()->json($sql2);
 	}
 
 	public function mutasi_kas(Request $request)
