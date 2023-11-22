@@ -88,6 +88,7 @@ class LaporanModel extends Model
 
 		if ($count_stats == 1) {
 			$select_final = "COUNT(*) AS jumlah_record";
+			$q_limit = "LIMIT $limit, $length";
 		} else {
 			$select_final = "m_barang.nama AS nama_barang,
 							 m_barang.kd_barang,
@@ -99,8 +100,9 @@ class LaporanModel extends Model
 							 rupiah_keluar AS kredit_rp,
 							 saldo_qty AS sisa_stok,
 							 satuan_terkecil";
+			$q_limit = "";
 		}
-		$sql = DB::select("SELECT $select_final FROM misterkong_$company_id.v_t_result_table v_t_result_table INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' ORDER BY rn ASC LIMIT $limit, $length");
+		$sql = DB::select("SELECT $select_final FROM misterkong_$company_id.v_t_result_table v_t_result_table INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' ORDER BY rn ASC $q_limit");
 		return $sql;
 	}
 	
