@@ -239,8 +239,8 @@ class LaporanController extends Controller
 
 	public function produk(Request $request)
 	{
-		if ($request->jenis != 2) {
-			$sql = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 0)");
+		// if ($request->jenis != 2) {
+		// 	$sql = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 0)");
 			$sql2 = DB::select("CALL misterkong_$request->company_id.p_mon_report_mutasi_stok('$request->awal','$request->akhir', $request->jenis, '$request->search', '$request->order_col', '$request->order_type', $request->limit, $request->length, 1)");
 			// if (!empty($request->export) && $request->export == 1) {
 			// 	return $this->exportExcel($sql,'Laporan Produk');
@@ -259,9 +259,9 @@ class LaporanController extends Controller
 			// 		'data' => $query1
 			// 	]);
 			// }
-		} else {
-			$sql = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 0, $request->kd_barang);
-			$sql2 = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 1, $request->kd_barang);
+		// } else {
+		// 	$sql = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 0, $request->kd_barang);
+		// 	$sql2 = LaporanModel::getKartuStok($request->company_id, $request->awal, $request->akhir, $request->limit, $request->length, 1, $request->kd_barang);
 			// if (!empty($request->export) && $request->export == 1) {
 			// 	return $this->exportExcel($sql,'Laporan Produk');
 			// } else {
@@ -275,7 +275,7 @@ class LaporanController extends Controller
 			// 		'data' => $query1
 			// 	]);
 			// }
-		}
+		// }
 
 		// return response()->json([
 		// 	'status' => 1,
