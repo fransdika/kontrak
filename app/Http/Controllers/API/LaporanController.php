@@ -277,13 +277,14 @@ class LaporanController extends Controller
 			// }
 		}
 
-		return response()->json([
-			'status' => 1,
-			'error' => 0,
-			'message' => count($sql) . ' Data ditemukan',
-			'jumlah_record' => $sql2[0]->jumlah_record,
-			'data' => $sql
-		]);
+		// return response()->json([
+		// 	'status' => 1,
+		// 	'error' => 0,
+		// 	'message' => count($sql) . ' Data ditemukan',
+		// 	'jumlah_record' => $sql2[0]->jumlah_record,
+		// 	'data' => $sql
+		// ]);
+		return response()->json($sql2);
 	}
 
 	public function mutasi_kas(Request $request)
