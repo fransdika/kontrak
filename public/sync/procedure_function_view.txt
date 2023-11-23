@@ -5226,8 +5226,10 @@ SELECT 13, 'Rugi Laba Bersih' AS keterangan, IFNULL(@rugi_laba_bersih, 0) AS nom
 END
 
 //xyvdelimiter //
-DROP PROCEDURE IF EXISTS `p_mon_report_mutasi_stok`;
-CREATE PROCEDURE `p_mon_report_mutasi_stok`(IN awal DATE, IN akhir DATE, IN in_jenis INT, IN search VARCHAR(100), IN order_col VARCHAR(100), IN order_type VARCHAR(100), IN q_limit INT, IN q_length INT, IN count_stats INT)
+DROP PROCEDURE IF EXISTS p_mon_report_mutasi_stok;
+
+CREATE PROCEDURE p_mon_report_mutasi_stok(IN awal DATE, IN akhir DATE, IN in_jenis INT, IN search VARCHAR(100), IN order_col VARCHAR(100), IN order_type VARCHAR(100), IN q_limit INT, IN q_length INT, IN count_stats INT)
+
 BEGIN
 -- jenis 
 -- 1. sisa stok
@@ -5236,19 +5238,28 @@ BEGIN
 -- 5. usia stok	
 -- 6. daftar harga
 
-DECLARE sql_query VARCHAR(16000);
+DECLARE sql_query TEXT;
+DECLARE sql_final VARCHAR(100);
+DECLARE query_limit VARCHAR(100);
 
+IF(count_stats = 1) THEN
+	SET sql_final = "COUNT(*) AS jumlah_record";
+	SET query_limit = " ";
+ELSE
+	SET sql_final = "*";
+	SET query_limit = CONCAT("LIMIT ",q_limit,", ",q_length,""); 
+END IF;
 
 IF ( in_jenis = 1 ) THEN
-SET sql_query = CONCAT("SELECT * FROM (
+SET sql_query = CONCAT("SELECT ",sql_final," FROM (
 		SELECT 
 			sisa_stok.*
 		FROM
 			(SELECT v_t_result_table.kd_barang, m_barang.nama AS nama_barang, GROUP_CONCAT(saldo_qty ORDER BY rn DESC LIMIT 1) AS sisa_stok, GROUP_CONCAT(stok_min ORDER BY rn ASC LIMIT 1) AS stok_min, GROUP_CONCAT(satuan_terkecil ORDER BY rn ASC LIMIT 1) AS satuan_terkecil FROM v_t_result_table INNER JOIN m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE DATE(tanggal) <= '",akhir,"' AND (m_barang.kd_barang LIKE '%",search,"%' OR m_barang.nama LIKE '%",search,"%') GROUP BY v_t_result_table.kd_barang, m_barang.nama ORDER BY TRIM(m_barang.nama) ASC) sisa_stok	
-	) for_alias LIMIT ",q_limit,", ",q_length," ");
+	) for_alias ",query_limit," ");
 			 
 ELSEIF ( in_jenis = 3 ) THEN
-SET sql_query = CONCAT("SELECT * FROM (
+SET sql_query = CONCAT("SELECT ",sql_final," FROM (
 			SELECT 
 				(SELECT nama FROM m_barang WHERE kd_barang=a_sisa_stok.kd_barang) AS nama_barang,
 				a_sisa_stok.*, IFNULL(total_sales,0) AS total_sales, IFNULL(qty_sales,0) AS qty_sales
@@ -5260,10 +5271,10 @@ SET sql_query = CONCAT("SELECT * FROM (
 							GROUP BY kd_barang 
 						) bersih ON a_sisa_stok.kd_barang = bersih.kd_barang
 				) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%'
-	 ORDER BY sisa_stok DESC LIMIT ",q_limit,", ",q_length," ");
+	 ORDER BY sisa_stok DESC ",query_limit," ");
 				 
 ELSEIF ( in_jenis = 4 ) THEN
-	 SET sql_query = CONCAT("SELECT * FROM (
+	 SET sql_query = CONCAT("SELECT ",sql_final," FROM (
 			SELECT 
 				(SELECT nama FROM m_barang WHERE kd_barang=sisa_stok.kd_barang) AS nama_barang,
 				sisa_stok.*, saldo_awal_rp, saldo_awal_qty, saldo_akhir_rp, saldo_akhir_qty, IFNULL(qty_masuk,0) AS debet_qty, IFNULL(rupiah_masuk,0) AS debet_rp, IFNULL(qty_keluar,0) AS kredit_qty, IFNULL(rupiah_keluar,0) AS kredit_rp
@@ -5281,10 +5292,10 @@ ELSEIF ( in_jenis = 4 ) THEN
 						(
 							SELECT kd_barang, SUM(qty_masuk) AS qty_masuk, SUM(qty_keluar) AS qty_keluar, SUM(qty_masuk*rupiah_masuk) AS rupiah_masuk, SUM(qty_keluar*rupiah_keluar) AS rupiah_keluar FROM v_t_result_table WHERE DATE(tanggal) BETWEEN '",awal,"' AND '",akhir,"' GROUP BY kd_barang
 						) debet_kredit ON saldo_awal.kd_barang = debet_kredit.kd_barang
-				) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY TRIM(nama_barang) ASC LIMIT ",q_limit,", ",q_length," ");
+				) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY TRIM(nama_barang) ASC ",query_limit," ");
 
 ELSEIF ( in_jenis = 5 ) THEN
-SET sql_query = CONCAT("SELECT * FROM (
+SET sql_query = CONCAT("SELECT ",sql_final," FROM (
 			SELECT 
 				(SELECT nama FROM m_barang WHERE kd_barang=sisa_stok.kd_barang) AS nama_barang,
 				sisa_stok.*, 
@@ -5327,15 +5338,15 @@ SET sql_query = CONCAT("SELECT * FROM (
 								mbs.kd_barang
 							) a
 						) terakhir_beli ON sisa_stok.kd_barang = terakhir_beli.kd_barang) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY tgl_jual_terakhir DESC
-			LIMIT ",q_limit,", ",q_length," ");
+			",query_limit," ");
 
 ELSEIF ( in_jenis = 6 ) THEN
-SET sql_query = CONCAT("SELECT * FROM (
+SET sql_query = CONCAT("SELECT ",sql_final," FROM (
 		SELECT
 			( SELECT nama FROM m_barang WHERE kd_barang = a.kd_barang ) AS nama_barang,
 			a.* 
 		FROM
-			( SELECT kd_barang, GROUP_CONCAT( harga ORDER BY rn DESC LIMIT 1 ) AS harga FROM v_t_result_table GROUP BY kd_barang ) a ) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY TRIM(nama_barang) ASC LIMIT ",q_limit,", ",q_length," ");
+			( SELECT kd_barang, GROUP_CONCAT( harga ORDER BY rn DESC LIMIT 1 ) AS harga FROM v_t_result_table GROUP BY kd_barang ) a ) for_alias WHERE kd_barang LIKE '%",search,"%' OR nama_barang LIKE '%",search,"%' ORDER BY TRIM(nama_barang) ASC ",query_limit," ");
 END IF;
 
 -- select sql_query;
