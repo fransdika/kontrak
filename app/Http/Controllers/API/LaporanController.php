@@ -413,4 +413,30 @@ class LaporanController extends Controller
             'data' => $result1
 		]);
 	}
+
+	public function laporanMutasiStockBO(Request $request)
+	{
+		$sql1 = DB::select("CALL p_mutasi_stock_bo('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,0)");
+		$sql2 = DB::select("CALL p_mutasi_stock_bo('$request->company_id','$request->awal','$request->akhir','$request->search','$request->order_col','$request->order_type','$request->limit',$request->length,1)");
+		// $sql2 = "CALL p_kartu_stock_bo('$request->company_id','$request->kd_barang','$request->awal','$request->akhir','$request->limit',$request->length,0)";
+		return response()->json([
+			'error' => 0,
+            'message' => 'Data Found',
+            'jumlah_record' => $sql2[0]->jumlah_record,
+            'data' => $sql1
+		]);
+	}
+
+	public function laporanKartuStockBO(Request $request)
+	{
+		$sql1 = DB::select("CALL p_kartu_stock_bo('$request->company_id','$request->kd_barang','$request->awal','$request->akhir','$request->limit',$request->length,0)");
+		$sql2 = DB::select("CALL p_kartu_stock_bo('$request->company_id','$request->kd_barang','$request->awal','$request->akhir','$request->limit',$request->length,1)");
+		// $sql2 = "CALL p_kartu_stock_bo('$request->company_id','$request->kd_barang','$request->awal','$request->akhir','$request->limit',$request->length,0)";
+		return response()->json([
+			'error' => 0,
+            'message' => 'Data Found',
+            'jumlah_record' => $sql2[0]->jumlah_record,
+            'data' => $sql1
+		]);
+	}
 }
