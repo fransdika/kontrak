@@ -432,9 +432,9 @@ class SolidReportController extends Controller
         $keterangan=$request->keterangan;
         $kd_user=$request->kd_user;
         if (!empty($no_transaksi)) {
-            for ($i=0; $i < $count($no_transaksi); $i++) {
-                if(!empty($stok_sistem[$kd_barang])){
-                    $stok_sistem_cal=$stok_sistem[$kd_barang];
+            for ($i=0; $i < count($no_transaksi); $i++) {
+                if(!empty($stok_sistem[$kd_barang[$i]])){
+                    $stok_sistem_cal=$stok_sistem[$kd_barang[$i]];
                     $qty_opname=floatval($qty)-floatval($stok_sistem_cal);
                     if ($qty_opname>0) {
                         $status_opname=2;
@@ -487,83 +487,11 @@ class SolidReportController extends Controller
                 return response()->json([
                     'status' => 0,
                     'error' => 500,
-                    'message' => 'gagal, kode '.implode($err_kd_barang)." tidak ditemukan",
+                    'message' => 'gagal, kode '.implode(" , ",$err_kd_barang)." tidak ditemukan",
                     'data' => ['kd_barang'=> $err_kd_barang]
                 ]);
             }
             
         }
-
-
-
-        // $err_kd_barang=[];
-        // foreach ($request->data as $key_save => $value_save) {
-        //     $no_transaksi="OS".substr($company_id, -4).substr($imei, -4).date('ymd').sprintf("%04d", $key_save+1);
-        //     // print_r($value_save);
-        //     $qty=$value_save['qty'];
-        //     $kd_barang=$value_save['kd_barang'];
-        //     if(!empty($stok_sistem[$kd_barang])){
-        //         $stok_sistem_cal=$stok_sistem[$kd_barang];
-        //         $qty_opname=floatval($qty)-floatval($stok_sistem_cal);
-        //         if ($qty_opname>0) {
-        //             $status_opname=2;
-        //             $qty_opname=abs($qty_opname);
-        //         }else{
-        //             $status_opname=3;
-        //             $qty_opname*=-1;
-        //         }
-        //         // echo $stok_sistem_cal."=>".$qty;
-        //         $data_save[]=[
-        //             "no_transaksi" =>$no_transaksi,
-        //             "kd_divisi" =>$request->kd_divisi,
-        //             "kd_barang" =>$value_save['kd_barang'],
-        //             "kd_satuan" =>$value_save['kd_satuan'],
-        //             "tanggal" =>$request['tanggal'],
-        //             "qty" =>$qty_opname,
-        //             "keterangan" =>"POS Opname",
-        //             "kd_user" =>$request['kd_user'],
-        //             "status" =>$status_opname,
-        //             "tanggal_server" =>date('Y-m-d H:i:s'),
-        //             "harga" =>0,
-        //         ];
-        //     }else{
-        //         $err_kd_barang[]=$kd_barang;
-        //     }
-        // }
-        // // echo "<pre>";
-        // // print_r($data_save);
-        // // echo "</pre>";
-        // // die();
-        
-        // if(empty($err_kd_barang)){
-        // DB::beginTransaction();
-        // try {
-        //     foreach($data_save as $ey_save=> $value_save){
-        //     $exe=DB::table("misterkong_$company_id.t_opname_stok")->insert($value_save);
-        //     }
-        //     DB::commit();
-        //     return response()->json([
-        //         'status' => 1,
-        //         'error' => 200,
-        //         'message' => 'berhasil',
-        //         'data' => []
-        //     ]);
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     return response()->json([
-        //         'status' => 0,
-        //         'error' => 500,
-        //         'message' => 'gagal'.$e->getMessage(),
-        //         'data' => []
-        //     ]);
-        // }
-        // }else{
-        //     return response()->json([
-        //         'status' => 0,
-        //         'error' => 500,
-        //         'message' => 'gagal, kode '.implode($err_kd_barang)." tidak ditemukan",
-        //         'data' => ['kd_barang'=> $err_kd_barang]
-        //     ]);
-        // }
     }
 }
