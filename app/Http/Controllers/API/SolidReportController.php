@@ -297,7 +297,7 @@ class SolidReportController extends Controller
             ON m_barang.kd_barang=mbs_terkecil.kd_barang";
             DB::unprepared($tmp_table);
         }
-        $tmp_table="CREATE TABLE tmp_master_opname_$company_id AS SELECT m_barang.kd_barang,kd_divisi, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan
+        $tmp_table="CREATE TABLE IF NOT EXISTS tmp_master_opname_$company_id AS SELECT m_barang.kd_barang,kd_divisi, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan
         ,kd_jenis_bahan,kd_model,kd_merk,kd_warna,kd_kategori 
         FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
         INNER JOIN (
