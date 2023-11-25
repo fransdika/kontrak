@@ -283,7 +283,23 @@ class SolidReportController extends Controller
             $filter_final="AND ($filter_fix)";
         }
 
-        $sql="SELECT m_barang.kd_barang, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
+        if (empty($search)) {
+            $tmp_table="DROP TABLE IF EXISTS tmp_master_opname_$company_id; CREATE TABLE tmp_master_opname_$company_id AS SELECT m_barang.kd_barang,kd_divisi, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan
+            ,kd_jenis_bahan,kd_model,kd_merk,kd_warna,kd_kategori 
+            FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
+            INNER JOIN (
+                SELECT kd_barang, GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan
+                ,GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah) AS varian_satuan
+                FROM misterkong_$company_id .m_barang_satuan GROUP BY kd_barang
+                ) mbs
+            ON m_barang.kd_barang=mbs.kd_barang
+            INNER JOIN (SELECT kd_barang, GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah ASC LIMIT 1) satuan_terkecil FROM misterkong_$company_id .m_barang_satuan m_barang_satuan GROUP BY kd_barang) mbs_terkecil
+            ON m_barang.kd_barang=mbs_terkecil.kd_barang";
+            DB::unprepared($tmp_table);
+        }
+        $tmp_table="CREATE TABLE tmp_master_opname_$company_id AS SELECT m_barang.kd_barang,kd_divisi, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan
+        ,kd_jenis_bahan,kd_model,kd_merk,kd_warna,kd_kategori 
+        FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
         INNER JOIN (
             SELECT kd_barang, GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan
             ,GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah) AS varian_satuan
@@ -291,22 +307,14 @@ class SolidReportController extends Controller
             ) mbs
         ON m_barang.kd_barang=mbs.kd_barang
         INNER JOIN (SELECT kd_barang, GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah ASC LIMIT 1) satuan_terkecil FROM misterkong_$company_id .m_barang_satuan m_barang_satuan GROUP BY kd_barang) mbs_terkecil
-        ON m_barang.kd_barang=mbs_terkecil.kd_barang
-        WHERE kd_divisi='$request->kd_divisi' AND (m_barang.kd_barang LIKE '%$search%' OR nama LIKE '%$search%') $filter_final $limitation" ;
+        ON m_barang.kd_barang=mbs_terkecil.kd_barang";
+        DB::select($tmp_table);
+
+        $sql="SELECT * FROM tmp_master_opname_$company_id WHERE kd_divisi='$request->kd_divisi' AND (kd_barang LIKE '%$search%' OR nama LIKE '%$search%') $filter_final $limitation";
         // echo $sql;
         // die();
         $data=DB::select($sql);
 
-        // $data=DB::table($company_id.'.mon_g_stok_barang_per_divisi_vd vd')
-        // ->join('m_barang brg', 'vd.kd_barang', '=', 'brg.kd_barang')
-        // ->where('kd_divisi','=',$request->kd_divisi)
-        // ->where(function($query) use ($search){
-        //     ->where('kd_model', '=', $search)
-        //     ->orWhere('kd_jenis_bahan', '=', $search)
-        //     ->orWhere('kd_warna', '=', $search)
-        //     ->orWhere('kd_kategori', '=', $search)
-        //     ->orWhere('kd_merk', '=', $search);
-        // })->get();
         return response()->json([
             'status' => 1,
             'error' => 200,
