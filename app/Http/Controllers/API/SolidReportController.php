@@ -253,6 +253,8 @@ class SolidReportController extends Controller
         $search=$request->search;
         $limit=$request->limit;
         $length=$request->length;
+        $awal=$request->awal;
+        $akhir=$request->akhir;
         $limitation='';
         if (empty($limit) && empty($length)) {
         }else{
@@ -284,36 +286,73 @@ class SolidReportController extends Controller
         }
 
         if (empty($search)) {
-            $tmp_table="DROP TABLE IF EXISTS tmp_master_opname_$company_id; CREATE TABLE tmp_master_opname_$company_id AS SELECT m_barang.kd_barang,kd_divisi, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan
-            ,kd_jenis_bahan,kd_model,kd_merk,kd_warna,kd_kategori 
-            FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
-            INNER JOIN (
-                SELECT kd_barang, GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan
-                ,GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah) AS varian_satuan
-                FROM misterkong_$company_id .m_barang_satuan GROUP BY kd_barang
-                ) mbs
-            ON m_barang.kd_barang=mbs.kd_barang
-            INNER JOIN (SELECT kd_barang, GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah ASC LIMIT 1) satuan_terkecil FROM misterkong_$company_id .m_barang_satuan m_barang_satuan GROUP BY kd_barang) mbs_terkecil
-            ON m_barang.kd_barang=mbs_terkecil.kd_barang";
+            $tmp_table="DROP TABLE IF EXISTS tmp_master_opname_$company_id; CREATE TABLE tmp_master_opname_$company_id AS 
+            SELECT kd_barang,kd_divisi,stok,barang FROM 
+            misterkong_$company_id .mon_g_stok_barang_per_divisi_vd 
+            WHERE kd_divisi='$request->kd_divisi'";
             DB::unprepared($tmp_table);
         }
-        $tmp_table="CREATE TABLE IF NOT EXISTS tmp_master_opname_$company_id AS SELECT m_barang.kd_barang,kd_divisi, nama,stok,satuan_terkecil,varian_kd_satuan,varian_satuan
-        ,kd_jenis_bahan,kd_model,kd_merk,kd_warna,kd_kategori 
-        FROM misterkong_$company_id .mon_g_stok_barang_per_divisi_vd vd INNER JOIN misterkong_$company_id .m_barang ON m_barang.kd_barang=vd.kd_barang 
-        INNER JOIN (
-            SELECT kd_barang, GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan
-            ,GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah) AS varian_satuan
-            FROM misterkong_$company_id .m_barang_satuan GROUP BY kd_barang
-            ) mbs
-        ON m_barang.kd_barang=mbs.kd_barang
-        INNER JOIN (SELECT kd_barang, GROUP_CONCAT((SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah ASC LIMIT 1) satuan_terkecil FROM misterkong_$company_id .m_barang_satuan m_barang_satuan GROUP BY kd_barang) mbs_terkecil
-        ON m_barang.kd_barang=mbs_terkecil.kd_barang";
+        $tmp_table="CREATE TABLE IF NOT EXISTS tmp_master_opname_$company_id AS 
+        SELECT kd_barang,kd_divisi,stok,barang FROM 
+            misterkong_$company_id .mon_g_stok_barang_per_divisi_vd 
+            WHERE kd_divisi='$request->kd_divisi'";
         DB::select($tmp_table);
 
-        $sql="SELECT * FROM tmp_master_opname_$company_id WHERE kd_divisi='$request->kd_divisi' AND (kd_barang LIKE '%$search%' OR nama LIKE '%$search%') $filter_final $limitation";
+
+
+        $sql_opname="SELECT brg_opname.kd_barang,m_barang.nama,satuan_terkecil,varian_kd_satuan, varian_satuan, stok,last_opname
+        -- ,kd_kategori,kd_merk,kd_jenis_bahan,kd_model,kd_warna
+        ,status_opname
+        FROM tmp_master_opname_$company_id vd
+        INNER JOIN misterkong_$company_id .m_barang ON vd.kd_barang=m_barang.kd_barang
+        INNER JOIN
+        (
+            SELECT m_bardiv.*, satuan_terkecil,varian_kd_satuan,varian_satuan,IFNULL(status_opname,0) AS status_opname,IFNULL(last_opname,(SELECT MAX(tanggal) FROM misterkong_$company_id .g_tutup_buku)) AS last_opname
+            FROM
+            (
+                SELECT kd_barang,kd_divisi,CONCAT(kd_barang,kd_divisi) AS kd_barang_divisi
+                FROM
+                (
+                    SELECT kd_barang,kd_divisi FROM misterkong_$company_id .m_barang_divisi
+                    WHERE kd_divisi='$request->kd_divisi'
+                ) m_div
+            ) m_bardiv
+            INNER JOIN
+            (
+                SELECT kd_barang, 
+                GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan,
+                GROUP_CONCAT(
+                    (SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah
+                ) AS varian_satuan,
+                GROUP_CONCAT(
+                    (SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah LIMIT 1
+                ) AS satuan_terkecil
+                FROM misterkong_$company_id .m_barang_satuan m_barang_satuan
+                GROUP BY kd_barang
+            ) mbs
+            ON m_bardiv.kd_barang=mbs.kd_barang
+            LEFT JOIN 
+            (
+                SELECT CONCAT(kd_barang,kd_divisi) AS kd_barang_divisi, 1 AS status_opname
+                FROM misterkong_$company_id .t_opname_stok 
+                WHERE DATE(tanggal) BETWEEN '$awal' AND '$akhir' AND kd_divisi='$request->kd_divisi'
+            ) opname
+            ON m_bardiv.kd_barang_divisi=opname.kd_barang_divisi
+            LEFT JOIN (
+                SELECT kd_barang,GROUP_CONCAT(tanggal ORDER BY tanggal DESC LIMIT 1) AS last_opname FROM misterkong_$company_id .t_opname_stok GROUP BY kd_barang
+            ) last_opname
+            ON m_bardiv.kd_barang=last_opname.kd_barang
+        ) brg_opname
+        ON vd.kd_barang=brg_opname.kd_barang AND vd.kd_divisi=brg_opname.kd_divisi
+        WHERE (brg_opname.kd_barang LIKE '%$search%' OR nama LIKE '%$search%') $filter_final $limitation
+        ";
+
+        
+
+        // $sql="SELECT kd_barang,nama,satuan_terkecil,varian_kd_satuan,varian_satuan,last_opname,stok,status_opname FROM tmp_master_opname_$company_id WHERE (kd_barang LIKE '%$search%' OR nama LIKE '%$search%') $filter_final $limitation";
         // echo $sql;
         // die();
-        $data=DB::select($sql);
+        $data=DB::select($sql_opname);
 
         return response()->json([
             'status' => 1,
