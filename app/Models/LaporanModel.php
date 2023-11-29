@@ -90,19 +90,46 @@ class LaporanModel extends Model
 			$select_final = "COUNT(*) AS jumlah_record";
 			$q_limit = "LIMIT $limit, $length";
 		} else {
-			$select_final = "m_barang.nama AS nama_barang,
-							 m_barang.kd_barang,
-							 tanggal,
-							 jenis_transaksi,
-							 qty_masuk AS debet_qty,
-							 qty_masuk*rupiah_masuk AS debet_rp,
-							 qty_keluar AS kredit_qty,
-							 rupiah_keluar AS kredit_rp,
-							 saldo_qty AS sisa_stok,
-							 satuan_terkecil";
+			$select_final = "*";
 			$q_limit = "";
 		}
-		$sql = DB::select("SELECT $select_final FROM misterkong_$company_id.v_t_result_table v_t_result_table INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' ORDER BY rn ASC $q_limit");
+		$sql = DB::select("SELECT $select_final FROM (
+			SELECT 
+										 m_barang.nama AS nama_barang,
+										 m_barang.kd_barang,
+										 MAX(tanggal) AS tanggal,
+										 'stok awal' AS jenis_transaksi,
+										 SUM(qty_masuk) - SUM(qty_keluar)  AS debet_qty,
+										 (SUM(qty_masuk) - SUM(qty_keluar)) * GROUP_CONCAT(average ORDER BY rn desc limit 1) AS debet_rp,
+										 0 AS kredit_qty,
+										 0 AS kredit_rp,
+										 SUM(qty_masuk) - SUM(qty_keluar) AS sisa_stok,
+										 satuan_terkecil
+			FROM misterkong_$company_id.v_t_result_table v_t_result_table 
+			INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang 
+			WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) < '$awal'
+			GROUP BY m_barang.nama,
+			m_barang.kd_barang
+			
+			UNION ALL
+			
+			SELECT 
+										m_barang.nama AS nama_barang,
+										 m_barang.kd_barang,
+										 tanggal,
+										 jenis_transaksi,
+										 qty_masuk AS debet_qty,
+										 qty_masuk*rupiah_masuk AS debet_rp,
+										 qty_keluar AS kredit_qty,
+										 rupiah_keluar AS kredit_rp,
+										 saldo_qty AS sisa_stok,
+										 satuan_terkecil
+			FROM misterkong_$company_id.v_t_result_table v_t_result_table 
+			INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang 
+			WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' 
+			) q_all $q_limit
+		");
+		// $sql = DB::select("SELECT $select_final FROM misterkong_$company_id.v_t_result_table v_t_result_table INNER JOIN misterkong_$company_id.m_barang m_barang ON v_t_result_table.kd_barang = m_barang.kd_barang WHERE m_barang.kd_barang = '$kd_barang' AND DATE(tanggal) BETWEEN '$awal' AND '$akhir' ORDER BY rn ASC $q_limit");
 		return $sql;
 	}
 	
