@@ -1374,7 +1374,7 @@ class Api_all extends Controller
         }
 
         if (!(empty($request->search))) {
-            $query_search = " WHERE nama LIKE '%".$request->search."%' OR kategori LIKE '%".$request->search."%'";
+            $query_search = " WHERE nama LIKE '%".$request->search."%' OR kategori LIKE '%".$request->search."%' OR kd_barang LIKE '%".$request->search."%' OR kd_kategori LIKE '%".$request->search."%'";
         } else {
             $query_search = "";
         }
@@ -1386,7 +1386,7 @@ class Api_all extends Controller
         INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
         LEFT JOIN (SELECT kd_barang, GROUP_CONCAT(gambar) AS gambar FROM misterkong_$request->company_id.m_barang_gambar GROUP BY kd_barang) m_barang_gambar ON m_barang.kd_barang = m_barang_gambar.kd_barang) a $query_search $query_order LIMIT $request->limit, $request->length");
         
-        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM (SELECT m_barang.kd_barang, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga FROM misterkong_$request->company_id.m_barang m_barang
+        $sql2 = DB::select("SELECT COUNT(*) AS jumlah_record FROM (SELECT m_barang.kd_barang,m_barang.kd_kategori, m_barang.nama, m_barang.`status`, m_kategori.nama AS kategori, m_barang_gambar.gambar, m_barang_satuan.harga_jual AS harga FROM misterkong_$request->company_id.m_barang m_barang
         INNER JOIN misterkong_$request->company_id.m_kategori m_kategori ON m_barang.kd_kategori = m_kategori.kd_kategori
         INNER JOIN misterkong_$request->company_id.m_barang_satuan m_barang_satuan ON m_barang.kd_barang = m_barang_satuan.kd_barang
         INNER JOIN misterkong_$request->company_id.m_satuan m_satuan ON m_barang_satuan.kd_satuan = m_satuan.kd_satuan
