@@ -480,7 +480,7 @@ class SolidReportController extends Controller
         $kd_user=$request->kd_user;
         if (!empty($no_transaksi)) {
             for ($i=0; $i < count($no_transaksi); $i++) {
-                if(!empty($stok_sistem[$kd_barang[$i]])){
+                if(isset($stok_sistem[$kd_barang[$i]])){
                     $stok_sistem_cal=$stok_sistem[$kd_barang[$i]];
                     $qty_opname=floatval($qty)-floatval($stok_sistem_cal);
                     if ($qty_opname>0) {
