@@ -199,6 +199,7 @@ Route::put('update-tags', [SolidReportController::class, 'updateTags']);
 Route::post('update-gambar-company', [SolidReportController::class, 'updateGambar']);
 Route::post('opname/get-item/{company_id}', [SolidReportController::class, 'loadMasterOpname']);
 Route::post('opname/simpan/{company_id}', [SolidReportController::class, 'doOpname']);
+Route::post('opname/getData/{company_id}', [SolidReportController::class, 'getLaporanOpname']);
 
 // baru dika
 Route::post('getStatusDb/{company_id}', [SinkronisasiController::class, 'getStatusGenerateDb']);
@@ -235,3 +236,5 @@ Route::get('mapper/master/tarif', [MapperController::class, 'getTarifMapper']);
 Route::post('mapper/bayar/do-update', [MapperController::class, 'updatePembayaran']);
 Route::any('cek-update-mapper/{company_id}', [MapperController::class, 'cekMapperFeature']);
 
+//utilities
+Route::post('utilities/multi-query-alter', [Utilites::class, 'execMultiQuery']);

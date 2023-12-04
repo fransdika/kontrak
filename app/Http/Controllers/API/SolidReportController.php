@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use App\Models\CRUDModel;
 
 class SolidReportController extends Controller
 {
@@ -294,8 +295,8 @@ class SolidReportController extends Controller
         }
         $tmp_table="CREATE TABLE IF NOT EXISTS tmp_master_opname_$company_id AS 
         SELECT kd_barang,kd_divisi,stok,barang FROM 
-            misterkong_$company_id .mon_g_stok_barang_per_divisi_vd 
-            WHERE kd_divisi='$request->kd_divisi'";
+        misterkong_$company_id .mon_g_stok_barang_per_divisi_vd 
+        WHERE kd_divisi='$request->kd_divisi'";
         DB::select($tmp_table);
 
 
@@ -315,34 +316,34 @@ class SolidReportController extends Controller
                 (
                     SELECT kd_barang,kd_divisi FROM misterkong_$company_id .m_barang_divisi
                     WHERE kd_divisi='$request->kd_divisi'
-                ) m_div
-            ) m_bardiv
+                    ) m_div
+                ) m_bardiv
             INNER JOIN
             (
                 SELECT kd_barang, 
                 GROUP_CONCAT(kd_satuan ORDER BY jumlah) AS varian_kd_satuan,
                 GROUP_CONCAT(
                     (SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah
-                ) AS varian_satuan,
+                    ) AS varian_satuan,
                 GROUP_CONCAT(
                     (SELECT nama FROM misterkong_$company_id .m_satuan WHERE kd_satuan=m_barang_satuan.kd_satuan) ORDER BY jumlah LIMIT 1
-                ) AS satuan_terkecil
+                    ) AS satuan_terkecil
                 FROM misterkong_$company_id .m_barang_satuan m_barang_satuan
                 GROUP BY kd_barang
-            ) mbs
+                ) mbs
             ON m_bardiv.kd_barang=mbs.kd_barang
             LEFT JOIN 
             (
                 SELECT CONCAT(kd_barang,kd_divisi) AS kd_barang_divisi, 1 AS status_opname
                 FROM misterkong_$company_id .t_opname_stok 
                 WHERE DATE(tanggal) BETWEEN '$awal' AND '$akhir' AND kd_divisi='$request->kd_divisi'
-            ) opname
+                ) opname
             ON m_bardiv.kd_barang_divisi=opname.kd_barang_divisi
             LEFT JOIN (
                 SELECT kd_barang,GROUP_CONCAT(tanggal ORDER BY tanggal DESC LIMIT 1) AS last_opname FROM misterkong_$company_id .t_opname_stok GROUP BY kd_barang
-            ) last_opname
+                ) last_opname
             ON m_bardiv.kd_barang=last_opname.kd_barang
-        ) brg_opname
+            ) brg_opname
         ON vd.kd_barang=brg_opname.kd_barang AND vd.kd_divisi=brg_opname.kd_divisi
         WHERE (brg_opname.kd_barang LIKE '%$search%' OR nama LIKE '%$search%') $filter_final $limitation
         ";
@@ -454,7 +455,7 @@ class SolidReportController extends Controller
 
     public function doOpname(Request $request,$company_id)
     {
-        $qty=0;
+        // $qty=0;
         $status_opname=0;
         // $company_id=$company_id;
         $imei=$request->imei;
@@ -478,11 +479,13 @@ class SolidReportController extends Controller
         $tanggal=$request->tanggal;
         $keterangan=$request->keterangan;
         $kd_user=$request->kd_user;
+        $qty=$request->qty;
         if (!empty($no_transaksi)) {
             for ($i=0; $i < count($no_transaksi); $i++) {
                 if(isset($stok_sistem[$kd_barang[$i]])){
                     $stok_sistem_cal=$stok_sistem[$kd_barang[$i]];
-                    $qty_opname=floatval($qty)-floatval($stok_sistem_cal);
+                    $qty_opname=abs($qty[$i]-$stok_sistem_cal);
+
                     if ($qty_opname>0) {
                         $status_opname=2;
                         $qty_opname=abs($qty_opname);
@@ -541,4 +544,58 @@ class SolidReportController extends Controller
             
         }
     }
+    public function getLaporanOpname(Request $request,$company_id)
+    {
+        $search=$request->search;
+        $order_col=$request->order_col;
+        $order_type=$request->order_type;
+        $sql_order='';
+        if (!empty($order_col)) {
+            $sql_order=" ORDER BY $order_col $order_type";
+        }
+
+        if ($request->limit==0 && $request->length==0) {
+            $limit='';
+        }else{
+            $limit=" LIMIT $request->limit , $request->length";
+        }
+        $sql="SELECT 
+        m_divisi.kd_divisi,
+        m_divisi.nama AS divisi,
+        m_barang.kd_barang AS kd_barang,
+        m_barang.nama AS barang,
+        m_satuan.kd_satuan,
+        m_satuan.nama AS satuan,
+        no_transaksi,
+        qty,
+        tanggal,
+        kd_user,
+        opname.`status`,
+        harga
+        FROM
+        (
+            SELECT * FROM misterkong_$company_id .t_opname_stok WHERE DATE(tanggal) BETWEEN '$request->awal' AND '$request->akhir'
+            ) opname
+        INNER JOIN misterkong_$company_id .m_barang ON opname.kd_barang=m_barang.kd_barang
+        INNER JOIN misterkong_$company_id .m_satuan ON opname.kd_satuan=m_satuan.kd_satuan
+        INNER JOIN misterkong_$company_id .m_divisi ON opname.kd_divisi=m_divisi.kd_divisi $search $sql_order $limit";
+        $param=[
+            'search'=>$request->search,
+            'order_col'=>$request->order_col,
+            'order_type'=>$request->order_type,
+            'limit'=>$request->order_limit,
+            'length'=>$request->order_length,
+        ];
+        $data=DB::select($sql,$param);
+        return response()->json([
+            'status' => 1,
+            'error' => 200,
+            'message' => count($data)." data ditemukan",
+            'jumlah_record'=>count($data),
+            'data' => $data
+        ]);            
+    }
+
+
+
 }
