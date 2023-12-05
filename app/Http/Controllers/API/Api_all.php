@@ -1760,7 +1760,7 @@ class Api_all extends Controller
     {
         $crud_type='select';
         if (!empty($search)) {
-            $sql_search = " WHERE nama LIKE '%$search%'";
+            $sql_search = " WHERE nama LIKE '%$search%' OR $kode LIKE '%$search%'";
         } else {
             $sql_search = "";
         }
