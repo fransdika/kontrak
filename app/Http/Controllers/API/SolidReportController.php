@@ -484,7 +484,7 @@ class SolidReportController extends Controller
             for ($i=0; $i < count($no_transaksi); $i++) {
                 if(isset($stok_sistem[$kd_barang[$i]])){
                     $stok_sistem_cal=$stok_sistem[$kd_barang[$i]];
-                    $qty_opname=abs($qty[$i]-$stok_sistem_cal);
+                    $qty_opname=$qty[$i]-$stok_sistem_cal;
 
                     if ($qty_opname>0) {
                         $status_opname=2;
@@ -501,7 +501,7 @@ class SolidReportController extends Controller
                         "kd_satuan" =>$kd_satuan[$i],
                         "tanggal" =>$tanggal[$i],
                         "qty" =>$qty_opname,
-                        "keterangan" =>$keterangan[$i],
+                        "keterangan" => (!empty($keterangan[$i])?$keterangan[$i]:'-'),
                         "kd_user" =>$kd_user[$i],
                         "status" =>$status_opname,
                         "tanggal_server" =>date('Y-m-d H:i:s'),
