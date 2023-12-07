@@ -517,7 +517,9 @@ class SolidReportController extends Controller
                     foreach($data_save as $ey_save=> $value_save){
                         $exe=DB::table("misterkong_$company_id.t_opname_stok")->insert($value_save);
                     }
+                    $exe_refresh_history=DB::select("CALL p_manual_update_history_stock('comp2023100400312401')");
                     DB::commit();
+
                     return response()->json([
                         'status' => 1,
                         'error' => 200,
