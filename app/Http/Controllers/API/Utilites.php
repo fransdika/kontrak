@@ -21,7 +21,7 @@ class Utilites extends Controller
             $var_brg = [];
             foreach ($sql as $key => $value) {
                 DB::select("use $value->schema_name");
-                $var = explode(";;",$request->query_sql);
+                $var = explode(";;", $request->query_sql);
                 foreach ($var as $key_var => $value_var) {
                     $var_brg = DB::select("$value_var");
                 }
@@ -48,7 +48,8 @@ class Utilites extends Controller
         return view('utilities/mamboCode');
     }
 
-    public function generateRandomString($length) {
+    public function generateRandomString($length)
+    {
         $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         $randomString = '';
 
@@ -58,10 +59,10 @@ class Utilites extends Controller
 
         return $randomString;
     }
-    
+
     // public function generateCode(Request $request)
     // {
-        
+
     // }
 
     public function doGenerateMamboCode(Request $request)
@@ -82,39 +83,39 @@ class Utilites extends Controller
         //     $a++;
         // }
 
-            $uniqueStrings = [];
-            $a = 0;
+        $uniqueStrings = [];
+        $a = 0;
 
-            while ($a < $request->jumlah) {
+        while ($a < $request->jumlah) {
+            $randomString = $this->generateRandomString(8);
+            if (!in_array($randomString, $uniqueStrings)) {
+                $uniqueStrings[] = $randomString;
+            }
+            $a++;
+        }
+
+        $diff = array_diff($uniqueStrings, $excludeChars);
+
+        if (count($diff) < $request->jumlah) {
+            $b = 0;
+            while ($b < ($request->jumlah - count($diff))) {
                 $randomString = $this->generateRandomString(8);
                 if (!in_array($randomString, $uniqueStrings)) {
                     $uniqueStrings[] = $randomString;
                 }
-                $a++;
+                $b++;
             }
-
-            $diff = array_diff($uniqueStrings,$excludeChars);
-
-            if (count($diff) < $request->jumlah) {
-                $b = 0;
-                while ($b < ($request->jumlah - count($diff))) {
-                    $randomString = $this->generateRandomString(8);
-                    if (!in_array($randomString, $uniqueStrings)) {
-                        $uniqueStrings[] = $randomString;
-                    }
-                    $b++;
-                }
-            } else {
-                foreach ($uniqueStrings as $key => $value) {
-                    $data_save[] = [
-                        'kd_mambo' => $value,
-                        'status' => 1
-                    ];
-                }
-                // DB::insert("INSERT INTO misterkong_$request->company_id.m_list_mambo (kd_mambo,`status`) VALUES('$value',1)");
-                DB::table('misterkong_'.$request->company_id.'.m_list_mambo')->insert($data_save);
+        } else {
+            foreach ($uniqueStrings as $key => $value) {
+                $data_save[] = [
+                    'kd_mambo' => $value,
+                    'status' => 1
+                ];
             }
-            return count($diff);
+            // DB::insert("INSERT INTO misterkong_$request->company_id.m_list_mambo (kd_mambo,`status`) VALUES('$value',1)");
+            DB::table('misterkong_' . $request->company_id . '.m_list_mambo')->insert($data_save);
+        }
+        return count($diff);
 
 
 
@@ -122,13 +123,48 @@ class Utilites extends Controller
         // do {
         //     $char = $this->generateRandomString(8); 
         // } while (in_array($char, $excludeChars));
-        
-        
+
+
 
         // for ($i=0; $i < 50000; $i++) { 
         //     $char .= $this->generateRandomString(8);
         // }
         // DB::insert("INSERT INTO m_list_mambo (kd_mambo,`status`) VALUES()")
         // return $char;
+    }
+    public function execMultiQuery(Request $request)
+    {
+        $sql = $request->post('query');
+        // print_r($sql);
+
+        $db_list = DB::select("SELECT schema_name FROM INFORMATION_SCHEMA.SCHEMATA WHERE schema_name LIKE '%misterkong_comp%'");
+        $var_brg = [];
+        
+        DB::beginTransaction();
+        try {
+            $err = [];
+            foreach ($db_list as $key => $value) {
+                DB::select("use $value->schema_name");
+                $exe = DB::unprepared($sql);
+                if (!$exe) {
+                    $err[] = $value->schema_name;
+                }
+            }
+            if (empty($err)) {
+                DB::commit();
+                return response()->json([
+                    'status' => 1,
+                    'error' => false,
+                    'message' => 'Berhasil generate query'
+                ]);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0,
+                'error' => true,
+                'message' => 'Gagal Menghapus Data'.$e->getMessage()
+            ]);
+        }
     }
 }

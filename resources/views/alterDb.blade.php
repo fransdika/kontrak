@@ -16,15 +16,52 @@
 	<div class="container">
 		<h2>Altering Database</h2>
 		<hr>
-		<form class="frm_exe">
-			<label for="taQuery">Query:</label>
-			<div class="form-group">
-				<textarea name="query_sql" id="query" class="form-control" style="height: 400px;" placeholder="Put Your Query here..."p></textarea>
+
+		<ul class="nav nav-tabs" id="myTab" role="tablist">
+			<li class="nav-item">
+				<a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home"
+					aria-selected="true">Tables & Views</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" id="profile-tab" data-toggle="tab" href="#profile" role="tab"
+					aria-controls="profile" aria-selected="false">Triggers & Procedures</a>
+			</li>
+
+		</ul>
+		<div class="tab-content" id="myTabContent">
+			<div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab" style="background-color:floralwhite">
+				<div class="container-fluid p-3">
+					<form class="frm_exe">
+						<label for="taQuery">Query:</label>
+						<div class="form-group">
+							<textarea name="query_sql" id="query" class="form-control" style="height: 400px;"
+								placeholder="Put Your Query here..." p></textarea>
+							<div class="form-group">
+							</div>
+							<input type="submit" name="btn_exe" value="Execute Query" class="btn btn-success"
+								style="float: right;">
+						</div>
+					</form>
+				</div>
 			</div>
-			<div class="form-group">
-				<input type="submit" name="btn_exe" value="Execute Query" class="btn btn-success" style="float: right;">
+			<div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab" style="background-color:floralwhite">
+				<div class="container-fluid p-3">
+					<form class="frm_exe_trproc">
+						<label for="taQuery">Query:</label>
+						<div class="form-group">
+							<textarea name="query_sql" id="query_sql" class="form-control" style="height: 400px;"
+								placeholder="Put Your Query here..." p></textarea>
+							<div class="form-group">
+							</div>
+							<input type="submit" name="btn_exe" value="Execute Query" class="btn btn-success"
+								style="float: right;">
+						</div>
+					</form>
+				</div>
 			</div>
-		</form>
+			
+		</div>
+		
 	</div>
 
 	<script>
@@ -65,6 +102,76 @@
                                    type:"POST",
                                    url:`${base_url}/api/query-all`,
                                    data:{query_sql:input,password:split[1]},
+                                   contentType: 'application/x-www-form-urlencoded',
+                                   dataType:'json',
+                                   crossDomain: true,
+                                   success:function(r){
+                                      if (r.status==1) {
+                                         alert('success');
+											// window.location.reload();
+										}
+									}
+								});
+								// $.alert('Your name is ' + name);
+							}else{
+								$.alert('Failed to Execute Query');
+								return false;
+							}
+						}
+					},
+					cancel: function () {
+                		//close
+                	},
+                },
+                onContentReady: function () {
+            		// bind to events
+            		var jc = this;
+            		this.$content.find('form').on('submit', function (e) {
+                		// if the user submits the form by pressing enter in the field.
+                		e.preventDefault();
+                		jc.$$formSubmit.trigger('click'); 
+                		// reference the button and click it
+                	});
+            	}
+            });
+		});
+		$('.frm_exe_trproc').on('submit',function(e) {
+			e.preventDefault();
+			// alert('asdfa');
+			let input='';
+			input= $('#query_sql').val();
+			console.log($(this).serialize());
+			let data='';
+			$.confirm({
+				title: 'Execute Query?',
+				content: 
+				'<form action="" class="formName">' +
+				'<div class="form-group">' +
+				'<label>Type <strong>Yes</strong> and Put <strong>Your Password</strong> below to confirm </label>' +
+				'<input type="text" placeholder="Your password" class="name form-control" required />' +
+				'</div>' +
+				'</form>',
+				buttons: {
+					formSubmit: {
+						text: 'Submit',
+						btnClass: 'btn-blue',
+						action: function () {
+							var name = this.$content.find('.name').val();
+							if(!name){
+								$.alert('provide a valid key');
+								return false;
+							}
+                            let split=name.split('_');
+                            if (split[0]==="Yes"){
+								// alert('d');
+								// console.log($( this ).serialize());
+								// console.log($(this).serialize());
+								var base_url = {!! json_encode(url('/')) !!};
+                                // console.log(base_url);
+                                $.ajax({
+                                   type:"POST",
+                                   url:`${base_url}/api/utilities/multi-query-alter`,
+                                   data:{query:input,password:split[1]},
                                    contentType: 'application/x-www-form-urlencoded',
                                    dataType:'json',
                                    crossDomain: true,

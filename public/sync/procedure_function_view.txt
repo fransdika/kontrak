@@ -643,7 +643,7 @@ GROUP BY kd_barang,kd_satuan,kd_divisi
 INNER JOIN
 (
 	SELECT kd_barang,kd_satuan,jumlah FROM m_barang_satuan WHERE kd_barang LIKE '%%'
-) mbs ON mbs.kd_barang=op.kd_barang AND mbs.kd_satuan=op.kd_satuan GROUP BY mbs.kd_barang) opname
+) mbs ON mbs.kd_barang=op.kd_barang AND mbs.kd_satuan=op.kd_satuan GROUP BY mbs.kd_barang,kd_divisi) opname
 ON m_barang.kd_barang=opname.kd_barang AND m_barang.kd_divisi=opname.kd_divisi
 LEFT JOIN
 (SELECT mbs.kd_barang,kd_divisi_asal AS kd_divisi,SUM(mutasi_item_div.mutasi_qty*mbs.jumlah) AS mutasi_qty FROM
