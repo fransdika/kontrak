@@ -204,6 +204,8 @@ Route::post('opname/getData/{company_id}', [SolidReportController::class, 'getLa
 // baru dika
 Route::post('getStatusDb/{company_id}', [SinkronisasiController::class, 'getStatusGenerateDb']);
 Route::post('get-first-sync/{company_id}', [SinkronisasiController::class, 'getFirstSync']);
+Route::post('get-data-transaksi/{company_id}', [SinkronisasiController::class, 'getDataTransaksi']);
+
 // resetKontrak
 Route::post('reset-kontrak', [SinkronisasiController::class, 'resetKontrak']);
 

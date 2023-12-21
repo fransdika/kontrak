@@ -133,9 +133,6 @@ class SinkronisasiController extends Controller
                     }
                 }
             }
-        // echo "<pre>";
-        // print_r($query);
-        // echo "</pre>";
             try {
                 DB::beginTransaction();
                 DB::select("INSERT INTO sync_monitoring(company_id,status) VALUES('$company_id','0') ON DUPLICATE KEY UPDATE status=VALUES(status)");
@@ -613,7 +610,7 @@ class SinkronisasiController extends Controller
         return response()->json($response, 200);        
     }
 
-     function getFirstSync(Request $request, $company_id){
+    function getFirstSync(Request $request, $company_id){
         $file_limit=100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
         $jenis=$request->jenis;
@@ -658,7 +655,7 @@ class SinkronisasiController extends Controller
                 file_put_contents($path, $file_contents, FILE_APPEND | LOCK_EX);
                 $file_path="https://misterkong.com/back_end_mp/".$company_id."_config/data_def/default__".$last_request.".json";
                 $iddle=1;
-            
+
             }else{
                 $data_json=$data;
                 $status=1;
@@ -733,6 +730,27 @@ class SinkronisasiController extends Controller
             $response['error'] = true;
             $response['message'] = 'Cannot Access Database, Unknown company id';
 
+        }
+        return response()->json($response, 200);
+    }
+
+    public function getDataTransaksi(Request $request, $company_id)
+    {
+        $table_master=$request->nama_tabel_master;
+        $condition=[
+            $request->key_update=>$request->val_update
+        ];
+        $data= SinkronisasiModel::getTransactionData($company_id,$table_master,$condition);
+        $response['status'] = 1;
+        $response['error'] = false;
+        if (empty($data['master'])) {
+            $response['jumlah_data']=0;
+            $response['message'] = 'data tidak ditemukan';
+            $response['data']=[];
+        }else{
+            $response['jumlah_data']=count($data['master']);
+            $response['message'] = count($data['master']). ' data ditemukan';
+            $response['data']=$data;
         }
         return response()->json($response, 200);
     }

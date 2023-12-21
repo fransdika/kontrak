@@ -548,10 +548,15 @@ class SolidReportController extends Controller
     }
     public function getLaporanOpname(Request $request,$company_id)
     {
-        $search=$request->search;
+        $search='';
         $order_col=$request->order_col;
         $order_type=$request->order_type;
         $sql_order='';
+
+        if (!empty($request->search)) {
+            $search="WHERE m_barang.kd_barang LIKE '%$request->search%' OR m_barang.nama LIKE '%$request->search%'";
+        }
+
         if (!empty($order_col)) {
             $sql_order=" ORDER BY $order_col $order_type";
         }
@@ -588,7 +593,7 @@ class SolidReportController extends Controller
             'limit'=>$request->order_limit,
             'length'=>$request->order_length,
         ];
-        $data=DB::select($sql,$param);
+        $data=DB::select($sql);
         return response()->json([
             'status' => 1,
             'error' => 200,
