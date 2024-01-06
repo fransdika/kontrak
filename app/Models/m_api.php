@@ -198,9 +198,10 @@ class m_api extends Model
             $feedback[]=$det;
             return $feedback;
         } else {
+            $param_email= $data[0]["email"];
             $num_hp=DB::table("m_userx")->select("kd_user")->where(["email"=>$data[0]["email"]])->count();
 
-            if ($num_hp >= 1) {
+            if ($num_hp >= 1 && $param_email!='-' && !empty($param_email)) {
                 $feedback = null;
                 $det = [
                     "error" => 1,

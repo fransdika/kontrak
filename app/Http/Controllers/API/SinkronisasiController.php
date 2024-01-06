@@ -446,7 +446,7 @@ class SinkronisasiController extends Controller
                 if (in_array(0, $stats)) {
                     DB::commit();
                     $this->empty_folder('del', $company_id, '');
-                    return response()->json([1], 200);
+                    return 1;
                 }
             }
         } catch (\Exception $e) {

@@ -69,7 +69,7 @@ class SinkronisasiModel extends Model
             $detail_data=[];
             if (count($getSelectedPackage)>1) {
                 $table_detail=$getSelectedPackage[1];
-                $detail_data=DB::table("misterkong_$company_id.".$table_master)->where($condition)->get();
+                $detail_data=DB::table("misterkong_$company_id.".$table_master."_detail")->where($condition)->get();
             }
             $master_data=DB::table("misterkong_$company_id.".$table_master)->where($condition)->get();
             $data=[

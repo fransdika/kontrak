@@ -117,12 +117,18 @@ class MkController extends Controller
         $respon = m_api::open_new_store($data);
 
         if ($respon[0]['error'] == 0) {
+            $pos_format_hp=$req->str_ph;
+            if (substr($req->str_ph, 0,3)=='+62') {
+                $pos_format_hp="0".substr($req->str_ph,3);
+            }elseif (substr($req->str_ph, 0,2)=='62') {
+                $pos_format_hp="0".substr($req->str_ph,2);
+            }
             $data_profile = [
                 'nama_toko' => $req->str_nm,
                 'alamat' => $req->str_addr,
                 'kota' => $respon[0]['kota'], // kota
                 'telp' => $this->format_phone($req->str_ph),
-                'hp' => $req->str_ph,
+                'hp' => $pos_format_hp,
                 'email' => $req->str_email,
                 'nama_kontak' => $req->pemilik_rekening,
                 'no_rekening' => $req->no_rek,
