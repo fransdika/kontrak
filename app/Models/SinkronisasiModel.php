@@ -58,6 +58,18 @@ class SinkronisasiModel extends Model
             return 0;
         }
     }
+    public function getPackageItemSatuan($table_name)
+    {
+        $data=[
+            't_penjualan'=>1,
+            't_penjualan_retur'=>1,
+            't_penjualan_order'=>1,
+            't_pembelian'=>1,
+            't_pembelian_order'=>1,
+            't_pembelian_retur'=>1
+        ];
+        return $data[$table_name]??0;
+    }
 
     public function getTransactionData($company_id,$table_name, $condition)
     {
@@ -69,7 +81,16 @@ class SinkronisasiModel extends Model
             $detail_data=[];
             if (count($getSelectedPackage)>1) {
                 $table_detail=$getSelectedPackage[1];
-                $detail_data=DB::table("misterkong_$company_id.".$table_master."_detail")->where($condition)->get();
+                if ($model::getPackageItemSatuan($table_name)) {
+                    $detail_data=DB::table("misterkong_$company_id.".$table_master."_detail AS dt")
+                    ->join("misterkong_".$company_id.".m_barang AS brg", "brg.kd_barang", "=", "dt.kd_barang")
+                    ->join("misterkong_".$company_id.".m_satuan AS stn", "stn.kd_satuan", "=", "dt.kd_satuan")
+                    ->select("dt.*","brg.nama AS barang","stn.nama AS satuan")
+                    ->where($condition)->get();
+
+                }else{
+                    $detail_data=DB::table("misterkong_$company_id.".$table_master."_detail")->where($condition)->get();
+                }
             }
             $master_data=DB::table("misterkong_$company_id.".$table_master)->where($condition)->get();
             $data=[
@@ -110,8 +131,8 @@ class SinkronisasiModel extends Model
             "t_pegawai_lembur" => ["t_pegawai_lembur","t_pegawai_lembur_detail"],
             "t_pegawai_surat_peringatan" => ["t_pegawai_surat_peringatan"],
             "t_pemakaian_barang" => ["t_pemakaian_barang","t_pemakaian_barang_detail"],
-            "t_pembelian" => ["t_pembelian"],
-            "t_pembelian_biaya_angkut" => ["t_pembelian_biaya_angkut","t_pembelian_detail"],
+            "t_pembelian" => ["t_pembelian","t_pembelian_detail"],
+            "t_pembelian_biaya_angkut" => ["t_pembelian_biaya_angkut"],
             "t_pembelian_order" => ["t_pembelian_order","t_pembelian_order_detail"],
             "t_pembelian_order_spare_part" => ["t_pembelian_order_spare_part","t_pembelian_order_spare_part_detail"],
             "t_pembelian_retur" => ["t_pembelian_retur","t_pembelian_retur_detail"],
