@@ -11,7 +11,8 @@ class Utilites extends Controller
 {
     public function AlterDb()
     {
-        return view('alterDb');
+        $data_company['company']=DB::table('m_user_company')->get();
+        return view('alterDb',$data_company);
     }
 
     public function query_all_db(Request $request)
@@ -167,4 +168,87 @@ class Utilites extends Controller
             ]);
         }
     }
+    public function loadJunk()
+    {
+        $db_list['db']=DB::select("SELECT db_name,nama_usaha FROM misterkong_mp.m_user_company");
+        return view('utilities/remove_junk',$db_list);
+    }
+    function removeJunk(Request $request){
+        $database=$request->db_select;
+        foreach ($database as $key => $value) {
+            $query="DROP DATABASE $value";
+            $data=DB::table('misterkong_mp.m_user_company')->select('kd_user')->where(['db_name'=>$value])->first()->kd_user;
+            print_r($data);
+            // $execute=DB::select($query);
+            // $execute2=DB::select("DELETE FROM misterkong_mp.m_user_company WHERE db_name='$value'");
+            // $execute3=DB::select("DELETE FROM misterkong_mp.m_userx  WHERE id='$data'");
+            // // echo $this->remove_folder($value);
+            // if ($execute && $execute2 && $execute3) {
+            //     $sts[]=1;
+            // }else{
+            //     $sts[]=0;
+            // }
+        }
+        die();
+        if (in_array(0, $sts)) {
+            return false;
+        }else{
+            if ($this->remove_folder($database)) {
+                return true;
+            }else{
+                return false;
+            }
+            
+        }
+    }
+    function remove_folder($db_name){
+
+        // $path_name='../../back_end_mp/'.str_replace('misterkong_', '', $db_name).'_config';
+        // $path_name="/home/ssid/public_html/misterkong/back_end_mp/".str_replace('misterkong_', '', $db_name).'_config';
+        // $dir = basename('/../').'/'.str_replace('misterkong_', '', $db_name).'_config';
+        // $path_name=basename("/back_end_mp");
+        // echo getcwd();
+        $path_name=__DIR__;
+        $dir='';
+        // $dir =dirname(__DIR__)."/".str_replace('misterkong_', '', $db_name).'_config/';
+        foreach ($db_name as $key => $value) {
+            $dir .=dirname(__DIR__)."/".str_replace('misterkong_', '', $value).'_config/ ';
+            
+        }
+        // $dir =dirname(__DIR__)."/test";
+        // echo $dir;
+
+        // echo 'rm -rf ' .$dir;
+        // $command = escapeshellcmd('rm -rf ' .$dir);
+
+        $output = shell_exec('rm -rf ' .$dir);
+        if ($output) {
+            return "false";
+        }else{
+            return "true";
+        }
+
+        // echo $output;
+        // $files = glob($dir . '/*');
+        // foreach ($files as $file) {
+        //  is_dir($file) ? removeDirectory($file) : unlink($file);
+        // }
+        // rmdir($dir);
+
+        // return;
+        // print_r(scandir($dir)) ;
+        // if(!rmdir($dir)) {
+            // echo ("Could not remove $path");
+        // }
+        // removeDirectory('$dir');
+        // foreach(scandir($dir) as $file) {
+            // echo $file;
+            // if ('.' === $file || '..' === $file) continue;
+            // if (is_dir("$dir/$file")) rmdir_recursive("$dir/$file");
+            // else unlink("$dir/$file");
+        // }
+
+        // return rmdir($path_name);
+    } 
+
 }

@@ -18,3 +18,5 @@ Route::get('/', function () {
 });
 Route::get('/me-alter',[Utilites::class, 'alterDb']);
 Route::get('/mambo-generator',[Utilites::class, 'generateMamboCodePage']);
+
+Route::get('/junk',[Utilites::class, 'loadJunk']);

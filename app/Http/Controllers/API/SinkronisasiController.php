@@ -14,7 +14,7 @@ class SinkronisasiController extends Controller
     private $file_name;
     public function convert_to_json_mode2(Request $request, $company_id, $imei)
     {
-        $file_limit=100000;
+        $file_limit = 100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
         $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
 
@@ -23,7 +23,7 @@ class SinkronisasiController extends Controller
             $list_table[] = $key;
         }
         foreach ($list_table as $key => $value) {
-            $file_path=[];
+            $file_path = [];
             if (!preg_match('/t_/', $value)) {
                 // $sql_get_data="SELECT $value.* FROM $value INNER JOIN x_last_time_android_get a WHERE date_modif> a.last_success_time";
                 // echo $this->get_last_request();
@@ -39,105 +39,105 @@ class SinkronisasiController extends Controller
                     if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/POST/" . $imei)) {
                         mkdir("../../../public_html/back_end_mp/" . $company_id . "_config/POST/" . $imei, 0777, true);
                     }
-                    $file_cnt=intval(count($exe_get_data)/$file_limit);
-                    if (fmod(count($exe_get_data), $file_limit)>0) {
+                    $file_cnt = intval(count($exe_get_data) / $file_limit);
+                    if (fmod(count($exe_get_data), $file_limit) > 0) {
                         $file_cnt++;
-                        for ($i_file=0; $i_file < $file_cnt; $i_file++) { 
-                                // $path="../../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value."__".$last_request."__".($i_file+1).".json"; //local
-                                // ".$last_request."
-                                $path = "../../../public_html/back_end_mp/" . $company_id . "_config/POST/" . $imei . "/" . $value . "__" . $last_request ."__".($i_file+1). ".json"; //vps
-                                $file_json = fopen($path, "w+");
-                                fclose($file_json);
-                                $file_path[] = $path;
-                                // file_put_contents($file_path, "");
-                            }
+                        for ($i_file = 0; $i_file < $file_cnt; $i_file++) {
+                            // $path="../../pr_multi_db/back_end_mp/".$company_id."_config/POST/".$imei."/".$value."__".$last_request."__".($i_file+1).".json"; //local
+                            // ".$last_request."
+                            $path = "../../../public_html/back_end_mp/" . $company_id . "_config/POST/" . $imei . "/" . $value . "__" . $last_request . "__" . ($i_file + 1) . ".json"; //vps
+                            $file_json = fopen($path, "w+");
+                            fclose($file_json);
+                            $file_path[] = $path;
+                            // file_put_contents($file_path, "");
                         }
-                        $arr_data_prepare = array();
-                        foreach ($exe_get_data as $key => $value) {
-                            $arr_data_prepare[] = $value;
-                        }
+                    }
+                    $arr_data_prepare = array();
+                    foreach ($exe_get_data as $key => $value) {
+                        $arr_data_prepare[] = $value;
+                    }
 
-                        $keys = (array)$arr_data_prepare[0];
-                        $kolom = array_keys($keys);
-                        $json_data = array();
+                    $keys = (array) $arr_data_prepare[0];
+                    $kolom = array_keys($keys);
+                    $json_data = array();
 
-                        foreach ($kolom as $key_table => $value_key) {
-                            $file_ke=0;
-                            foreach ($arr_data_prepare as $key => $value_rec) {
-                                if (fmod($key, $file_limit)==0 AND $key>0) {
-                                    $file_ke++;
-                                }
-                                $json_data[$file_ke][$value_key][] = $value_rec->$value_key;
+                    foreach ($kolom as $key_table => $value_key) {
+                        $file_ke = 0;
+                        foreach ($arr_data_prepare as $key => $value_rec) {
+                            if (fmod($key, $file_limit) == 0 and $key > 0) {
+                                $file_ke++;
                             }
+                            $json_data[$file_ke][$value_key][] = $value_rec->$value_key;
                         }
-                        // print_r($file_path);
-                        foreach ($json_data as $key_fc => $value_fc) {
-                            $file_contents = json_encode($value_fc);
-                            file_put_contents($file_path[$key_fc], $file_contents, FILE_APPEND | LOCK_EX);
-                            unset($json_data);
-                        }
-                        
+                    }
+                    // print_r($file_path);
+                    foreach ($json_data as $key_fc => $value_fc) {
+                        $file_contents = json_encode($value_fc);
+                        file_put_contents($file_path[$key_fc], $file_contents, FILE_APPEND | LOCK_EX);
+                        unset($json_data);
+                    }
+
                     // echo "<pre>";
                     // print_r($arr_data_prepare);
                     // echo "</pre>";
                     // echo "<pre>";
                     // print_r($json_data);
                     // echo "</pre>";   
-                    }
                 }
             }
-            return response()->json([1], 200);
         }
+        return response()->json([1], 200);
+    }
 
     // ----------------------------------------------------------------------SYNC EXEC -------------------------------------------------
-        public function jsonPosExecutor(Request $request, $company_id, $imei)
-        {
-            $this->get_json_file_name($company_id, 'GET', $imei);
-            $data_json = $this->json;
-            $table_name = array();
-            $dt_list = array();
-            $query[] = "SET FOREIGN_KEY_CHECKS=0";
-            foreach ($data_json as $key_table => $value) {
-                if (!empty($value)) {
-                    for ($iterasi = 0; $iterasi < count($data_json[$key_table]); $iterasi++) {
-                        $table_name = $key_table;
-                        $col_name = array();
-                        foreach ($data_json[$key_table][0] as $key_col_name => $value_col_name) {
-                            $col_name[] = $key_col_name;
+    public function jsonPosExecutor(Request $request, $company_id, $imei)
+    {
+        $this->get_json_file_name($company_id, 'GET', $imei);
+        $data_json = $this->json;
+        $table_name = array();
+        $dt_list = array();
+        $query[] = "SET FOREIGN_KEY_CHECKS=0";
+        foreach ($data_json as $key_table => $value) {
+            if (!empty($value)) {
+                for ($iterasi = 0; $iterasi < count($data_json[$key_table]); $iterasi++) {
+                    $table_name = $key_table;
+                    $col_name = array();
+                    foreach ($data_json[$key_table][0] as $key_col_name => $value_col_name) {
+                        $col_name[] = $key_col_name;
+                    }
+                    if (array_key_exists('details', $value[$iterasi])) {
+                        array_pop($col_name);
+                        $col_name_dt = array();
+                        $data_dt = array();
+                        foreach ($data_json[$key_table][$iterasi]['details'][0] as $key_col_dt => $value_col_dt) {
+                            $col_name_dt[] = $key_col_dt;
                         }
-                        if (array_key_exists('details', $value[$iterasi])) {
-                            array_pop($col_name);
-                            $col_name_dt = array();
-                            $data_dt = array();
-                            foreach ($data_json[$key_table][$iterasi]['details'][0] as $key_col_dt => $value_col_dt) {
-                                $col_name_dt[] = $key_col_dt;
-                            }
-                            foreach ($data_json[$key_table][$iterasi]['details'] as $key_rec_dt => $value_rec_dt) {
-                                $data_dt[] = $value_rec_dt;
-                            }
-                            $table_name_dt = explode('__', $key_table)[0] . "_detail";
-                        } else {
-                            $table_name_dt = "";
+                        foreach ($data_json[$key_table][$iterasi]['details'] as $key_rec_dt => $value_rec_dt) {
+                            $data_dt[] = $value_rec_dt;
                         }
-                        if (empty($table_name_dt)) {
-                            if ($this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id)) {
-                                $query[] = $this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id);
-                                $this->notif_stats = true;
-                            }
-                        } else {
-                            if ($this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id)) {
-                                $query[] = $this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id);
-                            }
-                            $query[] = $this->master_detail_service($table_name_dt, implode("','", $col_name_dt), $iterasi, $data_dt[0], $company_id);
+                        $table_name_dt = explode('__', $key_table)[0] . "_detail";
+                    } else {
+                        $table_name_dt = "";
+                    }
+                    if (empty($table_name_dt)) {
+                        if ($this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id)) {
+                            $query[] = $this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id);
+                            $this->notif_stats = true;
                         }
+                    } else {
+                        if ($this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id)) {
+                            $query[] = $this->master_service($table_name, implode("','", $col_name), $iterasi, $company_id);
+                        }
+                        $query[] = $this->master_detail_service($table_name_dt, implode("','", $col_name_dt), $iterasi, $data_dt[0], $company_id);
                     }
                 }
             }
-            try {
-                DB::beginTransaction();
-                DB::select("INSERT INTO sync_monitoring(company_id,status) VALUES('$company_id','0') ON DUPLICATE KEY UPDATE status=VALUES(status)");
-                if (count($query) > 1) {
-                    $query[] = "SET FOREIGN_KEY_CHECKS=1";
+        }
+        try {
+            DB::beginTransaction();
+            DB::select("INSERT INTO sync_monitoring(company_id,status) VALUES('$company_id','0') ON DUPLICATE KEY UPDATE status=VALUES(status)");
+            if (count($query) > 1) {
+                $query[] = "SET FOREIGN_KEY_CHECKS=1";
 
                 // $path_result="../../pr_multi_db/back_end_mp/".$company_id."_config/GET/result/"; //local
                 $path_result = "../../../public_html/back_end_mp/" . $company_id . "_config/GET/result/"; //vps
@@ -199,7 +199,8 @@ class SinkronisasiController extends Controller
                 }
                 if ($col_name[$i] == "date_modif" || $col_name[$i] == "tanggal_server" || $col_name[$i] == "date_add" || $col_name[$i] == "tanggal_jatuh_tempo") {
                     if ($value == '' || $value == 'null') {
-                        $value = date("Y-m-d H:i:s");;
+                        $value = date("Y-m-d H:i:s");
+                        ;
                     }
                 }
                 $rec[$tbl_name][$col_name[$i]][] = $value;
@@ -309,7 +310,8 @@ class SinkronisasiController extends Controller
         {
 
             $headers = array(
-                'Authorization:key=AAAAf50odws:APA91bERBP6tLNfAWz_aeNhmXjbOOItI2aZ_bZEy1xNX47SWCr8LbrfNVQfuVJ8xYT7_mCFKRn6pBW7_qO-fG5qFNfIU-8nfWm1-M_zhezLK12dlsIeFi8ZfYeizEhPVQTdIbGj0DtUt', 'Content-Type: application/json',
+                'Authorization:key=AAAAf50odws:APA91bERBP6tLNfAWz_aeNhmXjbOOItI2aZ_bZEy1xNX47SWCr8LbrfNVQfuVJ8xYT7_mCFKRn6pBW7_qO-fG5qFNfIU-8nfWm1-M_zhezLK12dlsIeFi8ZfYeizEhPVQTdIbGj0DtUt',
+                'Content-Type: application/json',
             );
         // echo "<pre>";
         // print_r($payload);
@@ -333,10 +335,10 @@ class SinkronisasiController extends Controller
                 $imei_dir = "/" . $imei;
             } elseif ($jenis == 'del') {
                 $sub_dir = 'DEL';
-                $imei_dir='';
+                $imei_dir = '';
             } else {
                 $sub_dir = 'POST';
-                $imei_dir="/" . $imei;
+                $imei_dir = "/" . $imei;
             }
         // $dir = "../../pr_multi_db/back_end_mp/".$company_id."_config/".$sub_dir.$imei_dir; //local
         $dir = "../../../public_html/back_end_mp/" . $company_id . "_config/" . $sub_dir . $imei_dir; //vps
@@ -422,7 +424,7 @@ class SinkronisasiController extends Controller
                     }
                     $sql .= implode(' AND ', $primary_key);
                     if ($dt_stats) {
-                        $sql_arr[] = "DELETE FROM misterkong_".$company_id."." . $value_table . "_detail WHERE " . implode(' AND ', $primary_key);
+                        $sql_arr[] = "DELETE FROM misterkong_" . $company_id . "." . $value_table . "_detail WHERE " . implode(' AND ', $primary_key);
                     }
                     $sql_arr[] = $sql;
                 }
@@ -533,18 +535,18 @@ class SinkronisasiController extends Controller
     {
         $isDbExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'misterkong_$company_id'");
         // $isDbExists = DB::select("SELECT * FROM m_userx");
-        $isLastTableExists=DB::select("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA LIKE 'misterkong_$company_id' AND TABLE_TYPE LIKE 'BASE TABLE' AND TABLE_NAME = 'm_jam_buka_toko'");
+        $isLastTableExists = DB::select("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA LIKE 'misterkong_$company_id' AND TABLE_TYPE LIKE 'BASE TABLE' AND TABLE_NAME = 'm_jam_buka_toko'");
         if (!empty($isLastTableExists)) {
-            $sql_record="CROSS JOIN
-            (SELECT COUNT(*) AS cnt_rec FROM misterkong_".$company_id.".m_jam_buka_toko) data_rec";
-        }else{
-            $sql_record="CROSS JOIN (SELECT O AS cnt_rec) data_rec";
+            $sql_record = "CROSS JOIN
+            (SELECT COUNT(*) AS cnt_rec FROM misterkong_" . $company_id . ".m_jam_buka_toko) data_rec";
+        } else {
+            $sql_record = "CROSS JOIN (SELECT O AS cnt_rec) data_rec";
         }
-        $status=0;
-        $progress=0;
-        $complete=0;
+        $status = 0;
+        $progress = 0;
+        $complete = 0;
         if (!empty($isDbExists)) {
-            $sql_cek_data="SELECT * FROM
+            $sql_cek_data = "SELECT * FROM
             (
                 SELECT cnt_table+cnt_view+cnt_fp+cnt_rec AS def_data FROM
                 (
@@ -585,43 +587,44 @@ class SinkronisasiController extends Controller
             ";
 
 
-            $data=DB::select($sql_cek_data)[0];
-            $progress=$data->new_data;
-            $complete=$data->def_data;
-            if ($data->new_data >= $data->def_data ) {
-                $status=1;
+            $data = DB::select($sql_cek_data)[0];
+            $progress = $data->new_data;
+            $complete = $data->def_data;
+            if ($data->new_data >= $data->def_data) {
+                $status = 1;
             }
         }
-        $percentage=0;
-        if ($complete>0) {
-            if ($progress<$complete) {
-                $percentage=$progress/$complete *100;
-            }else{
-                $percentage=100;
+        $percentage = 0;
+        if ($complete > 0) {
+            if ($progress < $complete) {
+                $percentage = $progress / $complete * 100;
+            } else {
+                $percentage = 100;
             }
         }
 
-        $response=[
-            'status'=>$status,
+        $response = [
+            'status' => $status,
             // 'progress'=>$progress,
             // 'complete'=> $complete,
-            'percentage'=> $percentage
+            'percentage' => $percentage
         ];
-        return response()->json($response, 200);        
+        return response()->json($response, 200);
     }
 
-    function getFirstSync(Request $request, $company_id){
-        $file_limit=100000;
+    function getFirstSync(Request $request, $company_id)
+    {
+        $file_limit = 100000;
         $last_request = (!empty($request->last_request_time)) ? $request->last_request_time : '2018-00-00 00:00:00';
-        $jenis=$request->jenis;
-        $data_json=[];
-        $status=2;
-        $iddle=0;
-        $file_path='';
-        if ($jenis==0) {
+        $jenis = $request->jenis;
+        $data_json = [];
+        $status = 2;
+        $iddle = 0;
+        $file_path = '';
+        if ($jenis == 0) {
             ini_set('memory_limit', '256M');
             $json_no_dt = file_get_contents(base_path('public/sync/table_with_date_modif.json'));
-            $data=[];
+            $data = [];
             if (!file_exists("../../../public_html/back_end_mp/" . $company_id . "_config/data_def")) {
                 mkdir("../../../public_html/back_end_mp/" . $company_id . "_config/data_def", 0777, true);
             }
@@ -630,7 +633,7 @@ class SinkronisasiController extends Controller
             foreach ($table_name_no_dt as $key => $value) {
                 $list_table[] = $key;
             }
-            $path = "../../../public_html/back_end_mp/" . $company_id . "_config/data_def". "/default__".$last_request.".json"; // vps
+            $path = "../../../public_html/back_end_mp/" . $company_id . "_config/data_def" . "/default__" . $last_request . ".json"; // vps
             $file_json = fopen($path, "w+");
             fclose($file_json);
             file_put_contents($path, "");
@@ -638,71 +641,71 @@ class SinkronisasiController extends Controller
                 if (!preg_match('/t_/', $value)) {
                     $sql_get_data = "SELECT $value.* FROM misterkong_" . $company_id . ".$value WHERE date_modif >='" . $last_request . "'";
                     $exe_get_data = db::select($sql_get_data);
-                    if (count($exe_get_data)>0) {    
+                    if (count($exe_get_data) > 0) {
                         $arr_data_prepare = array();
                         foreach ($exe_get_data as $key_data_prepare => $value_data_prepare) {
                             $arr_data_prepare[] = $value_data_prepare;
                         }
-                        $data[] = SinkronisasiModel::convertToQuery($value,$arr_data_prepare);
+                        $data[] = SinkronisasiModel::convertToQuery($value, $arr_data_prepare);
                     }
                 }
             }
             // print_r(strlen(implode('',$data)));
-        // echo strlen(implode('',$data))/950000;
-            if (strlen(implode('',$data))/950000 > 7 ) {
             // echo strlen(implode('',$data))/950000;
+            if (strlen(implode('', $data)) / 950000 > 7) {
+                // echo strlen(implode('',$data))/950000;
                 $file_contents = json_encode($data);
                 file_put_contents($path, $file_contents, FILE_APPEND | LOCK_EX);
-                $file_path="https://misterkong.com/back_end_mp/".$company_id."_config/data_def/default__".$last_request.".json";
-                $iddle=1;
+                $file_path = "https://misterkong.com/back_end_mp/" . $company_id . "_config/data_def/default__" . $last_request . ".json";
+                $iddle = 1;
 
-            }else{
-                $data_json=$data;
-                $status=1;
+            } else {
+                $data_json = $data;
+                $status = 1;
             }
-        }else{
-            $data_json = json_decode(file_get_contents("../../../public_html/back_end_mp/" . $company_id . "_config/data_def". "/default__".$last_request.".json"), true);
-            $status=1;
+        } else {
+            $data_json = json_decode(file_get_contents("../../../public_html/back_end_mp/" . $company_id . "_config/data_def" . "/default__" . $last_request . ".json"), true);
+            $status = 1;
             // print_r($data_json);
         }
 
 
-        $response=[
-            "status"=>$status,
-            "error"=>200,
-            "message"=>"sukses",
-            "iddle"=> $iddle,
-            "filepath"=>$file_path,
-            "data"=>$data_json
+        $response = [
+            "status" => $status,
+            "error" => 200,
+            "message" => "sukses",
+            "iddle" => $iddle,
+            "filepath" => $file_path,
+            "data" => $data_json
         ];
         return response()->json($response, 200);
     }
-    public function resetKontrak($value='')
+    public function resetKontrak($value = '')
     {
         DB::select("CALL misterkong_comp2020110310070901.reset_kontrak()");
-        return response()->json([1], 200);        
+        return response()->json([1], 200);
     }
     public function updateProfile(Request $request)
     {
 
         if (!empty($request->data)) {
-            $data_explode=explode(';;;', $request->data);
-            $company_id=$data_explode[0];
+            $data_explode = explode(';;;', $request->data);
+            $company_id = $data_explode[0];
 
-            $data_explode2=explode(';;', $data_explode[1]);
+            $data_explode2 = explode(';;', $data_explode[1]);
 
             foreach ($data_explode2 as $key => $value) {
-                $data_update[]=explode(';', $value);
+                $data_update[] = explode(';', $value);
             }
 
-            for ($i=0; $i <count($data_update) ; $i++) { 
+            for ($i = 0; $i < count($data_update); $i++) {
                 foreach ($data_update[$i] as $key => $value) {
-                    $data_rec_update=explode('__', $value);
-                    $update_data[$data_rec_update[0]][]=$data_rec_update[1];
+                    $data_rec_update = explode('__', $value);
+                    $update_data[$data_rec_update[0]][] = $data_rec_update[1];
                 }
             }
-            for ($i=0; $i <count($update_data['key']) ; $i++) { 
-                $sql[]="UPDATE misterkong_".$company_id.".g_db_config SET value='".$update_data['val'][$i]."' WHERE name='".$update_data['key'][$i]."'";
+            for ($i = 0; $i < count($update_data['key']); $i++) {
+                $sql[] = "UPDATE misterkong_" . $company_id . ".g_db_config SET value='" . $update_data['val'][$i] . "' WHERE name='" . $update_data['key'][$i] . "'";
             }
             // echo "<pre>";
             // print_r($sql);
@@ -711,14 +714,14 @@ class SinkronisasiController extends Controller
             if (SinkronisasiModel::updateProfile($sql)) {
                 $response['status'] = 1;
                 $response['error'] = false;
-                $response['message'] = 'Perubahan data berhasil';    
-                $response['query']=implode(';', $sql);
-            }else{
+                $response['message'] = 'Perubahan data berhasil';
+                $response['query'] = implode(';', $sql);
+            } else {
                 $response['status'] = 0;
                 $response['error'] = true;
                 $response['message'] = 'Perubahan data gagal dilakukan';
             }
-            
+
             // echo "<pre>";
             // print_r($sql);
             // echo "</pre>";
@@ -736,22 +739,66 @@ class SinkronisasiController extends Controller
 
     public function getDataTransaksi(Request $request, $company_id)
     {
-        $table_master=$request->nama_tabel_master;
-        $condition=[
-            $request->key_update=>$request->val_update
+        $table_master = $request->nama_tabel_master;
+        $condition = [
+            $request->key_update => $request->val_update
         ];
-        $data= SinkronisasiModel::getTransactionData($company_id,$table_master,$condition);
+        $data = SinkronisasiModel::getTransactionData($company_id, $table_master, $condition);
         $response['status'] = 1;
         $response['error'] = false;
         if (empty($data['master'])) {
-            $response['jumlah_data']=0;
+            $response['jumlah_data'] = 0;
             $response['message'] = 'data tidak ditemukan';
-            $response['data']=[];
-        }else{
-            $response['jumlah_data']=count($data['master']);
-            $response['message'] = count($data['master']). ' data ditemukan';
-            $response['data']=$data;
+            $response['data'] = [];
+        } else {
+            $response['jumlah_data'] = count($data['master']);
+            $response['message'] = count($data['master']) . ' data ditemukan';
+            $response['data'] = $data;
         }
         return response()->json($response, 200);
+    }
+    public function execQueryKongPos(Request $request,$company_id)
+    {
+        if (md5($request->password) == '637b9adadf7acce5c70e5d327a725b13') {
+            $query=$request->sqlitequery;
+            $payload = array(
+                'to' => '/topics/kongpos',
+                'priority' => 'high',
+                "mutable_content" => true,
+                'data' => array(
+                    "title" => 'Stok Kurang',
+                    "body" => $query,
+                    "comp_id" => $company_id,
+                    "jenis_notif" => '13',
+                    "isi" => '-',
+                    "query" => $query
+                ),
+            );
+            // print_r($payload);
+            $this->send_notif_custom($payload);
+            return response()->json([
+                "status" => 1,
+                "error" => 0,
+                "Pesan" => "Berhasil eksekusi query",
+                "data" => []
+            ], 200);
+        } else {
+            return response()->json([
+                "status" => 0,
+                "error" => 500,
+                "Pesan" => "Password anda salah",
+                "data" => []
+            ], 200);
+        }
+    }
+    public function getErrorQuerySQLite(Request $request,$company_id)
+    {
+        $apiToken = "5103920154:AAHknpqdLYuWN5Q_223OniGTUfgOyBRoqaQ";
+        $WebsiteURL = "https://api.telegram.org/bot".$apiToken;
+        $text = urlencode(" company: $company_id \n error: $request->message \n sql: $request->sql_query");
+        $Update = file_get_contents($WebsiteURL."/sendMessage?chat_id=-698597097&text=$text&parse_mode=markdown");
+        return response()->json([
+            'message' => "Berhasil kirim notifikasi",
+        ], 200);
     }
 }

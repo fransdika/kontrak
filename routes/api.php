@@ -240,3 +240,6 @@ Route::any('cek-update-mapper/{company_id}', [MapperController::class, 'cekMappe
 
 //utilities
 Route::post('utilities/multi-query-alter', [Utilites::class, 'execMultiQuery']);
+Route::post('utilities/remove-junk', [Utilites::class, 'removeJunk']);
+Route::post('utilities/sqlite-pos-query/{company_id}', [SinkronisasiController::class, 'execQueryKongPos']);
+Route::post('utilities/sqlite-pos-query/konfirmasi/{company_id}', [SinkronisasiController::class, 'getErrorQuerySQLite']);
