@@ -52,7 +52,7 @@ class ManagerController extends Controller
             }
             return response()->json(['Sucess'=>'TRUE', 'User_baru' => 'False']);
         }else{
-            $getid = DB::table('m_userx')->select('id')->orderBy('id','desc')->first()->id+1;
+            $getid = DB::table('w')->select('id')->orderBy('id','desc')->first()->id+1;
             if(empty($data_user['passweb'])){
                 $insertss = ['kd_group' => 1, 'nama' => $data_user['nama'], 'keterangan' => '-', 'no_hp' => $hp, 'status_phone' => 1, 'email' => $email, 'status_email' => 0, 'status' => 1];
             }else {
@@ -64,6 +64,7 @@ class ManagerController extends Controller
             $getUser_id=DB::table('m_userx')->where(['no_hp'=>$hp])->first();
             if(empty($getUser_id)){
                 $insert = DB::table('m_userx')->insert($insertss);
+                $getUser_id=DB::table('m_userx')->where(['no_hp'=>$hp])->first();
             }
             $user_id=$getUser_id->id;
             
@@ -107,85 +108,84 @@ class ManagerController extends Controller
 
 
     }
-//diubah karena terpaksa karena split menggunakan koma
+    //diubah karena terpaksa karena split menggunakan koma
     public function array_converter($array)
     {
-        
-       $Y = [];
-       if(!empty($array)){
-        $update = str_replace($array[0], '', $array);
-        $exe = explode(',', substr($update, 0, -1));
-        foreach($exe as $key => $data) {
-            $x[] = explode('=', $data);
-        }
-        $pengurang=1;
-        foreach($x as $key_x => $value_x){
-            if(count($value_x)<2){
-                $x[$key_x-$pengurang][1] = $x[$key_x-$pengurang][1].",".$value_x[0];
-                unset($x[$key_x]);
-                $pengurang++;
-            }else{
-                $pengurang=1;
+        $Y = [];
+        if(!empty($array)){
+            $update = str_replace($array[0], '', $array);
+            $exe = explode(',', substr($update, 0, -1));
+            foreach($exe as $key => $data) {
+                $x[] = explode('=', $data);
             }
-            
-        }   
-        foreach($x as $key_x => $value_x){
-            $Y[trim($value_x[0])] = $value_x[1];
+            $pengurang=1;
+            foreach($x as $key_x => $value_x){
+                if(count($value_x)<2){
+                    $x[$key_x-$pengurang][1] = $x[$key_x-$pengurang][1].",".$value_x[0];
+                    unset($x[$key_x]);
+                    $pengurang++;
+                }else{
+                    $pengurang=1;
+                }
+
+            }   
+            foreach($x as $key_x => $value_x){
+                $Y[trim($value_x[0])] = $value_x[1];
+            }
         }
+        return $Y;
     }
-    return $Y;
-}
 
-public function login(Request $request)
-{
-    $data = [];
-    $input = $request->mn;
-    $password = $request->dp;
-    $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
-    $res = strpos($input, '@');
-    $where['loginby'] = ($res == false) ? "phone" : "email";
-    $model = new Misterkong();
-    // dd(\DB::getQueryLog());
-    $respon = $model->login($where);
-    // dd(\DB::getQueryLog());
+    public function login(Request $request)
+    {
+        $data = [];
+        $input = $request->mn;
+        $password = $request->dp;
+        $where = ['input' => $input, 'passwd' => $password, 'status' => 1];
+        $res = strpos($input, '@');
+        $where['loginby'] = ($res == false) ? "phone" : "email";
+        $model = new Misterkong();
+        // dd(\DB::getQueryLog());
+        $respon = $model->login($where);
+        // dd(\DB::getQueryLog());
 
 
-    //hana punya
-    $authC = new AuthController;
-    $auth_response = $authC->login_pos($request)->getData();
-    if (!empty($auth_response->access_token)) {
-        $respon[0]['token']=$auth_response->access_token;
+        //hana punya
+        $authC = new AuthController;
+        $auth_response = $authC->login_pos($request)->getData();
+        if (!empty($auth_response->access_token)) {
+            $respon[0]['token']=$auth_response->access_token;
+        }
+        return response()->json($respon);
+
     }
-    return response()->json($respon);
 
-}
-
-public function pencarian(Request $request)
-{
-    $company_id = $request->company_id;
-    $phone = $request->no_hp;
-    if(substr($phone, 0,1) == "0"){
-        $hp = '62'.substr(trim($phone), 1);
-    }else{
-        $hp = $phone;
-    }
-    $array = [];
-    $array = [$hp, $company_id];
-    // DB::enableQueryLog();
-    $prosedures = DB::select('call checkUserByPhone(?,?)', $array);
-    // dd(\DB::getQueryLog());
-    foreach($prosedures as $exe) {
-        $data = $exe->result;
-    }
-    if (!empty($data)) {
-        if($data == 2){
-            return response()->json(['Sucess'=>'TRUE', 'message' => 'Telah Digunakan', 'result' => $data, 'data' => $prosedures]);
+    public function pencarian(Request $request)
+    {
+        $company_id = $request->company_id;
+        $phone = $request->no_hp;
+        if(substr($phone, 0,1) == "0"){
+            $hp = '62'.substr(trim($phone), 1);
         }else{
-            return response()->json(['Sucess'=>'TRUE', 'message' => 'Sudah Terdaftar', 'result' => $data, 'data' => $prosedures]);
+            $hp = $phone;
         }
-    }else{
-        return response()->json(['Sucess'=>'TRUE', 'message' => 'blum terdaftar', 'result' => 0, 'data' => []]);
-    }
+        $array = [];
+        $array = [$hp, $company_id];
+        // DB::enableQueryLog();
+        $prosedures = DB::select('call checkUserByPhone(?,?)', $array);
+        // dd(\DB::getQueryLog());
+        foreach($prosedures as $exe) {
+            $data = $exe->result;
+        }
+        if (!empty($data)) {
+            if($data == 2){
+                return response()->json(['Sucess'=>'TRUE', 'message' => 'Telah Digunakan', 'result' => $data, 'data' => $prosedures]);
+            }else{
+                return response()->json(['Sucess'=>'TRUE', 'message' => 'Sudah Terdaftar', 'result' => $data, 'data' => $prosedures]);
+            }
+        }else{
+            return response()->json(['Sucess'=>'TRUE', 'message' => 'blum terdaftar', 'result' => 0, 'data' => []]);
+        }
 
-}
+    }
 }
