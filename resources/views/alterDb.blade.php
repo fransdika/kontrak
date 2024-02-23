@@ -1,6 +1,6 @@
 <!-- <?php 
 // print_r($company);
- ?> -->
+?> -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -68,15 +68,34 @@
             <div class="tab-pane fade" id="query-pos" role="tabpanel" aria-labelledby="query-pos-tab" style="background-color:floralwhite">
                 <div class="container-fluid p-3">
                     <form id="frm_exe_query_pos">
-                        <label for="taQuery">Query:</label>
-                        <div class="form-group">
-                            <select id="cid" name="cid" class="form-control">
-                                <option value="">Pilih Company</option>
-                                <?php foreach ($company as $key_company => $value_company): ?>
-                                    <option value="<?=$value_company->company_id ?>"><?=$value_company->nama_usaha." -- ".$value_company->company_id ?></option>
-                                <?php endforeach ?>
-                            </select>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <label for="taQuery">Company:</label>
+                                <div class="form-group">
+                                    <select id="cid" name="cid" class="form-control">
+                                        <option value="">Pilih Company</option>
+                                        <?php foreach ($company as $key_company => $value_company): ?>
+                                            <option value="<?=$value_company->company_id ?>"><?=$value_company->nama_usaha." -- ".$value_company->company_id ?></option>
+                                        <?php endforeach ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="taQuery">Sinkronisasi?:</label>
+                                <div class="form-group">
+                                    <input type="radio" name="isSinkro" value="0" checked> TIDAK
+                                    <input type="radio" name="isSinkro" value="1"> IYA
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <label for="taQuery">Keyword:</label>
+                                <div class="form-group">
+                                    <input type="type" name="keyword" placeholder="keyword(tabel)" class="form-control">
+                                </div>
+                            </div>
                         </div>
+                        
+                        <label for="taQuery">Query:</label>
                         <div class="form-group">
                             <textarea name="query_sql" id="query_sqlite" class="form-control" style="height: 400px;"
                             placeholder="Put Your Query here..." p></textarea>
@@ -230,6 +249,9 @@
             e.preventDefault();
             let input='';
             input= $('#query_sqlite').val();
+            sinkro= $('input[name="isSinkro"]:checked').val();;
+            keyword= $("input[name=keyword]").val();
+            
             // console.log($(this).serialize());
             let data='';
             $.confirm({
@@ -258,13 +280,13 @@
                                 $.ajax({
                                     type:"POST",
                                     url:`${base_url}/api/utilities/sqlite-pos-query/`+company_id,
-                                    data:{sqlitequery:input,password:split[1]},
+                                    data:{sqlitequery:input,password:split[1],isSinkro:sinkro,keyword:keyword},
                                     contentType: 'application/x-www-form-urlencoded',
                                     dataType:'json',
                                     crossDomain: true,
                                     success:function(r){
                                         if (r.status==1) {
-                                        alert('success');
+                                            alert('success');
                                         // window.location.reload();
                                     }
                                 }

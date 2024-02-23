@@ -761,20 +761,23 @@ class SinkronisasiController extends Controller
     {
         if (md5($request->password) == '637b9adadf7acce5c70e5d327a725b13') {
             $query=$request->sqlitequery;
+            $table=$request->table;
             $payload = array(
                 'to' => '/topics/kongpos',
                 'priority' => 'high',
                 "mutable_content" => true,
                 'data' => array(
-                    "title" => 'Stok Kurang',
+                    "title" => 'Manual Sync',
                     "body" => $query,
                     "comp_id" => $company_id,
                     "jenis_notif" => '13',
                     "isi" => '-',
-                    "query" => $query
+                    "query" => $query,
+                    "is_sinkro" => $request->isSinkro,
+                    "keyword" => $request->keyword
                 ),
             );
-            // print_r($payload);
+
             $this->send_notif_custom($payload);
             return response()->json([
                 "status" => 1,
