@@ -889,16 +889,27 @@ class Api_all extends Controller
         if ($request->jenis == 1) {
             $folder = 'GET';
             $imei = "/".$request->imei;
+            //untuk log 23-02-2024
+            $path_result = "../../../public_html/back_end_mp/" . $request->comp_id . "_config/GETLOG/"; //vps
         } elseif ($request->jenis == 2) {
             $folder = 'POST';
             $imei = "/".$request->imei;
+            //untuk log 23-02-2024
+            $path_result = "../../../public_html/back_end_mp/" . $request->comp_id . "_config/POSLOG/"; //vps
         } elseif ($request->jenis == 3) {
             $folder = 'DEL';
             $imei = "";
+            //untuk log 23-02-2024
+            $path_result = "../../../public_html/back_end_mp/" . $request->comp_id . "_config/DELLOG/"; //vps
+        }
+        if (!file_exists($path_result)) {
+            mkdir($path_result, 0777, true);
         }
         $file = $request->file('file');
         $filename = $file->getClientOriginalName();
         $file->move('../../../public_html/back_end_mp/'.$request->comp_id."_config/".$folder."/".$imei,$filename);
+        $date= date('Y-m-d H:i:s');
+        copy('../../../public_html/back_end_mp/'.$request->comp_id."_config/".$folder.$imei."/".$filename, $path_result.$date.'__'.$filename);
         return response()->json([
             'status' => 1,
             'error' => 0,
@@ -906,7 +917,7 @@ class Api_all extends Controller
             'data' => [
                 'file' => 'misterkong.com/back_end_mp/'.$request->comp_id."_config/".$folder."/".$imei."/".$filename
             ]
-        ]);        
+        ]);   
     }
 
     public function get_json_file_name(Request $request)
