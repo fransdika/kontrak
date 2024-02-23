@@ -52,7 +52,7 @@ class ManagerController extends Controller
             }
             return response()->json(['Sucess'=>'TRUE', 'User_baru' => 'False']);
         }else{
-            $getid = DB::table('w')->select('id')->orderBy('id','desc')->first()->id+1;
+            $getid = DB::table('m_userx')->select('id')->orderBy('id','desc')->first()->id+1;
             if(empty($data_user['passweb'])){
                 $insertss = ['kd_group' => 1, 'nama' => $data_user['nama'], 'keterangan' => '-', 'no_hp' => $hp, 'status_phone' => 1, 'email' => $email, 'status_email' => 0, 'status' => 1];
             }else {
