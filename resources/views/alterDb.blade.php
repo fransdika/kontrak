@@ -69,7 +69,7 @@
                 <div class="container-fluid p-3">
                     <form id="frm_exe_query_pos">
                         <div class="row">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <label for="taQuery">Company:</label>
                                 <div class="form-group">
                                     <select id="cid" name="cid" class="form-control">
@@ -87,22 +87,39 @@
                                     <input type="radio" name="isSinkro" value="1"> IYA
                                 </div>
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-3">
                                 <label for="taQuery">Keyword:</label>
                                 <div class="form-group">
                                     <input type="type" name="keyword" placeholder="keyword(tabel)" class="form-control">
                                 </div>
                             </div>
+                            <!-- <div class="col-md-2">
+                                <label for="taQuery">Reff:</label>
+                                <div class="form-group">
+                                    <input type="type" name="reff" placeholder="no_refferensi" class="form-control">
+                                </div>
+                            </div> -->
+                            <div class="col-md-3">
+                                <label for="taQuery">Has Detail?:</label>
+                                <div class="form-group">
+                                    <input type="radio" name="has_detail" value="0" checked> TIDAK
+                                    <input type="radio" name="has_detail" value="1"> IYA
+                                </div>
+                            </div>
                         </div>
                         
-                        <label for="taQuery">Query:</label>
                         <div class="form-group">
-                            <textarea name="query_sql" id="query_sqlite" class="form-control" style="height: 400px;"
+                            <label for="taQuery">Query:</label>
+                            <textarea name="query_sql" id="query_sqlite" class="form-control" style="height: 200px;"
                             placeholder="Put Your Query here..." p></textarea>
-                            <div class="form-group">
-                            </div>
-                            <input type="submit" name="btn_exe" value="Execute Query" class="btn btn-success"
-                            style="float: right;">
+                        </div>
+                        <div class="form-group">
+                            <label for="taQuery">Sync Condition:</label>
+                            <textarea name="where_sql" id="where-sql" class="form-control" style="height: 200px;"
+                            placeholder="Put Your Query here..." p></textarea>
+                        </div>
+                        <div class="form-group">
+                            <input type="submit" name="btn_exe" value="Execute Query" class="btn btn-success"style="float: right;">
                         </div>
                     </form>
                 </div>
@@ -145,15 +162,15 @@
 								var base_url = {!! json_encode(url('/')) !!};
                                 // console.log(base_url);
                                 $.ajax({
-                                   type:"POST",
-                                   url:`${base_url}/api/query-all`,
-                                   data:{query_sql:input,password:split[1]},
-                                   contentType: 'application/x-www-form-urlencoded',
-                                   dataType:'json',
-                                   crossDomain: true,
-                                   success:function(r){
-                                      if (r.status==1) {
-                                         alert('success');
+                                 type:"POST",
+                                 url:`${base_url}/api/query-all`,
+                                 data:{query_sql:input,password:split[1]},
+                                 contentType: 'application/x-www-form-urlencoded',
+                                 dataType:'json',
+                                 crossDomain: true,
+                                 success:function(r){
+                                  if (r.status==1) {
+                                   alert('success');
 											// window.location.reload();
 										}
 									}
@@ -249,8 +266,10 @@
             e.preventDefault();
             let input='';
             input= $('#query_sqlite').val();
+            condition= $('#where-sql').val();
             sinkro= $('input[name="isSinkro"]:checked').val();;
             keyword= $("input[name=keyword]").val();
+            has_detail= $('input[name="has_detail"]:checked').val();;
             
             // console.log($(this).serialize());
             let data='';
@@ -280,7 +299,7 @@
                                 $.ajax({
                                     type:"POST",
                                     url:`${base_url}/api/utilities/sqlite-pos-query/`+company_id,
-                                    data:{sqlitequery:input,password:split[1],isSinkro:sinkro,keyword:keyword},
+                                    data:{sqlitequery:input,password:split[1],isSinkro:sinkro,keyword:keyword,has_detail:has_detail,where:condition},
                                     contentType: 'application/x-www-form-urlencoded',
                                     dataType:'json',
                                     crossDomain: true,

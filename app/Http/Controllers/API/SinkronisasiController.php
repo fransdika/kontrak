@@ -653,7 +653,7 @@ class SinkronisasiController extends Controller
             // print_r(strlen(implode('',$data)));
             // echo strlen(implode('',$data))/950000;
             if (strlen(implode('', $data)) / 950000 > 7) {
-                // echo strlen(implode('',$data))/950000;
+                echo strlen(implode('',$data))/950000;
                 $file_contents = json_encode($data);
                 file_put_contents($path, $file_contents, FILE_APPEND | LOCK_EX);
                 $file_path = "https://misterkong.com/back_end_mp/" . $company_id . "_config/data_def/default__" . $last_request . ".json";
@@ -774,10 +774,12 @@ class SinkronisasiController extends Controller
                     "isi" => '-',
                     "query" => $query,
                     "is_sinkro" => $request->isSinkro,
-                    "keyword" => $request->keyword
+                    "table" => $request->keyword,
+                    "has_detail" => $request->has_detail,
+                    "where" => $request->where,
                 ),
             );
-
+            // print_r($payload);
             $this->send_notif_custom($payload);
             return response()->json([
                 "status" => 1,
