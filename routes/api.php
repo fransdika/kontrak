@@ -231,6 +231,8 @@ Route::get('jenis_bahan/show', [Api_all::class, 'show_jenis_bahan']);
 
 //export
 Route::get('export/{jenis_laporan}', [ExportController::class, 'exportExcel']);
+Route::any('export-laporan', [ExportController::class, 'export2']);
+Route::any('export-laporan-custom/{jenis}', [ExportController::class, 'desktopExportCustom']);
 
 //kongmapper
 Route::get('mapper/kontrak/{other_cid}', [MapperController::class, 'getDataKontrakMapper']);
