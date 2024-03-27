@@ -116,7 +116,7 @@ class ExportController extends Controller
 
     public function desktopExportCustom(Request $request, $jenis)
     {
-        
+
         $json = json_decode($request->getContent(), true);
         // Define the headings for the Excel file
         $barangHeadings = array_keys($json[0]);
@@ -190,7 +190,74 @@ class ExportController extends Controller
         }    
     }
 
+    public function kongposExportWA(Request $request,$jenis)
+    {
+        $company_id=$request->company_id;
 
+        $pesan='';
+        $nama_file='';
+        $headers='';
+        $data=[];
+        if ($jenis=='stok-minus') {
+            $nama_file="stock-minus.xlsx";
+            $pesan="Hi%20Kak,%20stokmu%20ada%20yang%20minus%20nih,mohon%20dicek%20ya%20cek%20disini%20ya%0A%0Ahttps://misterkong.com/back_end_mp/laporan/".$nama_file;
+            $headers='Daftar Barang stok minus';
+            $data=DB::table('misterkong_comp2020110310015601.m_agama')->get();
+        }elseif($jenis=='hutang-supplier'){
+            $nama_file="Hutang-supplier.xlsx";
+            $pesan="Hai%20kak%20kita%20punya%20catatan%20kecil%20nih,%20ada%20beberapa%20tagihan%20yang%20harus%20dilunasi%20ke%20supplier%kakak.%20Cek%20daftarnya%20disini%20ya%0A%0Ahttps://misterkong.com/back_end_mp/laporan/".$nama_file;
+            $headers='Daftar Tagihan Supplier';
+            $data=DB::table('misterkong_comp2020110310015601.m_agama')->get();
+        }elseif($jenis=='rekap-penjualan-harian'){
+            $yesterday=date('Y-m-d',strtotime(' - 1 days'));
+            $nama_file="Rekap-penjualan_$yesterday.xlsx";
+            $pesan="Hai%20kak%20ini%20ya%20rekapan%20penjualan%20kakak%20untuk%20tanggal%20$yesterday%0A%0Ahttps://misterkong.com/back_end_mp/laporan/".$nama_file;
+            $headers="Rekap Penjualan $yesterday";
+            $data=DB::table('misterkong_comp2020110310015601.m_agama')->get();
+        }
+
+        
+        $headings = array_keys((array)$data[0]);
+
+        $excelData=[];
+        foreach ($data as $key_data => $value_data) {
+            foreach ($value_data as $key_val => $value_val) {
+                $excelData[$key_data][]=$value_val;
+            }
+        }
+
+
+        $spreadsheet = new Spreadsheet();
+
+        // Add data to the first worksheet
+        $worksheet1 = $spreadsheet->getActiveSheet();
+        $worksheet1->getStyle('A')->getNumberFormat()->setFormatCode('@');
+        $worksheet1->getColumnDimension('A')->setWidth(20);
+        $worksheet1->getColumnDimension('B')->setWidth(45);
+
+        $worksheet1->setTitle('Stok');
+        $worksheet1->setCellValue('A1', $headers); // Add title to the worksheet
+        $worksheet1->mergeCells('A1:C1'); // Merge cells for title
+        
+
+        $worksheet1->fromArray([$headings], null, 'A2');
+        $worksheet1->fromArray($excelData, null, 'A3');
+
+        // Create a new instance of the Xlsx writer class
+        $writer = new Xlsx($spreadsheet);
+        // Set the headers for the Excel file download
+        // $nama_file="limited_stocks.xlsx";
+
+        
+
+        $path = "../../../public_html/back_end_mp/laporan/".$nama_file;
+        $writer->save($path);
+
+
+        // $this->callAPIWhatsapp($pesan);
+        return response()->json(['message' => 'Excel file created and saved.']);
+
+    }
     
 
 }
